@@ -21,6 +21,7 @@ const allowedOrigins = [
   "https://mmmk-frontend.vercel.app",
   "https://mmmk-frontend-git-local-devyansh-grovers-projects.vercel.app",
   "https://mmmk-wood-org.onrender.com",
+  "https://mmmk-wode.vercel.app/",
   "http://localhost:5173",
   "http://localhost:5174",
   "https://mmk.projects.codenap.in",
@@ -94,7 +95,13 @@ app.use(
       return callback(new Error(`Origin ${origin} not allowed by CORS`));
     },
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization", "Cookie", "X-Checkout-Verification", "X-Language"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "Cookie",
+      "X-Checkout-Verification",
+      "X-Language",
+    ],
     credentials: true,
     optionsSuccessStatus: 200,
   }),
@@ -137,6 +144,8 @@ app.use(errorHandler);
 const PORT = process.env.PORT || 8000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-  const { startAbandonedCartScheduler } = require("./services/abandonedCartService");
+  const {
+    startAbandonedCartScheduler,
+  } = require("./services/abandonedCartService");
   startAbandonedCartScheduler();
 });

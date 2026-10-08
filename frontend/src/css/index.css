@@ -1,0 +1,422 @@
+/* @import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap"); */
+
+/* Fonts moved to index.html to prevent render blocking */
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html {
+  scroll-behavior: smooth;
+}
+
+:root {
+  --primary-dark: rgb(40, 18, 11);
+  --primary-light: rgb(139, 94, 75);
+  --primary-olive: rgb(99, 93, 74);
+  --primary-gray: rgb(230, 255, 204);
+  --primary-beige: rgb(222, 215, 209);
+}
+
+* {
+  font-family: 'Belleza', Sans;
+}
+
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none;
+}
+
+/* Ensure Swiper slides align correctly */
+.swiper-wrapper {
+  display: flex !important;
+  align-items: center !important;
+  /* gap: 90px !important;
+  margin-left: 40px !important; */
+}
+
+.my-carousel {
+  scrollbar-width: none; /* Firefox */
+  border-radius: 20px;
+}
+
+@media screen and (max-width: 768px) {
+  /* .my-carousel {
+  scrollbar-width: none; 
+  border-radius: 20px;
+  width: 200px;
+  margin-left: 28vw;
+} */
+}
+
+.my-carousel::-webkit-scrollbar {
+  display: none; /* Webkit */
+}
+
+@media screen and (min-width: 1279px) and (max-width: 1590px) {
+  .swiper-wrapper {
+    display: flex !important;
+    align-items: center !important;
+    /* gap: 90px !important; */
+    margin-left: 40px !important;
+  }
+}
+
+@media screen and (min-width: 1024px) and (max-width: 1278px) {
+  .swiper-wrapper {
+    display: flex !important;
+    align-items: center !important;
+    /* gap: 145px !important; */
+    margin-left: 67px !important;
+  }
+}
+
+@media screen and (min-width: 767px) and (max-width: 1023px) {
+  .swiper-wrapper {
+    display: flex !important;
+    align-items: center !important;
+    /* gap: 110px !important; */
+    margin-left: 55px !important;
+  }
+}
+
+.swiper-slide {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.swiper-slide-custom {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-shrink: 0;
+  /* Prevent shrinking of slides */
+}
+
+.ant-rate-star {
+  background-color: rgba(0, 0, 0, 1);
+  /* Black background for all stars */
+  border-radius: 50%;
+  /* Optional: Make it look better */
+  padding: 2px;
+  /* Optional: Space around stars */
+}
+
+.ant-rate-star .anticon {
+  color: gray;
+  /* Default unselected star color */
+}
+
+.ant-rate-star.ant-rate-star-full .anticon {
+  color: yellow;
+  /* Selected star color */
+}
+
+/* ################################# */
+/* Global */
+/* ################################# */
+.text-1st {
+  font-size: 16px;
+}
+
+.text-2nd {
+  font-size: 18px;
+}
+
+.text-3rd {
+  font-size: 22px;
+}
+
+.text-4th {
+  font-size: 26px;
+}
+
+.text-5th {
+  font-size: 30px;
+}
+
+.text-6th {
+  font-size: 34px;
+}
+
+.text-6th {
+  font-size: 37px;
+}
+
+.text-7th {
+  font-size: 47px;
+}
+
+.text-8th {
+  font-size: 57px;
+}
+
+.text-9th {
+  font-size: 67px;
+}
+
+.brown-bg {
+  background: #28120b;
+}
+
+.brown-text {
+  color: #28120b;
+}
+
+.brown-border {
+  border-color: #28120b;
+}
+
+/* global */
+.swiper-pagination .swiper-pagination-bullet-active {
+  background: white;
+}
+
+.videoSwiper .swiper {
+  overflow-y: unset !important;
+}
+
+/* Custom style to remove background color from page number items */
+.ant-pagination-item {
+  background-color: transparent !important;
+  border: none;
+  color: white;
+}
+
+.ant-pagination-item a {
+  color: white;
+  /* Set the text color to white */
+}
+
+.ant-pagination-item-active {
+  background-color: transparent !important;
+  /* Remove background color from active item */
+}
+
+@media (max-width: 991px) {
+  .text-1st {
+    font-size: 16px;
+  }
+
+  .text-2nd {
+    font-size: 20px;
+  }
+
+  .text-3rd {
+    font-size: 18px;
+  }
+
+  .text-4th {
+    font-size: 16px;
+  }
+
+  .text-5th {
+    font-size: 20px;
+  }
+
+  .text-6th {
+    font-size: 24px;
+  }
+
+  .text-6th {
+    font-size: 27px;
+  }
+
+  .text-7th {
+    font-size: 37px;
+  }
+
+  .text-8th {
+    font-size: 47px;
+  }
+
+  .text-9th {
+    font-size: 57px;
+  }
+}
+
+.rtl-progress .bg-gray-900 {
+  transform: scaleX(-1);
+  transform-origin: right;
+}
+
+/* styles.css */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-content {
+  background-color: white;
+  padding: 20px;
+  border-radius: 8px;
+  width: 400px;
+}
+
+button {
+  margin-top: 10px;
+}
+
+.badge {
+  display: inline-block;
+  background-color: #007bff;
+  color: white;
+  padding: 5px 10px;
+  border-radius: 20px;
+  margin-top: 5px;
+}
+
+.stickyBar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  backdrop-filter: blur(8px);
+  background: linear-gradient(to bottom, hsl(var(--background)), transparent);
+}
+.stickyBarBottom {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  backdrop-filter: blur(8px);
+  background: linear-gradient(to top, hsl(var(--background)), transparent);
+}
+
+/* CKEditor Content Styles */
+.ck-content {
+  line-height: 1.6;
+  word-wrap: break-word;
+}
+
+.ck-content strong {
+  font-weight: bold;
+}
+
+.ck-content em {
+  font-style: italic;
+}
+
+.ck-content u {
+  text-decoration: underline;
+}
+
+.ck-content s {
+  text-decoration: line-through;
+}
+
+.ck-content p {
+  margin: 0 0 1em 0;
+}
+
+.ck-content ul,
+.ck-content ol {
+  margin: 1em 0;
+  padding-left: 2em;
+  list-style-position: outside;
+}
+
+.ck-content ul {
+  list-style-type: disc;
+}
+
+.ck-content ol {
+  list-style-type: decimal;
+}
+
+.ck-content li {
+  margin: 0.5em 0;
+  display: list-item;
+}
+
+.ck-content ul ul {
+  list-style-type: circle;
+}
+
+.ck-content ul ul ul {
+  list-style-type: square;
+}
+
+.ck-content h1,
+.ck-content h2,
+.ck-content h3,
+.ck-content h4,
+.ck-content h5,
+.ck-content h6 {
+  font-weight: bold;
+  margin: 1em 0 0.5em 0;
+}
+
+.ck-content h1 {
+  font-size: 2em;
+}
+.ck-content h2 {
+  font-size: 1.5em;
+}
+.ck-content h3 {
+  font-size: 1.25em;
+}
+.ck-content h4 {
+  font-size: 1.1em;
+}
+.ck-content h5 {
+  font-size: 1em;
+}
+.ck-content h6 {
+  font-size: 0.9em;
+}
+
+.ck-content blockquote {
+  border-left: 4px solid #ccc;
+  margin: 1em 0;
+  padding-left: 1em;
+  font-style: italic;
+}
+
+.ck-content a {
+  color: #0066cc;
+  text-decoration: underline;
+}
+
+.ck-content a:hover {
+  text-decoration: none;
+}
+
+.video-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(3px);
+}
+
+@keyframes marqueeCustom {
+  0% {
+    transform: translate3d(0%, 0, 0);
+  }
+  100% {
+    transform: translate3d(-50%, 0, 0);
+  }
+}
+
+.animate-marquee-custom {
+  animation: marqueeCustom var(--marquee-duration, 20s) linear infinite;
+}
+
+@media (max-width: 767px) {
+  .animate-marquee-custom {
+    animation-duration: var(--marquee-duration-mobile, 10s) !important;
+  }
+}
+
+.animate-marquee-custom:hover {
+  animation-play-state: paused;
+}
+

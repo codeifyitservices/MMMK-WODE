@@ -1,0 +1,60 @@
+{
+  "products": [
+    {
+      "id": "prod_1001",
+      "productName": "Premium Cotton Oversized T-Shirt",
+      "productDescription": "High-quality oversized cotton t-shirt with breathable fabric, ideal for daily wear.",
+      "productDimensions": {
+        "length": 75,
+        "width": 55,
+        "height": 3,
+        "weight": 0.35
+      },
+      "filterNames": [
+        "Size",
+        "Color",
+        "Fit"
+      ],
+      "currency": "AED",
+      "countryOfOrigin": "United Arab Emirates",
+      "category": "Apparel",
+      "brand": "UrbanFlex",
+      "variants": [
+        {
+          "id": "var_1001_black_m",
+          "sku": "UF-TSHIRT-BLK-M",
+          "price": 89.99,
+          "barcode": "8901234567890",
+          "filterValues": [
+            "M",
+            "Black",
+            "Oversized"
+          ],
+          "images": [
+            "https://example.com/images/tshirt-black-front.jpg",
+            "https://example.com/images/tshirt-black-back.jpg"
+          ],
+          "discount": 10,
+          "discountType": "percentage"
+        },
+        {
+          "id": "var_1002_white_l",
+          "sku": "UF-TSHIRT-WHT-L",
+          "price": 89.99,
+          "barcode": "8901234567891",
+          "filterValues": [
+            "L",
+            "White",
+            "Oversized"
+          ],
+          "images": [
+            "https://example.com/images/tshirt-white-front.jpg",
+            "https://example.com/images/tshirt-white-back.jpg"
+          ],
+          "discount": 15,
+          "discountType": "amount"
+        }
+      ]
+    }
+  ]
+}

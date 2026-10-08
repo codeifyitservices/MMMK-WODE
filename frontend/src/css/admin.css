@@ -1,0 +1,271 @@
+/* @import url("https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&display=swap"); */
+
+@import url('https://fonts.googleapis.com/css2?family=Belleza&family=Josefin+Sans:ital,wght@0,100..700;1,100..700&family=Mochiy+Pop+One&family=Poppins:ital,wght@0,100;0,200;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  font-family: 'Poppins', sans-serif;
+}
+
+.scrollbar-hidden::-webkit-scrollbar {
+  display: none;
+}
+
+/* Ensure Swiper slides align correctly */
+.swiper-wrapper {
+  display: flex !important;
+  align-items: center !important;
+  /* gap: 90px !important;
+  margin-left: 40px !important; */
+}
+
+@media screen and (min-width: 1279px) and (max-width: 1590px) {
+  .swiper-wrapper {
+    display: flex !important;
+    align-items: center !important;
+    gap: 90px !important;
+    margin-left: 40px !important;
+  }
+}
+
+@media screen and (min-width: 1024px) and (max-width: 1278px) {
+  .swiper-wrapper {
+    display: flex !important;
+    align-items: center !important;
+    gap: 145px !important;
+    margin-left: 67px !important;
+  }
+}
+
+@media screen and (min-width: 767px) and (max-width: 1023px) {
+  .swiper-wrapper {
+    display: flex !important;
+    align-items: center !important;
+    gap: 110px !important;
+    margin-left: 55px !important;
+  }
+}
+
+.swiper-slide {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.swiper-slide-custom {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-shrink: 0;
+  /* Prevent shrinking of slides */
+}
+
+.ant-rate-star {
+  background-color: rgba(0, 0, 0, 1);
+  /* Black background for all stars */
+  border-radius: 50%;
+  /* Optional: Make it look better */
+  padding: 2px;
+  /* Optional: Space around stars */
+}
+
+.ant-rate-star .anticon {
+  color: gray;
+  /* Default unselected star color */
+}
+
+.ant-rate-star.ant-rate-star-full .anticon {
+  color: yellow;
+  /* Selected star color */
+}
+
+/* ################################# */
+/* Global */
+/* ################################# */
+.text-1st {
+  font-size: 16px;
+}
+
+.text-2nd {
+  font-size: 18px;
+}
+
+.text-3rd {
+  font-size: 22px;
+}
+
+.text-4th {
+  font-size: 26px;
+}
+
+.text-5th {
+  font-size: 30px;
+}
+
+.text-6th {
+  font-size: 34px;
+}
+
+.text-6th {
+  font-size: 37px;
+}
+
+.text-7th {
+  font-size: 47px;
+}
+
+.text-8th {
+  font-size: 57px;
+}
+
+.text-9th {
+  font-size: 67px;
+}
+
+.brown-bg {
+  background: #28120b;
+}
+
+.brown-text {
+  color: #28120b;
+}
+
+.brown-border {
+  border-color: #28120b;
+}
+
+/* global */
+.swiper-pagination .swiper-pagination-bullet-active {
+  background: white;
+}
+
+.videoSwiper .swiper {
+  overflow-y: unset !important;
+}
+
+/* Custom style to remove background color from page number items */
+.ant-pagination-item {
+  background-color: transparent !important;
+  border: none;
+  color: white;
+}
+
+.ant-pagination-item a {
+  color: white;
+  /* Set the text color to white */
+}
+
+.ant-pagination-item-active {
+  background-color: transparent !important;
+  /* Remove background color from active item */
+}
+
+@media (max-width: 991px) {
+  .text-1st {
+    font-size: 16px;
+  }
+
+  .text-2nd {
+    font-size: 20px;
+  }
+
+  .text-3rd {
+    font-size: 18px;
+  }
+
+  .text-4th {
+    font-size: 16px;
+  }
+
+  .text-5th {
+    font-size: 20px;
+  }
+
+  .text-6th {
+    font-size: 24px;
+  }
+
+  .text-6th {
+    font-size: 27px;
+  }
+
+  .text-7th {
+    font-size: 37px;
+  }
+
+  .text-8th {
+    font-size: 47px;
+  }
+
+  .text-9th {
+    font-size: 57px;
+  }
+}
+
+.rtl-progress .bg-gray-900 {
+  transform: scaleX(-1);
+  transform-origin: right;
+}
+
+/* styles.css */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-content {
+  background-color: white;
+  padding: 20px;
+  border-radius: 8px;
+  width: 400px;
+}
+
+button {
+  margin-top: 10px;
+}
+
+.badge {
+  display: inline-block;
+  background-color: #007bff;
+  color: white;
+  padding: 5px 10px;
+  border-radius: 20px;
+  margin-top: 5px;
+}
+
+.stickyBar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  backdrop-filter: blur(8px);
+  background: linear-gradient(to bottom, hsl(var(--background)), transparent);
+}
+.stickyBarBottom {
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
+  backdrop-filter: blur(8px);
+  background: linear-gradient(to top, hsl(var(--background)), transparent);
+}
+
+.ant-menu-dark .ant-menu-item-selected,
+.ant-menu-dark .ant-menu-submenu-selected > .ant-menu-submenu-title,
+.ant-menu .ant-menu-item-selected,
+.ant-menu .ant-menu-submenu-selected > .ant-menu-submenu-title {
+  color: #fff !important;
+}
+
+.ant-menu-dark .ant-menu-item-selected,
+.ant-menu .ant-menu-item-selected {
+  background-color: #423816 !important; /* Optional: keep your primary color */
+}

@@ -1,0 +1,56 @@
+[2026-05-05T06:52:18.853Z] [INFO] Starting sync for product: 69f499a85a0ce0f13422a50a
+[2026-05-05T06:52:19.314Z] [INFO] Syncing 10 products to Jura API... | Data: {"productCount":10,"sampleImage":"https://node.projects.codenap.in/mmk/uploads/files-1777637792100.jpg"}
+[2026-05-05T06:52:19.425Z] [INFO] Jura Sync Response: | Data: {"success":true,"message":"products will be added shortly"}
+[2026-05-05T06:52:36.018Z] [INFO] Starting sync for product: 69f49a6a5a0ce0f13422a5e4
+[2026-05-05T06:52:36.211Z] [INFO] Syncing 10 products to Jura API... | Data: {"productCount":10,"sampleImage":"https://node.projects.codenap.in/mmk/uploads/files-1777637986560.jpg"}
+[2026-05-05T06:52:36.473Z] [INFO] Jura Sync Response: | Data: {"success":true,"message":"products will be added shortly"}
+[2026-05-05T06:56:14.995Z] [INFO] Starting sync for product: 69f4985f5a0ce0f13422a3fe
+[2026-05-05T06:56:15.202Z] [INFO] Syncing 10 products to Jura API... | Data: {"productCount":10,"sampleImage":"https://node.projects.codenap.in/mmk/uploads/files-1777637415543.jpg"}
+[2026-05-05T06:56:15.427Z] [INFO] Jura Sync Response: | Data: {"success":true,"message":"products will be added shortly"}
+[2026-05-05T06:56:58.605Z] [INFO] Starting sync for product: 69f1e0d6d1b308864fb9c239
+[2026-05-05T06:56:58.763Z] [INFO] Syncing 10 products to Jura API... | Data: {"productCount":10,"sampleImage":"https://node.projects.codenap.in/mmk/uploads/image-1777460336731.jpg"}
+[2026-05-05T06:56:58.910Z] [INFO] Jura Sync Response: | Data: {"success":true,"message":"products will be added shortly"}
+[2026-05-05T06:57:08.888Z] [INFO] Starting sync for product: 69f1e10cd1b308864fb9c273
+[2026-05-05T06:57:09.046Z] [INFO] Syncing 10 products to Jura API... | Data: {"productCount":10,"sampleImage":"https://node.projects.codenap.in/mmk/uploads/image-1777460355430.jpg"}
+[2026-05-05T06:57:09.239Z] [INFO] Jura Sync Response: | Data: {"success":true,"message":"products will be added shortly"}
+[2026-05-05T06:57:49.117Z] [INFO] Starting sync for product: 69f5dd69cdc8fd9bd37eca90
+[2026-05-05T06:57:49.297Z] [INFO] Syncing 10 products to Jura API... | Data: {"productCount":10,"sampleImage":"https://node.projects.codenap.in/mmk/uploads/files-1777720678317.jpg"}
+[2026-05-05T06:57:49.439Z] [INFO] Jura Sync Response: | Data: {"success":true,"message":"products will be added shortly"}
+[2026-05-05T06:58:00.624Z] [INFO] Starting sync for product: 69f5ddeccdc8fd9bd37ecb8e
+[2026-05-05T06:58:00.789Z] [INFO] Syncing 10 products to Jura API... | Data: {"productCount":10,"sampleImage":"https://node.projects.codenap.in/mmk/uploads/files-1777720789429.jpg"}
+[2026-05-05T06:58:00.949Z] [INFO] Jura Sync Response: | Data: {"success":true,"message":"products will be added shortly"}
+[2026-05-05T06:58:08.364Z] [INFO] Starting sync for product: 69f5de47cdc8fd9bd37ecbde
+[2026-05-05T06:58:08.717Z] [INFO] Syncing 10 products to Jura API... | Data: {"productCount":10,"sampleImage":"https://node.projects.codenap.in/mmk/uploads/files-1777720885721.jpg"}
+[2026-05-05T06:58:08.854Z] [INFO] Jura Sync Response: | Data: {"success":true,"message":"products will be added shortly"}
+[2026-05-05T06:58:28.826Z] [INFO] Starting sync for product: 69ef60705f9f6f03b48d592e
+[2026-05-05T06:58:29.000Z] [INFO] Syncing 11 products to Jura API... | Data: {"productCount":11,"sampleImage":"https://node.projects.codenap.in/mmk/uploads/image-1777451284834.png"}
+[2026-05-05T06:58:29.490Z] [INFO] Jura Sync Response: | Data: {"success":true,"message":"products will be added shortly"}
+[2026-05-05T07:03:30.206Z] [INFO] Starting manual sync for 12 products by name.
+[2026-05-05T07:03:30.533Z] [ERROR] Error in manual sync products to Jura: | Data: Schema hasn't been registered for model "Category".
+Use mongoose.model(name, schema)
+[2026-05-05T07:04:21.388Z] [INFO] Starting manual sync for 12 products by name.
+[2026-05-05T07:04:21.564Z] [INFO] Found 10 products matching the criteria.
+[2026-05-05T07:04:22.531Z] [INFO] Sending manual sync of 10 products to Jura API... | Data: {"productCount":10,"sampleImage":"https://node.projects.codenap.in/mmk/uploads/image-1777018042995.jpg"}
+[2026-05-05T07:04:22.739Z] [INFO] Manual Jura Sync Response: | Data: {"success":true,"message":"products will be added shortly"}
+[2026-05-05T07:06:47.085Z] [INFO] Starting manual sync for 2 products by name.
+[2026-05-05T07:06:47.401Z] [INFO] Found 2 products matching the criteria.
+[2026-05-05T07:06:47.460Z] [INFO] Sending manual sync of 2 products to Jura API... | Data: {"productCount":2,"sampleImage":"https://node.projects.codenap.in/mmk/uploads/image-1777460355430.jpg"}
+[2026-05-05T07:06:47.630Z] [INFO] Manual Jura Sync Response: | Data: {"success":true,"message":"products will be added shortly"}
+[2026-06-02T10:51:11.114Z] [INFO] Starting sync for product: 690b41c0b9a79dc584c33342
+[2026-06-02T10:51:11.228Z] [INFO] Syncing 1 products to Jura API... | Data: {"productCount":1,"sampleImage":"https://node.projects.codenap.in/mmk/uploads/image-1762345408788.jpg"}
+[2026-06-02T10:51:11.362Z] [INFO] Jura Sync Response: | Data: {"success":true,"message":"products will be added shortly"}
+[2026-06-02T11:33:27.607Z] [INFO] Starting sync for product: 690b41c0b9a79dc584c33342
+[2026-06-02T11:33:27.768Z] [INFO] Syncing 1 products to Jura API... | Data: {"productCount":1,"sampleImage":"https://node.projects.codenap.in/mmk/uploads/image-1762345408788.jpg"}
+[2026-06-02T11:33:28.077Z] [INFO] Jura Sync Response: | Data: {"success":true,"message":"products will be added shortly"}
+[2026-06-03T08:47:36.545Z] [INFO] Starting sync for product: 693966026a638b1a4e4af62c
+[2026-06-03T08:47:36.661Z] [INFO] Syncing 1 products to Jura API... | Data: {"productCount":1,"sampleImage":"https://node.projects.codenap.in/mmk/uploads/files-1777713060407.jpg"}
+[2026-06-03T08:47:36.862Z] [INFO] Jura Sync Response: | Data: {"success":true,"message":"products will be added shortly"}
+[2026-06-03T09:56:19.324Z] [INFO] Starting sync for product: 694846e6bcd195be3ac1ffd7
+[2026-06-03T09:56:19.455Z] [INFO] Syncing 1 products to Jura API... | Data: {"productCount":1,"sampleImage":"https://node.projects.codenap.in/mmk/uploads/files-1777634955455.jpg"}
+[2026-06-03T09:56:19.676Z] [INFO] Jura Sync Response: | Data: {"success":true,"message":"products will be added shortly"}
+[2026-06-09T05:34:02.743Z] [INFO] Starting sync for product: 690e2c8c41439090cbba97f9
+[2026-06-09T05:34:02.857Z] [INFO] Syncing 1 products to Jura API... | Data: {"productCount":1,"sampleImage":"https://node.projects.codenap.in/mmk/uploads/image-1762536588680.jpg"}
+[2026-06-09T05:34:03.140Z] [INFO] Jura Sync Response: | Data: {"success":true,"message":"products will be added shortly"}
+[2026-06-09T05:34:32.748Z] [INFO] Starting sync for product: 690e2c8c41439090cbba97f9
+[2026-06-09T05:34:32.864Z] [INFO] Syncing 1 products to Jura API... | Data: {"productCount":1,"sampleImage":"https://node.projects.codenap.in/mmk/uploads/image-1762536588680.jpg"}
+[2026-06-09T05:34:32.972Z] [INFO] Jura Sync Response: | Data: {"success":true,"message":"products will be added shortly"}

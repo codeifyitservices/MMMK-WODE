@@ -1,0 +1,33 @@
+{
+  "dependencies": {
+    "axios": "^1.10.0",
+    "bcryptjs": "^2.4.3",
+    "codex": "^0.2.3",
+    "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
+    "country-state-city": "^3.2.1",
+    "dayjs": "^1.11.13",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-rate-limit": "^8.5.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.5.2",
+    "multer": "^1.4.5-lts.1",
+    "nodemailer": "^6.10.0",
+    "nodemon": "^3.1.4",
+    "sharp": "^0.34.5",
+    "stripe": "^17.6.0"
+  },
+  "name": "mmmk",
+  "version": "1.0.0",
+  "main": "app.js",
+  "scripts": {
+    "start": "nodemon app.js",
+    "test": "node tests/run-upload-product-checks.js && node tests/run-order-sync-checks.js",
+    "test:checkout": "node tests/run-checkout-calculator-checks.js",
+    "backfill:thumbnails": "node scripts/backfillProductThumbnails.js"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": ""
+}

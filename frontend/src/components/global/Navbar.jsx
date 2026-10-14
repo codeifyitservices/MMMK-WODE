@@ -53,7 +53,7 @@ export default function Navbar() {
         onClose={() => updateUtils({ isSearchOpen: false })}
       />
 
-      <nav className={`absolute left-0 w-full z-50 transition-all duration-300 ${showTopStrip ? 'top-12' : 'top-0'}`}>
+      <nav className={`absolute left-0 w-full z-50 transition-all duration-300 ${showTopStrip ? 'top-0 md:top-12' : 'top-0'}`}>
         <Container>
 
           {/* ── Mobile (< md) ── */}
@@ -82,7 +82,7 @@ export default function Navbar() {
                   width="52"
                   height="52"
                   decoding="async"
-                  className="w-13 h-13 object-contain"
+                  className="w-[52px] h-[52px] object-contain"
                   style={{ filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.6))' }}
                 />
               </Link>
@@ -140,12 +140,6 @@ export default function Navbar() {
                 </Link>
               </div>
             </div>
-
-            {/* Row 2: language + currency */}
-            <div className="flex items-center justify-center gap-4 py-1.5">
-              <LanguageDropdown />
-              <CurrencyDropdown />
-            </div>
           </div>
 
           {/* ── Desktop (>= md) ── */}
@@ -183,8 +177,10 @@ export default function Navbar() {
               className="flex items-center gap-4 z-10 shrink-0 mr-6 lg:mr-12 text-white"
               style={{ filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.9))' }}
             >
-              <LanguageDropdown />
-              <CurrencyDropdown />
+              <div className="hidden lg:flex items-center gap-4">
+                <LanguageDropdown />
+                <CurrencyDropdown />
+              </div>
               <button
                 onClick={() => updateUtils({ isSearchOpen: true })}
                 type="button"

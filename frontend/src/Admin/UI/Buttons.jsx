@@ -1,5 +1,6 @@
 import { Button } from 'antd';
 import {
+  LuDownload,
   LuEye,
   LuPencil,
   LuPlus,
@@ -90,3 +91,23 @@ export const RefreshButton = ({ children, onClick, isLoading = false }) => {
     </CommonButton>
   );
 };
+
+export const ExportButton = ({
+  children = 'Export CSV',
+  onClick,
+  isLoading = false,
+  ...props
+}) => {
+  return (
+    <CommonButton
+      icon={<LuDownload />}
+      title="Export CSV"
+      onClick={onClick}
+      loading={isLoading}
+      {...props}
+    >
+      {children}
+    </CommonButton>
+  );
+};
+

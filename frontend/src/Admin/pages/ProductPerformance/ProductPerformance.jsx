@@ -17,7 +17,7 @@ import {
   LuShoppingCart,
   LuTrendingUp,
   LuDollarSign,
-  LuLayers,
+  LuAward,
 } from 'react-icons/lu';
 import dayjs from 'dayjs';
 import PageTitle from '../../UI/PageTitle';
@@ -72,10 +72,21 @@ export default function ProductPerformance() {
   });
 
   const summary = data?.summary || {
+    totalProducts: 0,
     totalUnitsSold: 0,
     totalRevenue: 0,
     validOrdersCount: 0,
+    topProduct: null,
   };
+
+  const formatProductName = (name) => {
+    if (!name) return '—';
+    if (typeof name === 'object') {
+      return name.en || Object.values(name)[0] || '—';
+    }
+    return name;
+  };
+  const topProductName = formatProductName(summary.topProduct?.productName);
 
   const mostSoldData = data?.mostSold || [];
   const highestRevenueData = data?.highestRevenue || [];
@@ -289,33 +300,96 @@ export default function ProductPerformance() {
       {isLoading ? (
         <Loading />
       ) : (
-        <>
-          {/* Summary Metric Cards */}
-          <div className="grid lg:grid-cols-3 sm:grid-cols-2 grid-cols-1 gap-3 mb-6">
-            <SummaryCard
-              title="Total Units Sold"
-              icon={<LuShoppingCart size={22} color="rgb(137, 54, 99)" />}
-              value={Number(summary.totalUnitsSold || 0).toLocaleString()}
-              suffix="Units"
-              bgColor="rgba(213, 240, 175, 0.5)"
-            />
-            <SummaryCard
-              title="Total Product Revenue"
-              icon={<LuCreditCard size={22} color="rgb(143, 221, 33)" />}
-              value={formatPrice(summary.totalRevenue || 0, 'AED')}
-              suffix=""
-              bgColor="rgba(186, 237, 248, 0.5)"
-            />
-            <SummaryCard
-              title="Valid Orders Contributing"
-              icon={<LuLayers size={22} color="rgb(246, 170, 28)" />}
-              value={Number(summary.validOrdersCount || 0).toLocaleString()}
-              suffix="Orders"
-              bgColor="rgba(250, 230, 117, 0.5)"
-            />
+        <div className="space-y-6">
+          {/* 4 KPI Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+            {/* KPI 1: Total Products */}
+            <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+                  Total Products
+                </span>
+                <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
+                  <LuBox size={20} />
+                </div>
+              </div>
+              <div className="mt-3">
+                <div className="text-2xl xl:text-3xl font-bold text-gray-900 tracking-tight">
+                  {Number(summary.totalProducts || 0).toLocaleString()}
+                </div>
+                <p className="text-xs text-gray-500 mt-1 mb-0">
+                  Products with recorded sales
+                </p>
+              </div>
+            </div>
+
+            {/* KPI 2: Total Units Sold */}
+            <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+                  Total Units Sold
+                </span>
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
+                  <LuShoppingCart size={20} />
+                </div>
+              </div>
+              <div className="mt-3">
+                <div className="text-2xl xl:text-3xl font-bold text-gray-900 tracking-tight">
+                  {Number(summary.totalUnitsSold || 0).toLocaleString()}
+                </div>
+                <p className="text-xs text-gray-500 mt-1 mb-0">
+                  Items ordered in period
+                </p>
+              </div>
+            </div>
+
+            {/* KPI 3: Total Revenue */}
+            <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+                  Total Revenue
+                </span>
+                <div className="w-10 h-10 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-600">
+                  <LuCreditCard size={20} />
+                </div>
+              </div>
+              <div className="mt-3">
+                <div className="text-2xl xl:text-3xl font-bold text-gray-900 tracking-tight">
+                  {formatPrice(summary.totalRevenue || 0)}
+                </div>
+                <p className="text-xs text-gray-500 mt-1 mb-0">
+                  Historical sales revenue
+                </p>
+              </div>
+            </div>
+
+            {/* KPI 4: Top Product */}
+            <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+                  Top Product
+                </span>
+                <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600">
+                  <LuAward size={20} />
+                </div>
+              </div>
+              <div className="mt-3">
+                <div
+                  className="text-lg xl:text-xl font-bold text-gray-900 tracking-tight truncate"
+                  title={topProductName}
+                >
+                  {topProductName}
+                </div>
+                <p className="text-xs text-gray-500 mt-1 mb-0 truncate">
+                  {summary.topProduct
+                    ? `${Number(summary.topProduct.unitsSold || 0).toLocaleString()} units sold`
+                    : 'No sales recorded'}
+                </p>
+              </div>
+            </div>
           </div>
 
-          {/* Table Container with Metric Toggle and Pagination */}
+          {/* Single Full-Width Table with Full Pagination */}
           <div className="p-4 bg-white shadow-md rounded-lg border border-gray-100 overflow-x-auto">
             {/* Header with Segmented Toggle */}
             <div className="flex sm:flex-row flex-col sm:items-center justify-between gap-3 pb-3 mb-4 border-b border-gray-100">
@@ -422,27 +496,9 @@ export default function ProductPerformance() {
               }}
             />
           </div>
-        </>
+        </div>
       )}
     </div>
   );
 }
 
-const SummaryCard = ({ title, icon, value, suffix, bgColor = '#aaa' }) => {
-  return (
-    <div className="p-4 border rounded-lg shadow-md card relative overflow-hidden bg-white">
-      <div
-        className="rotate-45 h-full w-[200%] z-0 absolute top-0 left-0"
-        style={{ background: bgColor }}
-      />
-      <div className="flex items-center gap-4 justify-between relative z-10">
-        <h3 className="font-medium text-gray-700 m-0 text-sm">{title}</h3>
-        {icon}
-      </div>
-      <p className="flex items-end gap-2 relative z-10 mt-2 mb-0">
-        <strong className="text-2xl font-bold text-gray-900">{value}</strong>
-        {suffix && <span className="text-sm text-gray-500">{suffix}</span>}
-      </p>
-    </div>
-  );
-};

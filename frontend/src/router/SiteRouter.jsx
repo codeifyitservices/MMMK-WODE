@@ -17,6 +17,7 @@ const ForgetPassword = lazy(() => import('../pages/ForgetPassword').catch(() => 
 const NewPassword = lazy(() => import('../pages/NewPassword').catch(() => { window.location.reload(); }));
 const ProductListing = lazy(() => import('../pages/ProductListing').catch(() => { window.location.reload(); }));
 const ProductDetails = lazy(() => import('../pages/ProductDetails').catch(() => { window.location.reload(); }));
+const ProductReviewsPage = lazy(() => import('../pages/ProductReviewsPage').catch(() => { window.location.reload(); }));
 const ShoppingCart = lazy(() => import('../pages/ShoppingCart').catch(() => { window.location.reload(); }));
 const Checkout = lazy(() => import('../pages/Checkout').catch(() => { window.location.reload(); }));
 const ThankYou = lazy(() => import('../pages/ThankYou').catch(() => { window.location.reload(); }));
@@ -71,6 +72,30 @@ export default function SiteRouter() {
             element={
               <Suspense fallback={<SiteLoading />}>
                 <ProductDetails />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/product-details/:id/reviews"
+            element={
+              <Suspense fallback={<SiteLoading />}>
+                <ProductReviewsPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/product_details/:id"
+            element={
+              <Suspense fallback={<SiteLoading />}>
+                <ProductDetails />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/product_details/:id/reviews"
+            element={
+              <Suspense fallback={<SiteLoading />}>
+                <ProductReviewsPage />
               </Suspense>
             }
           />

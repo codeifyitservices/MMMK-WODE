@@ -4,15 +4,18 @@ import { Button, message, Modal, Popconfirm, Table, Tooltip } from 'antd';
 import { DeleteOutlined } from '@ant-design/icons';
 import { getAllReview, deleteReview } from '../../../apis/admin/review';
 import PageTitle from '../../UI/PageTitle';
-import { DeleteButton, RefreshButton } from '../../UI/Buttons';
+import { AddButton, DeleteButton, EditButton, RefreshButton } from '../../UI/Buttons';
 import SearchInTable from '../../UI/SearchInTable';
 import { LuStar } from 'react-icons/lu';
 import { useGlobalContext } from '../../../context/GlobalProvider';
 import { confirmDelete } from '../../UI/Modals';
 import { tablePageSizes } from '../../../utils/staticData';
+import ReviewModal from './ReviewModal';
 
 const ReviewPage = () => {
   const { screenSizeFactor } = useGlobalContext();
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingReview, setEditingReview] = useState(null);
   const [search, setSearch] = useState({ searchKey: null, searchValue: null });
   const [pagination, setPagination] = useState({
     pageSize: 10,
@@ -65,7 +68,7 @@ const ReviewPage = () => {
         dataIndex: 'user',
         key: 'user',
         align: 'center',
-        render: (user) => user?.firstName || <span className="text-gray-400 italic">Deleted User</span>,
+        render: (user, record) => user?.firstName || record.reviewerName || <span className="text-gray-400 italic">Admin Review</span>,
       },
       {
         title: 'Review',
@@ -77,7 +80,7 @@ const ReviewPage = () => {
             type="link"
             onClick={() =>
               Modal.info({
-                title: 'Review by ' + (record.user?.firstName || 'Deleted User'),
+                title: 'Review by ' + (record.user?.firstName || record.reviewerName || 'Customer'),
                 content: (
                   <div className="flex items-start gap-2">
                     <span className="flex items-center gap-1 border rounded-md px-2">
@@ -106,9 +109,15 @@ const ReviewPage = () => {
         key: 'actions',
         align: 'center',
         fixed: screenSizeFactor > 3 && 'right',
-        width: 100,
+        width: 120,
         render: (_, record) => (
           <div className="flex items-center gap-2 justify-center">
+            <EditButton
+              onClick={() => {
+                setEditingReview(record);
+                setIsModalOpen(true);
+              }}
+            />
             <DeleteButton
               onClick={() =>
                 confirmDelete({
@@ -127,6 +136,15 @@ const ReviewPage = () => {
 
   return (
     <>
+      <ReviewModal
+        isVisible={isModalOpen}
+        editReview={editingReview}
+        onClose={() => {
+          setIsModalOpen(false);
+          setEditingReview(null);
+        }}
+        onSuccess={Reviews.refetch}
+      />
       <PageTitle title="Reviews Management" />
       <div className="p-4 bg-white shadow-lg rounded-lg overflow-x-auto">
         <div className="flex sm:flex-row flex-col sm:items-center justify-between mb-4">
@@ -151,6 +169,14 @@ const ReviewPage = () => {
               onClick={Reviews.refetch}
               isLoading={Reviews.isFetching}
             />
+            <AddButton
+              onClick={() => {
+                setEditingReview(null);
+                setIsModalOpen(true);
+              }}
+            >
+              ADD
+            </AddButton>
           </div>
         </div>
 

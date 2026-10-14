@@ -16,16 +16,18 @@ import { getStoredUserId } from '../../utils/authStorage';
 import bgImg from '../../assets/bg.png';
 import { resolveAssetUrl } from '../../utils/assetUrl';
 
-const CARD_WIDTH = 280; // px, approximate width of one card including gap
-const VISIBLE_COLS = 4;
 
 const RecentlyViewedSlider = () => {
   const navigate = useNavigate();
   const trackRef = useRef(null);
+  const touchStartX = useRef(0);
+  const touchEndX = useRef(0);
+
   const [products, setProducts] = useState([]);
   const [offset, setOffset] = useState(0);
   const [maxOffset, setMaxOffset] = useState(0);
   const [wishlistedIds, setWishlistedIds] = useState(new Set());
+  const [colsPerView, setColsPerView] = useState(4);
 
   const {
     content: { common },
@@ -34,6 +36,23 @@ const RecentlyViewedSlider = () => {
 
   const formatConvertedPrice = (amount) =>
     formatPrice(convertPrice(amount, currency, rates), currency);
+
+  /* ── calculate columns per view based on window width ── */
+  useEffect(() => {
+    const updateCols = () => {
+      if (typeof window === 'undefined') return;
+      if (window.innerWidth < 640) {
+        setColsPerView(2);
+      } else if (window.innerWidth < 1024) {
+        setColsPerView(3);
+      } else {
+        setColsPerView(4);
+      }
+    };
+    updateCols();
+    window.addEventListener('resize', updateCols);
+    return () => window.removeEventListener('resize', updateCols);
+  }, []);
 
   /* ── load from session storage ── */
   useEffect(() => {
@@ -61,19 +80,44 @@ const RecentlyViewedSlider = () => {
       if (!trackRef.current) return;
       const containerW = trackRef.current.parentElement?.offsetWidth ?? 0;
       const totalW = trackRef.current.scrollWidth;
-      setMaxOffset(Math.max(0, totalW - containerW));
+      const newMax = Math.max(0, totalW - containerW);
+      setMaxOffset(newMax);
+      setOffset((prev) => Math.min(newMax, prev));
     };
     recalc();
     window.addEventListener('resize', recalc);
     return () => window.removeEventListener('resize', recalc);
-  }, [products]);
+  }, [products, colsPerView]);
 
   const scrollBy = (dir) => {
     setOffset((prev) => {
-      const step = CARD_WIDTH * VISIBLE_COLS;
+      const containerW =
+        trackRef.current?.parentElement?.offsetWidth || 300;
+      const step = containerW;
       const next = dir === 'left' ? prev - step : prev + step;
       return Math.min(maxOffset, Math.max(0, next));
     });
+  };
+
+  /* ── mobile touch swipe handlers ── */
+  const handleTouchStart = (e) => {
+    touchStartX.current = e.touches[0].clientX;
+    touchEndX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchMove = (e) => {
+    touchEndX.current = e.touches[0].clientX;
+  };
+
+  const handleTouchEnd = () => {
+    const diff = touchStartX.current - touchEndX.current;
+    if (Math.abs(diff) > 40) {
+      if (diff > 0) {
+        scrollBy('right');
+      } else {
+        scrollBy('left');
+      }
+    }
   };
 
   /* ── helpers ── */
@@ -125,13 +169,12 @@ const RecentlyViewedSlider = () => {
       }}
       className="recently-viewed-section w-full "
     >
-      <div className="bg-black/60 py-10 px-4 md:px-20">
+      <div className="bg-black/60 py-8 px-4 md:py-10 md:px-20">
         {/* ── heading ── */}
-        <div className="flex items-center justify-between mb-10">
+        <div className="flex items-center justify-between mb-6 md:mb-10">
           <div className="flex items-center gap-3">
-            
             <h2
-              className="text-white font-bold tracking-widest uppercase text-xl md:text-3xl"
+              className="text-white font-bold tracking-widest uppercase text-lg sm:text-xl md:text-3xl"
               style={{ letterSpacing: '0.1em' }}
             >
               Recently Viewed
@@ -144,7 +187,7 @@ const RecentlyViewedSlider = () => {
               onClick={() => scrollBy('left')}
               disabled={!canLeft}
               aria-label="Scroll left"
-              className={`w-9 h-9 flex items-center justify-center border transition-all duration-200
+              className={`w-8 h-8 md:w-9 md:h-9 flex items-center justify-center border transition-all duration-200
               ${
                 canLeft
                   ? 'border-white text-white hover:bg-white hover:text-black'
@@ -157,7 +200,7 @@ const RecentlyViewedSlider = () => {
               onClick={() => scrollBy('right')}
               disabled={!canRight}
               aria-label="Scroll right"
-              className={`w-9 h-9 flex items-center justify-center border transition-all duration-200
+              className={`w-8 h-8 md:w-9 md:h-9 flex items-center justify-center border transition-all duration-200
               ${
                 canRight
                   ? 'border-white text-white hover:bg-white hover:text-black'
@@ -173,10 +216,13 @@ const RecentlyViewedSlider = () => {
         <div
           className="overflow-hidden w-full"
           style={{ position: 'relative' }}
+          onTouchStart={handleTouchStart}
+          onTouchMove={handleTouchMove}
+          onTouchEnd={handleTouchEnd}
         >
           <div
             ref={trackRef}
-            className="flex gap-6 transition-transform duration-500 ease-in-out"
+            className="flex gap-4 md:gap-6 transition-transform duration-500 ease-in-out"
             style={{ transform: `translateX(-${offset}px)` }}
           >
             {products.map((product) => {
@@ -187,9 +233,8 @@ const RecentlyViewedSlider = () => {
               return (
                 <div
                   key={product._id}
-                  /* fixed width per card; 4 visible = 25% each with a small gap */
-                  className="relative flex-shrink-0 border border-white group cursor-pointer"
-                  style={{ width: 'calc(25% - 1px)' }}
+                  /* Responsive width: 2 cards on mobile, 3 cards on tablet, 4 cards on desktop */
+                  className="relative flex-shrink-0 border border-white group cursor-pointer w-[calc(50%-8px)] sm:w-[220px] md:w-[calc(33.333%-16px)] lg:w-[calc(25%-18px)]"
                   onClick={() => navigate(`/product-details/${product._id}`)}
                 >
                   {/* wishlist btn */}
@@ -199,10 +244,10 @@ const RecentlyViewedSlider = () => {
                       e.stopPropagation();
                       handleWishlist(product._id);
                     }}
-                    className="absolute top-3 right-3 z-10 p-1 transition-transform hover:scale-110"
+                    className="absolute top-2.5 right-2.5 sm:top-3 sm:right-3 z-10 p-1 transition-transform hover:scale-110"
                   >
                     <FiHeart
-                      size={20}
+                      size={18}
                       className={`transition-colors ${
                         isWishlisted
                           ? 'fill-red-500 text-red-500'
@@ -213,13 +258,13 @@ const RecentlyViewedSlider = () => {
 
                   {/* discount badge */}
                   {product.discount > 0 && (
-                    <div className="absolute top-3 left-3 z-10 bg-amber-400 text-black text-xs font-bold px-2 py-0.5 tracking-wide">
+                    <div className="absolute top-2.5 left-2.5 sm:top-3 sm:left-3 z-10 bg-amber-400 text-black text-[10px] sm:text-xs font-bold px-1.5 sm:px-2 py-0.5 tracking-wide">
                       -{product.discount}%
                     </div>
                   )}
 
                   {/* image */}
-                  <div className="h-[320px] md:h-[360px] overflow-hidden bg-gray-950">
+                  <div className="h-[220px] md:h-[360px] overflow-hidden bg-gray-950">
                     {img ? (
                       <img
                         src={resolveAssetUrl(img)}
@@ -236,29 +281,23 @@ const RecentlyViewedSlider = () => {
                   </div>
 
                   {/* info */}
-                  <div className="p-3 flex flex-col gap-1">
-                    <h3 className="text-white text-lg font-semibold truncate">
+                  <div className="p-2.5 sm:p-3 flex flex-col gap-1">
+                    <h3 className="text-white text-sm sm:text-base md:text-lg font-semibold truncate">
                       {name}
                     </h3>
 
-                    {product.brand && (
-                      <p className="text-gray-400 text-xs truncate">
-                        {product.brand}
-                      </p>
-                    )}
-
                     {/* price */}
                     {product.price && product.websitePrice ? (
-                      <div className="flex items-center gap-2 mt-1">
-                        <span className="text-gray-500 line-through text-md tracking-wide">
+                      <div className="flex items-center gap-1.5 sm:gap-2 mt-0.5 sm:mt-1 flex-wrap">
+                        <span className="text-gray-500 line-through text-xs sm:text-sm md:text-md tracking-wide">
                           {formatConvertedPrice(product.price)}
                         </span>
-                        <span className="text-white font-bold text-md tracking-[1px]">
+                        <span className="text-white font-bold text-xs sm:text-sm md:text-md tracking-[1px]">
                           {formatConvertedPrice(product.websitePrice)}
                         </span>
                       </div>
                     ) : (
-                      <p className="text-gray-500 text-md tracking-wide mt-1">
+                      <p className="text-gray-500 text-xs sm:text-sm md:text-md tracking-wide mt-1">
                         {common?.itemUnavailable || 'Unavailable'}
                       </p>
                     )}
@@ -269,7 +308,7 @@ const RecentlyViewedSlider = () => {
                         e.stopPropagation();
                         navigate(`/product-details/${product._id}`);
                       }}
-                      className="mt-2 w-full border border-white text-white text-lg py-2 tracking-widest uppercase
+                      className="mt-1.5 sm:mt-2 w-full border border-white text-white text-xs sm:text-sm md:text-base py-1.5 sm:py-2 tracking-widest uppercase
                       hover:bg-white hover:text-black transition-colors duration-200"
                     >
                       {common?.buyNow || 'Buy Now'}
@@ -285,14 +324,17 @@ const RecentlyViewedSlider = () => {
         {maxOffset > 0 && (
           <div className="flex justify-center gap-1.5 mt-5">
             {Array.from({
-              length: Math.ceil(products.length / VISIBLE_COLS),
+              length: Math.ceil(products.length / colsPerView),
             }).map((_, i) => {
-              const step = CARD_WIDTH * VISIBLE_COLS;
-              const active = Math.round(offset / step) === i;
+              const totalDots = Math.ceil(products.length / colsPerView);
+              const step = maxOffset / Math.max(1, totalDots - 1);
+              const active = Math.round(offset / (step || 1)) === i;
               return (
                 <button
                   key={i}
-                  onClick={() => setOffset(Math.min(maxOffset, i * step))}
+                  onClick={() =>
+                    setOffset(Math.min(maxOffset, Math.round(i * step)))
+                  }
                   className={`h-0.5 transition-all duration-300 ${
                     active ? 'w-6 bg-amber-400' : 'w-2 bg-gray-600'
                   }`}

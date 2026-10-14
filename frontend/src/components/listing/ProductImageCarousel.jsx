@@ -96,9 +96,9 @@ const ProductImageCarousel = ({
               event.stopPropagation();
               goToImage(currentIndex - 1);
             }}
-            className="absolute left-2 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center border border-white/70 bg-black/45 text-white transition hover:bg-white hover:text-black focus:outline-none focus:ring-2 focus:ring-white"
+            className="absolute left-1.5 top-1/2 z-10 -translate-y-1/2 p-1 text-white/90 transition-transform duration-200 hover:scale-125 hover:text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)] focus:outline-none"
           >
-            <ChevronLeft size={18} aria-hidden="true" />
+            <ChevronLeft size={22} aria-hidden="true" />
           </button>
           <button
             type="button"
@@ -107,9 +107,9 @@ const ProductImageCarousel = ({
               event.stopPropagation();
               goToImage(currentIndex + 1);
             }}
-            className="absolute right-2 top-1/2 z-10 flex h-8 w-8 -translate-y-1/2 items-center justify-center border border-white/70 bg-black/45 text-white transition hover:bg-white hover:text-black focus:outline-none focus:ring-2 focus:ring-white"
+            className="absolute right-1.5 top-1/2 z-10 -translate-y-1/2 p-1 text-white/90 transition-transform duration-200 hover:scale-125 hover:text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)] focus:outline-none"
           >
-            <ChevronRight size={18} aria-hidden="true" />
+            <ChevronRight size={22} aria-hidden="true" />
           </button>
         </>
       )}

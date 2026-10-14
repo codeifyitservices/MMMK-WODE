@@ -7,10 +7,15 @@ import { RefreshButton, ViewButton } from '../../UI/Buttons';
 import SearchInTable from '../../UI/SearchInTable';
 import AbandonedCartDetailDrawer from './AbandonedCartDetailDrawer';
 import { tablePageSizes } from '../../../utils/staticData';
-import { ShoppingBag, TrendingUp, DollarSign, Gift, Clock, AlertCircle } from 'lucide-react';
+import {
+  LuShoppingCart,
+  LuClock,
+  LuTrendingUp,
+  LuCreditCard,
+} from 'react-icons/lu';
 import dayjs from 'dayjs';
 
-export default function AbandonedCartPage() {
+export default function AbandonedCartPage({ showKpiCards = true }) {
   const [selectedRecordId, setSelectedRecordId] = useState(null);
   const [isDrawerVisible, setIsDrawerVisible] = useState(false);
 
@@ -40,10 +45,11 @@ export default function AbandonedCartPage() {
     },
   });
 
-  // Query for KPI statistics
+  // Query for KPI statistics (enabled only when cards are displayed)
   const statsQuery = useQuery({
     queryKey: ['abandoned-cart-stats'],
     queryFn: () => getAbandonedCartStats(),
+    enabled: showKpiCards,
   });
 
   const stats = statsQuery.data?.data || {};
@@ -222,56 +228,96 @@ export default function AbandonedCartPage() {
         <RefreshButton
           onClick={() => {
             cartsQuery.refetch();
-            statsQuery.refetch();
+            if (showKpiCards) statsQuery.refetch();
           }}
           loading={cartsQuery.isFetching}
         />
       </PageTitle>
 
-      {/* KPI Cards */}
-      <Row gutter={[16, 16]}>
-        <Col xs={24} sm={12} md={6}>
-          <Card className="shadow-sm border-[#ded7d1]">
-            <Statistic
-              title={<span className="text-xs uppercase tracking-wider text-[#8b5e4b] font-semibold">Total Carts Tracked</span>}
-              value={stats.totalCarts || 0}
-              prefix={<ShoppingBag size={18} className="text-[#28120b] mr-2 inline" />}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card className="shadow-sm border-[#ded7d1]">
-            <Statistic
-              title={<span className="text-xs uppercase tracking-wider text-[#8b5e4b] font-semibold">Recovery Rate</span>}
-              value={stats.recoveryRate || 0}
-              suffix="%"
-              precision={1}
-              valueStyle={{ color: '#3f8600' }}
-              prefix={<TrendingUp size={18} className="text-green-600 mr-2 inline" />}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card className="shadow-sm border-[#ded7d1]">
-            <Statistic
-              title={<span className="text-xs uppercase tracking-wider text-[#8b5e4b] font-semibold">Recovered Revenue</span>}
-              value={stats.recoveredRevenue || 0}
-              prefix="AED "
-              precision={2}
-              valueStyle={{ color: '#28120b' }}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={6}>
-          <Card className="shadow-sm border-[#ded7d1]">
-            <Statistic
-              title={<span className="text-xs uppercase tracking-wider text-[#8b5e4b] font-semibold">Coupons Claimed</span>}
-              value={stats.couponsClaimed || 0}
-              prefix={<Gift size={18} className="text-purple-600 mr-2 inline" />}
-            />
-          </Card>
-        </Col>
-      </Row>
+      {/* 4 KPI Cards */}
+      {showKpiCards && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          {/* KPI 1: Total Carts */}
+          <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+                Total Carts
+              </span>
+              <div className="w-10 h-10 rounded-xl bg-blue-50 border border-blue-100 flex items-center justify-center text-blue-600">
+                <LuShoppingCart size={20} />
+              </div>
+            </div>
+            <div className="mt-3">
+              <div className="text-2xl xl:text-3xl font-bold text-gray-900 tracking-tight">
+                {Number(stats.totalCarts || 0).toLocaleString()}
+              </div>
+              <p className="text-xs text-gray-500 mt-1 mb-0">
+                Total customer carts tracked
+              </p>
+            </div>
+          </div>
+
+          {/* KPI 2: Active / Idle Carts */}
+          <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+                Active / Idle Carts
+              </span>
+              <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center text-amber-600">
+                <LuClock size={20} />
+              </div>
+            </div>
+            <div className="mt-3">
+              <div className="text-2xl xl:text-3xl font-bold text-gray-900 tracking-tight">
+                {Number((stats.activeCarts || 0) + (stats.idleCarts || 0)).toLocaleString()}
+              </div>
+              <p className="text-xs text-gray-500 mt-1 mb-0">
+                {Number(stats.activeCarts || 0).toLocaleString()} active (&lt;2h), {Number(stats.idleCarts || 0).toLocaleString()} idle (2h+)
+              </p>
+            </div>
+          </div>
+
+          {/* KPI 3: Recovery Rate */}
+          <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+                Recovery Rate
+              </span>
+              <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center text-emerald-600">
+                <LuTrendingUp size={20} />
+              </div>
+            </div>
+            <div className="mt-3">
+              <div className="text-2xl xl:text-3xl font-bold text-gray-900 tracking-tight">
+                {Number(stats.recoveryRate || 0).toFixed(1)}%
+              </div>
+              <p className="text-xs text-gray-500 mt-1 mb-0">
+                {Number(stats.recoveredCarts || 0).toLocaleString()} carts successfully recovered
+              </p>
+            </div>
+          </div>
+
+          {/* KPI 4: Recovered Revenue */}
+          <div className="bg-white rounded-xl border border-gray-100 p-5 shadow-sm hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+                Recovered Revenue
+              </span>
+              <div className="w-10 h-10 rounded-xl bg-purple-50 border border-purple-100 flex items-center justify-center text-purple-600">
+                <LuCreditCard size={20} />
+              </div>
+            </div>
+            <div className="mt-3">
+              <div className="text-2xl xl:text-3xl font-bold text-gray-900 tracking-tight">
+                AED {Number(stats.recoveredRevenue || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </div>
+              <p className="text-xs text-gray-500 mt-1 mb-0">
+                Revenue saved via recovery sequences
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Filter and Table Toolbar */}
       <Card className="shadow-sm border-[#ded7d1]">

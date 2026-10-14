@@ -95,13 +95,7 @@ app.use(
       return callback(new Error(`Origin ${origin} not allowed by CORS`));
     },
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: [
-      "Content-Type",
-      "Authorization",
-      "Cookie",
-      "X-Checkout-Verification",
-      "X-Language",
-    ],
+    allowedHeaders: ["Content-Type", "Authorization", "Cookie", "X-Checkout-Verification", "X-Language"],
     credentials: true,
     optionsSuccessStatus: 200,
   }),
@@ -144,8 +138,6 @@ app.use(errorHandler);
 const PORT = process.env.PORT || 8000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
-  const {
-    startAbandonedCartScheduler,
-  } = require("./services/abandonedCartService");
+  const { startAbandonedCartScheduler } = require("./services/abandonedCartService");
   startAbandonedCartScheduler();
 });

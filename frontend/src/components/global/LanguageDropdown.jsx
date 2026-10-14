@@ -2,7 +2,7 @@ import { useTranslationContext } from '../../context/TranslationContext';
 import { LANGUAGES } from '../../utils/staticData';
 import HeaderDropdown from './HeaderDropdown';
 
-const LanguageDropdown = () => {
+const LanguageDropdown = ({ theme = 'dark', className = '' }) => {
   const { translateLanguage, updateTranslationContext } = useTranslationContext();
 
   const changeLanguage = (lng) => {
@@ -15,6 +15,8 @@ const LanguageDropdown = () => {
       label="Language"
       value={translateLanguage}
       onChange={changeLanguage}
+      theme={theme}
+      className={className}
       options={LANGUAGES.map((language) => ({
         value: language.code,
         label: language.name,

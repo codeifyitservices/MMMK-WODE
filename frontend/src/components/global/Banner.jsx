@@ -20,6 +20,7 @@ const Banner = ({
   desktopMinHeight,
   bg,
   blurOverlay = true,
+  className = '',
 }) => {
   const navigate = useNavigate();
   const { pathname } = useLocation();
@@ -82,7 +83,7 @@ const Banner = ({
 
   return (
     <div
-      className={`w-full text-white relative banner-container ${minHeight ? 'md:py-10 py-4' : 'md:py-24 py-6'}`}
+      className={`w-full text-white relative banner-container ${minHeight ? 'md:py-10 py-4' : 'md:py-24 py-6'} ${className}`}
       style={{
         '--mobile-min-height': `${mobileHeight}vh`,
         '--desktop-min-height': `${desktopHeight}vh`,

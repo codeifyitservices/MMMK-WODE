@@ -3,6 +3,7 @@ const dayjs = require("dayjs");
 const Order = require("../../../Models/Order");
 const Product = require("../../../Models/Product");
 const ProductView = require("../../../Models/ProductView");
+const TrafficVisit = require("../../../Models/TrafficVisit");
 const { CURRENCY_CONFIG, convertAmount, convertToCurrency } = require("../../../utils/currency");
 
 /**
@@ -329,13 +330,44 @@ const getSalesPerformance = async (req, res) => {
       },
     ];
 
+    // Pipeline to fetch overall top product if current page skip > 0
+    const topProductPipeline = [
+      ...salesGroupPipeline,
+      { $sort: { unitsSold: -1, revenue: -1 } },
+      { $limit: 1 },
+      ...productLookupStages,
+      {
+        $project: {
+          _id: 0,
+          productId: "$_id",
+          revenue: { $round: ["$revenue", 2] },
+          unitsSold: 1,
+          productName: {
+            $ifNull: ["$productDoc.productName", { en: "$rawProductName" }],
+          },
+          image: { $ifNull: ["$productDoc.image", null] },
+          thumbnail: { $ifNull: ["$productDoc.thumbnail", null] },
+        },
+      },
+    ];
+
     // Execute concurrently at database level
-    const [summaryResult, countResult, mostSoldRaw, highestRevenueRaw] = await Promise.all([
+    const queries = [
       Order.aggregate(summaryPipeline),
       Order.aggregate(countPipeline),
       Order.aggregate(mostSoldPipeline),
       Order.aggregate(highestRevenuePipeline),
-    ]);
+    ];
+    if (skip > 0) {
+      queries.push(Order.aggregate(topProductPipeline));
+    }
+
+    const results = await Promise.all(queries);
+    const summaryResult = results[0];
+    const countResult = results[1];
+    const mostSoldRaw = results[2];
+    const highestRevenueRaw = results[3];
+    const topItem = skip > 0 ? results[4]?.[0] : mostSoldRaw[0];
 
     const summary = summaryResult[0] || {
       totalUnitsSold: 0,
@@ -345,6 +377,16 @@ const getSalesPerformance = async (req, res) => {
     };
 
     const totalProducts = countResult[0]?.total || 0;
+    summary.totalProducts = totalProducts;
+    summary.topProduct = topItem
+      ? {
+          productId: topItem.productId,
+          productName: topItem.productName,
+          unitsSold: topItem.unitsSold,
+          revenue: topItem.revenue,
+          image: topItem.thumbnail || topItem.image,
+        }
+      : null;
 
     // Attach ranks accounting for pagination offset
     const mostSold = mostSoldRaw.map((item, index) => ({
@@ -613,8 +655,292 @@ const getAnalyticsSummary = async (req, res) => {
   }
 };
 
+/**
+ * GET /api/v1/admin/analytics/traffic-sources
+ * Read-only aggregation of traffic channels, share, and period-over-period change
+ */
+const getTrafficSources = async (req, res) => {
+  try {
+    const { rangeType, startDate, endDate } = parseAnalyticsDateRange(req.query);
+
+    const matchQuery = {};
+    let prevMatchQuery = null;
+
+    if (startDate && endDate) {
+      matchQuery.timestamp = {
+        $gte: new Date(startDate),
+        $lte: new Date(endDate),
+      };
+
+      // Calculate previous comparison period of identical duration
+      const durationMs = new Date(endDate).getTime() - new Date(startDate).getTime();
+      const prevEnd = new Date(new Date(startDate).getTime() - 1);
+      const prevStart = new Date(prevEnd.getTime() - durationMs);
+      prevMatchQuery = {
+        timestamp: {
+          $gte: prevStart,
+          $lte: prevEnd,
+        },
+      };
+    }
+
+    const [currentChannels, prevChannels, totalVisitsCount] = await Promise.all([
+      TrafficVisit.aggregate([
+        { $match: matchQuery },
+        {
+          $group: {
+            _id: "$channel",
+            visits: { $sum: 1 },
+          },
+        },
+        { $sort: { visits: -1 } },
+      ]),
+      prevMatchQuery
+        ? TrafficVisit.aggregate([
+            { $match: prevMatchQuery },
+            {
+              $group: {
+                _id: "$channel",
+                visits: { $sum: 1 },
+              },
+            },
+          ])
+        : Promise.resolve([]),
+      TrafficVisit.countDocuments(matchQuery),
+    ]);
+
+    const prevVisitsMap = new Map(
+      prevChannels.map((item) => [item._id, item.visits])
+    );
+
+    const standardChannels = ["Direct", "Search", "Social", "Referral"];
+    const channelMap = new Map(
+      currentChannels.map((item) => [item._id, item.visits])
+    );
+
+    // Ensure all standard channels appear in the report
+    const formattedChannels = standardChannels.map((channelName) => {
+      const visits = channelMap.get(channelName) || 0;
+      const prevVisits = prevVisitsMap.get(channelName) || 0;
+      const share =
+        totalVisitsCount > 0
+          ? Number(((visits / totalVisitsCount) * 100).toFixed(1))
+          : 0;
+
+      let change = 0;
+      if (prevVisits > 0) {
+        change = Number(
+          (((visits - prevVisits) / prevVisits) * 100).toFixed(1)
+        );
+      } else if (visits > 0 && prevVisits === 0) {
+        change = 100;
+      }
+
+      return {
+        channel: channelName,
+        visits,
+        share,
+        change,
+      };
+    });
+
+    // Add any other channels if present
+    currentChannels.forEach((item) => {
+      if (!standardChannels.includes(item._id) && item._id) {
+        const visits = item.visits;
+        const prevVisits = prevVisitsMap.get(item._id) || 0;
+        const share =
+          totalVisitsCount > 0
+            ? Number(((visits / totalVisitsCount) * 100).toFixed(1))
+            : 0;
+        let change = 0;
+        if (prevVisits > 0) {
+          change = Number(
+            (((visits - prevVisits) / prevVisits) * 100).toFixed(1)
+          );
+        } else if (visits > 0) {
+          change = 100;
+        }
+        formattedChannels.push({
+          channel: item._id,
+          visits,
+          share,
+          change,
+        });
+      }
+    });
+
+    formattedChannels.sort((a, b) => b.visits - a.visits);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        rangeType,
+        startDate,
+        endDate,
+        totalVisits: totalVisitsCount,
+        summary: {
+          totalVisits: totalVisitsCount,
+        },
+        hasData: totalVisitsCount > 0,
+        channels: formattedChannels,
+        distribution: formattedChannels,
+      },
+    });
+  } catch (err) {
+    console.error("Error fetching traffic sources:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to fetch traffic sources analytics",
+      error: err.message,
+    });
+  }
+};
+
+/**
+ * Public traffic channel classifier and visitor logging endpoint
+ */
+const classifyTrafficChannel = (referrer = "", searchParams = {}) => {
+  const ref = String(referrer || "").toLowerCase();
+  const utmMedium = String(searchParams.utm_medium || "").toLowerCase();
+  const utmSource = String(searchParams.utm_source || "").toLowerCase();
+
+  if (
+    utmMedium.includes("cpc") ||
+    utmMedium.includes("ppc") ||
+    utmMedium.includes("organic") ||
+    utmMedium.includes("search")
+  ) {
+    return { channel: "Search", source: utmSource || "search" };
+  }
+  if (
+    utmMedium.includes("social") ||
+    utmSource.includes("facebook") ||
+    utmSource.includes("instagram") ||
+    utmSource.includes("tiktok") ||
+    utmSource.includes("twitter")
+  ) {
+    return { channel: "Social", source: utmSource || "social" };
+  }
+
+  if (
+    !ref ||
+    ref === "direct" ||
+    ref.includes("localhost") ||
+    ref.includes("mmmk-wode.com") ||
+    ref.includes("mmmkwode.com") ||
+    ref.includes("vercel.app")
+  ) {
+    return { channel: "Direct", source: "direct" };
+  }
+
+  const searchEngines = [
+    "google.",
+    "bing.",
+    "yahoo.",
+    "duckduckgo.",
+    "ecosia.",
+    "baidu.",
+    "yandex.",
+  ];
+  if (searchEngines.some((engine) => ref.includes(engine))) {
+    let sourceHost = "search";
+    try {
+      sourceHost = new URL(ref).hostname;
+    } catch (_) {}
+    return { channel: "Search", source: sourceHost };
+  }
+
+  const socialPlatforms = [
+    "facebook.com",
+    "instagram.com",
+    "t.co",
+    "twitter.com",
+    "x.com",
+    "linkedin.com",
+    "tiktok.com",
+    "pinterest.com",
+    "youtube.com",
+    "reddit.com",
+    "snapchat.com",
+    "whatsapp.com",
+    "telegram.me",
+    "t.me",
+  ];
+  if (socialPlatforms.some((soc) => ref.includes(soc))) {
+    let sourceHost = "social";
+    try {
+      sourceHost = new URL(ref).hostname;
+    } catch (_) {}
+    return { channel: "Social", source: sourceHost };
+  }
+
+  let domain = "referral";
+  try {
+    domain = new URL(ref).hostname;
+  } catch (_) {
+    domain = ref;
+  }
+  return { channel: "Referral", source: domain };
+};
+
+const recordTrafficVisit = async (req, res) => {
+  try {
+    const {
+      sessionId,
+      referrer,
+      landingPage,
+      utm_source,
+      utm_medium,
+      utm_campaign,
+    } = req.body || {};
+
+    if (!sessionId) {
+      return res.status(200).json({ success: false, message: "No session ID" });
+    }
+
+    // Debounce duplicate visits in same session within last 30 minutes
+    const thirtyMinsAgo = new Date(Date.now() - 30 * 60 * 1000);
+    const existingVisit = await TrafficVisit.findOne({
+      sessionId,
+      timestamp: { $gte: thirtyMinsAgo },
+    }).select("_id");
+
+    if (existingVisit) {
+      return res.status(200).json({
+        success: true,
+        recorded: false,
+        message: "Session already active",
+      });
+    }
+
+    const { channel, source } = classifyTrafficChannel(referrer, {
+      utm_medium,
+      utm_source,
+    });
+
+    await TrafficVisit.create({
+      sessionId,
+      channel,
+      source: utm_source || source || "direct",
+      medium: utm_medium || "none",
+      campaign: utm_campaign || "",
+      referrer: referrer || "",
+      landingPage: landingPage || "/",
+      timestamp: new Date(),
+    });
+
+    return res.status(201).json({ success: true, recorded: true, channel });
+  } catch (err) {
+    // Non-blocking for client
+    return res.status(200).json({ success: false, error: err.message });
+  }
+};
+
 module.exports = {
   getSalesPerformance,
   getViewPerformance,
   getAnalyticsSummary,
+  getTrafficSources,
+  recordTrafficVisit,
 };

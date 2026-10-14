@@ -42,3 +42,16 @@ export const getAnalyticsSummary = async (params = {}) => {
     throw error;
   }
 };
+
+/**
+ * Get Traffic Sources Analytics
+ */
+export const getTrafficSources = async (params = {}) => {
+  try {
+    const response = await analyticsApi.get('/traffic-sources', { params });
+    return response.data?.data;
+  } catch (error) {
+    console.error('Error fetching traffic sources:', error);
+    throw error;
+  }
+};

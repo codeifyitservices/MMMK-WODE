@@ -84,18 +84,6 @@ export default function AdminSidebar({ children }) {
         key: '/admin/products',
       },
       {
-        icon: <TrendingUp size={15} />,
-        label: 'Product Performance',
-        title: 'Product Performance',
-        key: '/admin/product-performance',
-      },
-      {
-        icon: <Eye size={15} />,
-        label: 'Most Viewed',
-        title: 'Most Viewed',
-        key: '/admin/most-viewed',
-      },
-      {
         icon: <Ticket size={15} />,
         label: 'Review',
         title: 'Review',
@@ -120,10 +108,32 @@ export default function AdminSidebar({ children }) {
         key: '/admin/orders',
       },
       {
-        icon: <ShoppingCart size={15} />,
-        label: 'Abandoned Carts',
-        title: 'Abandoned Carts',
-        key: '/admin/abandoned-carts',
+        icon: <TrendingUp size={15} />,
+        label: 'Sales & Reports',
+        title: 'Sales & Reports',
+        key: '/admin/reports',
+        children: [
+          {
+            label: 'Best Selling Products',
+            title: 'Best Selling Products',
+            key: '/admin/reports/best-selling',
+          },
+          {
+            label: 'Most Viewed Products',
+            title: 'Most Viewed Products',
+            key: '/admin/reports/most-viewed',
+          },
+          {
+            label: 'Traffic Sources',
+            title: 'Traffic Sources',
+            key: '/admin/reports/traffic-sources',
+          },
+          {
+            label: 'Abandoned Carts',
+            title: 'Abandoned Carts',
+            key: '/admin/reports/abandoned-carts',
+          },
+        ],
       },
       {
         icon: <Mail size={15} />,
@@ -234,14 +244,31 @@ export default function AdminSidebar({ children }) {
   useEffect(() => {
     const navKeys = menuItems.map((item) => getKeys(item)).flat(Infinity);
 
+    const isLegacyReportPath =
+      pathname.includes('/admin/product-performance') ||
+      pathname.includes('/admin/most-viewed') ||
+      pathname.includes('/admin/product-views') ||
+      pathname.includes('/admin/abandoned-carts');
+
+    const mappedLegacyActiveKey = pathname.includes('/admin/product-performance')
+      ? '/admin/reports/best-selling'
+      : pathname.includes('/admin/most-viewed') || pathname.includes('/admin/product-views')
+        ? '/admin/reports/most-viewed'
+        : pathname.includes('/admin/abandoned-carts')
+          ? '/admin/reports/abandoned-carts'
+          : '';
+
     updateUtils({
-      openedKeys: pathname.split('/').reduce((acc, cur, i, arr) => {
-        if (i === arr.length || !cur) return acc;
-        acc.push(arr.slice(0, i + 1).join('/'));
-        return acc;
-      }, []),
+      openedKeys: isLegacyReportPath
+        ? ['/admin', '/admin/reports']
+        : pathname.split('/').reduce((acc, cur, i, arr) => {
+            if (i === arr.length || !cur) return acc;
+            acc.push(arr.slice(0, i + 1).join('/'));
+            return acc;
+          }, []),
       currentPath: pathname,
-      activeNavItem: navKeys.find((key) => pathname.includes(key)),
+      activeNavItem:
+        navKeys.find((key) => pathname.includes(key)) || mappedLegacyActiveKey,
     });
     const activeElement = document.activeElement;
     if (activeElement) {

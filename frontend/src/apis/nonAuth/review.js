@@ -8,6 +8,6 @@ const userAuth = axios.create({
 });
 
 export const getReviewsByProduct = async (id) => {
-  const response = await userAuth.get(`get-by-product/${id}`);
+  const response = await userAuth.get(`/get-by-product/${id}`);
   return response.data;
 };

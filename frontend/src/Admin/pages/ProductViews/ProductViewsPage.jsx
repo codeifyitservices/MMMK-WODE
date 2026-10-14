@@ -246,27 +246,8 @@ export default function ProductViewsPage() {
       {isLoading ? (
         <Loading />
       ) : (
-        <>
-          {/* Summary Metric Cards */}
-          <div className="grid lg:grid-cols-2 sm:grid-cols-2 grid-cols-1 gap-3 mb-6">
-            <SummaryCard
-              title="Total Product Detail Page Views"
-              icon={<LuEye size={22} color="rgb(137, 54, 99)" />}
-              value={Number(summary.totalViews || 0).toLocaleString()}
-              suffix="Views"
-              bgColor="rgba(188, 141, 167, 0.5)"
-            />
-            <SummaryCard
-              title="Unique Products Viewed"
-              icon={<LuLayers size={22} color="rgb(1, 151, 246)" />}
-              value={Number(summary.uniqueProductsCount || 0).toLocaleString()}
-              suffix="Products"
-              bgColor="rgba(186, 237, 248, 0.5)"
-            />
-          </div>
-
-          {/* Ranking Table */}
-          <div className="p-4 bg-white shadow-md rounded-lg border border-gray-100 overflow-x-auto">
+        /* Ranking Table */
+        <div className="p-4 bg-white shadow-md rounded-lg border border-gray-100 overflow-x-auto">
             <div className="flex items-center justify-between pb-3 mb-3 border-b border-gray-100">
               <div className="flex items-center gap-2">
                 <div className="p-1.5 bg-purple-50 text-purple-600 rounded">
@@ -320,28 +301,9 @@ export default function ProductViewsPage() {
                 ),
               }}
             />
-          </div>
-        </>
+        </div>
       )}
     </div>
   );
 }
 
-const SummaryCard = ({ title, icon, value, suffix, bgColor = '#aaa' }) => {
-  return (
-    <div className="p-4 border rounded-lg shadow-md card relative overflow-hidden bg-white">
-      <div
-        className="rotate-45 h-full w-[200%] z-0 absolute top-0 left-0"
-        style={{ background: bgColor }}
-      />
-      <div className="flex items-center gap-4 justify-between relative z-10">
-        <h3 className="font-medium text-gray-700 m-0 text-sm">{title}</h3>
-        {icon}
-      </div>
-      <p className="flex items-end gap-2 relative z-10 mt-2 mb-0">
-        <strong className="text-2xl font-bold text-gray-900">{value}</strong>
-        {suffix && <span className="text-sm text-gray-500">{suffix}</span>}
-      </p>
-    </div>
-  );
-};

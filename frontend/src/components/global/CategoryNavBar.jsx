@@ -23,7 +23,7 @@ const CategoryNavBar = ({ setUtils }) => {
   return (
     <div
       className={
-        'flex justify-start gap-3 px-6 py-8 border-t border-b lg:px-10 overflow-x-auto whitespace-nowrap no-scrollbar'
+        'hidden lg:flex justify-start gap-3 px-6 py-8 border-t border-b lg:px-10 overflow-x-auto whitespace-nowrap no-scrollbar'
       }
     >
       {categories.map((item, index) => {

@@ -1,9 +1,8 @@
 /* eslint-disable react/prop-types */
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button4 } from '../global/UIButtons';
 import { useTranslationContext } from '../../context/TranslationContext';
-import { FiHeart } from 'react-icons/fi';
+import { FiHeart, FiPlus } from 'react-icons/fi';
 import { message, notification } from 'antd';
 import { addItemToWishList } from '../../apis/user/wishList';
 import { getStoredUserId } from '../../utils/authStorage';
@@ -201,23 +200,25 @@ const ProductGrid = ({ list = [], textColor = 'white' }) => {
           <div
             key={product._id}
             onMouseEnter={() => prefetchProductDetails(product._id)}
-            className="relative border border-white p-2 text-white sm:p-4"
+            onClick={() => navigate(`/product-details/${product._id}`)}
+            className="group relative border border-white p-2 text-white sm:p-4 cursor-pointer transition-all duration-300 hover:border-white/80 hover:bg-white/[0.04]"
           >
             <button
               type="button"
               title={common.addToWishlist}
-              onClick={() => {
+              onClick={(e) => {
+                e.stopPropagation();
                 handleAddWishList(product._id);
               }}
               aria-label={`${common.addToWishlist} ${getProductName(product)}`}
               className="absolute top-2 right-2 z-20"
             >
-              <FiHeart className="absolute right-1 top-1 h-5 w-5 text-red-500 sm:right-4 sm:top-2 sm:h-6 sm:w-6" />
+              <FiHeart className="absolute right-1 top-1 h-5 w-5 text-red-500 sm:right-4 sm:top-2 sm:h-6 sm:w-6 transition-transform hover:scale-110" />
             </button>
 
             <div className="flex flex-col gap-2 text-center">
               {/* Fixed image container */}
-              <div className="h-[210px] overflow-hidden bg-gray-800 flex items-center justify-center sm:h-[300px] md:h-[350px]">
+              <div className="h-[210px] overflow-hidden bg-gray-800 flex items-center justify-center sm:h-[300px] md:h-[350px] cursor-pointer">
                 {getProductImage(product) ? (
                   <ProductImageCarousel
                     images={getProductImages(product)}
@@ -230,57 +231,52 @@ const ProductGrid = ({ list = [], textColor = 'white' }) => {
                 )}
               </div>
 
-              {/* Price */}
+              {/* Details (Title & Brand) + Pure borderless '+' Add to Cart Icon (Zara style) */}
+              <div className="flex items-center justify-between gap-2 text-left pt-1">
+                <div className="min-w-0 flex-1">
+                  <h3
+                    title={getProductName(product)}
+                    className={`truncate text-xs sm:text-sm font-semibold text-${textColor} group-hover:underline transition-colors tracking-wide`}
+                  >
+                    {getProductName(product)}
+                  </h3>
+                </div>
+
+                <button
+                  type="button"
+                  title={getProductStockStatus(product) ? common.soldOut : common.addToCart}
+                  disabled={getProductStockStatus(product) || addingProductId === product._id}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleAddToCartClick(product);
+                  }}
+                  className="shrink-0 p-1 text-white hover:text-white/70 transition-transform hover:scale-125 disabled:opacity-30 disabled:cursor-not-allowed focus:outline-none"
+                  aria-label={common.addToCart}
+                >
+                  <FiPlus size={18} strokeWidth={1.5} />
+                </button>
+              </div>
+
+              {/* Price / MRP */}
               {product.price && product.websitePrice ? (
-                <p className="flex flex-wrap items-center justify-center gap-1 text-white sm:gap-2 sm:font-medium">
-                  <span className="text-xs line-through sm:text-sm">
-                    {formatConvertedPrice(product?.price)}
-                  </span>
-                  <span className="text-sm font-semibold sm:text-lg md:text-xl">
+                <div className="flex flex-wrap items-center justify-start gap-1.5 text-left text-white">
+                  <span className="text-xs font-semibold sm:text-sm">
                     {formatConvertedPrice(product?.websitePrice)}
                   </span>
-                </p>
+                  {product?.price > product?.websitePrice && (
+                    <span className="text-[11px] text-gray-400 line-through sm:text-xs">
+                      {formatConvertedPrice(product?.price)}
+                    </span>
+                  )}
+                  {getProductStockStatus(product) && (
+                    <span className="text-[10px] sm:text-[11px] text-red-400 font-medium ml-1">
+                      {common.soldOut}
+                    </span>
+                  )}
+                </div>
               ) : (
-                <p className="text-white">{common.itemUnavailable}</p>
+                <p className="text-xs text-white text-left">{common.itemUnavailable}</p>
               )}
-
-              {/* Product Name */}
-              <h3
-                title={getProductName(product)}
-                className={`truncate text-sm sm:text-base md:text-xl font-bold text-${textColor}`}
-              >
-                {getProductName(product)}
-              </h3>
-
-              {/* Brand */}
-              {product.brand && (
-                <p className={`text-sm font-bold text-${textColor}`}>
-                  {product.brand}
-                </p>
-              )}
-
-              {/* Buy Now Button */}
-              <Button4
-                onClick={() => navigate(`/product-details/${product._id}`)}
-                className="!top-0 !border !px-2 !py-1 !text-xs sm:!px-4 sm:!py-2 sm:!text-sm"
-              >
-                {getProductStockStatus(product)
-                  ? common.soldOut
-                  : common.buyNow}
-              </Button4>
-
-              <Button4
-                type="button"
-                disabled={getProductStockStatus(product) || addingProductId === product._id}
-                onClick={() => handleAddToCartClick(product)}
-                className="!top-0 !border !px-2 !py-1 !text-xs disabled:!cursor-not-allowed disabled:!opacity-50 sm:!px-4 sm:!py-2 sm:!text-sm"
-              >
-                {addingProductId === product._id
-                  ? common.adding || 'Adding...'
-                  : getProductStockStatus(product)
-                    ? common.soldOut
-                    : common.addToCart}
-              </Button4>
             </div>
           </div>
         ))}

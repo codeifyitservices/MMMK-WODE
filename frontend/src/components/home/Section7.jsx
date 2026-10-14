@@ -52,12 +52,6 @@ const ProductItem = memo(({ product, translateLanguage, common, formatConvertedP
           {productName}
         </h3>
 
-        {product.brand && (
-          <p className="text-sm font-bold text-white">
-            {product.brand}
-          </p>
-        )}
-
         <Button4
           onClick={() => navigate(`/product-details/${product._id}`)}
           className="!top-0 !py-2 !border"

@@ -20,6 +20,7 @@ import {
 import { getOrCreateVisitorSessionId } from '../utils/visitorSession';
 import { useCart } from '../context/CartProvider';
 import CategoryNavBar from '../components/global/CategoryNavBar';
+import { resolveAssetUrl } from '../utils/assetUrl';
 import {
   isUserSignedIn,
 } from '../utils/globalMethods';
@@ -43,9 +44,28 @@ const ProductDetails = () => {
   const navigate = useNavigate();
   const [product, setProduct] = useState({});
   const [selectedSku, setSelectedSku] = useState(null);
+  const [selectedOptionLabel, setSelectedOptionLabel] = useState(null);
+  const [isScrolled, setIsScrolled] = useState(false);
   const { currency, rates } = useCurrency();
   const formatConvertedPrice = (amount) =>
     formatPrice(convertPrice(amount, currency, rates), currency);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 60) {
+        setIsScrolled(true);
+      } else {
+        setIsScrolled(false);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    handleScroll();
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
 
   const query = useQuery({
     queryKey: ['product-details', params.id],
@@ -86,6 +106,51 @@ const ProductDetails = () => {
         : [];
   }, [SkuQuery.data, productData.skus]);
 
+  const sizeOptions = useMemo(() => {
+    if (!productData?.filters?.length || !skuList?.length) return [];
+
+    const items = [];
+    skuList.forEach((sku) => {
+      const filterValue = productData.filters
+        .map((filter) => sku.filters?.[filter])
+        .filter(Boolean)
+        .join(' / ');
+
+      if (!filterValue) return;
+
+      // Split compound sizes like "S/M" or "L/XL" into individual selectable sizes "S", "M", "L", "XL"
+      const parts = filterValue.split('/').map((s) => s.trim()).filter(Boolean);
+      const isSizeCompound =
+        parts.length > 1 && parts.every((p) => p.length <= 4);
+
+      if (isSizeCompound) {
+        parts.forEach((part) => {
+          items.push({
+            id: `${sku._id}-${part}`,
+            skuId: sku._id,
+            skuCode: sku.sku,
+            label: part,
+            fullLabel: filterValue,
+            quantity: Number(sku.quantity || 0),
+            isOutOfStock: Number(sku.quantity || 0) <= 0,
+          });
+        });
+      } else {
+        items.push({
+          id: sku._id,
+          skuId: sku._id,
+          skuCode: sku.sku,
+          label: filterValue,
+          fullLabel: filterValue,
+          quantity: Number(sku.quantity || 0),
+          isOutOfStock: Number(sku.quantity || 0) <= 0,
+        });
+      }
+    });
+
+    return items;
+  }, [productData?.filters, skuList]);
+
   const selectedSkuDetails = skuList.find((sku) => sku.sku === selectedSku);
   const totalAvailableStock = skuList.reduce(
     (sum, sku) => sum + Number(sku?.quantity || 0),
@@ -125,6 +190,36 @@ const ProductDetails = () => {
         : []),
     ].filter(Boolean);
   }, [productData.image, productData.images]);
+
+  const hasAccordionContent = useMemo(() => {
+    const desc =
+      product?.translated?.productDescription ||
+      (typeof productData?.productDescription === 'string'
+        ? productData.productDescription
+        : productData?.productDescription?.en) ||
+      '';
+    const uses =
+      product?.translated?.uses ||
+      (typeof productData?.uses === 'string'
+        ? productData.uses
+        : productData?.uses?.en) ||
+      '';
+    const benefits =
+      product?.translated?.benefits ||
+      (typeof productData?.benefits === 'string'
+        ? productData.benefits
+        : productData?.benefits?.en) ||
+      '';
+
+    const check = (str) => {
+      if (!str || typeof str !== 'string') return false;
+      return (
+        str.replace(/<[^>]*>/g, '').replace(/&nbsp;/gi, '').trim().length > 0
+      );
+    };
+
+    return check(desc) || check(uses) || check(benefits);
+  }, [product, productData]);
 
   const handleTranslateProductData = async (data, language) => {
     const allFieldsToTranslate = {
@@ -189,11 +284,18 @@ const ProductDetails = () => {
   }, [query.data, translateLanguage]);
 
   useEffect(() => {
-    if (skuList.length > 0 && !selectedSku) {
+    if (sizeOptions.length > 0 && !selectedSku) {
+      const firstInStock =
+        sizeOptions.find((opt) => !opt.isOutOfStock) || sizeOptions[0];
+      if (firstInStock) {
+        setSelectedSku(firstInStock.skuCode);
+        setSelectedOptionLabel(firstInStock.label);
+      }
+    } else if (skuList.length > 0 && !selectedSku) {
       const firstInStockSku = skuList.find((sku) => Number(sku?.quantity) > 0);
       setSelectedSku(firstInStockSku?.sku || null);
     }
-  }, [skuList, selectedSku]);
+  }, [sizeOptions, skuList, selectedSku]);
 
   useEffect(() => {
     if (
@@ -257,7 +359,12 @@ const ProductDetails = () => {
         showMessage: true,
       });
 
-      if (added && e.target?.name === 'buyNow') {
+      const isBuyNow =
+        e?.currentTarget?.name === 'buyNow' ||
+        e?.target?.name === 'buyNow' ||
+        e?.currentTarget?.getAttribute?.('name') === 'buyNow';
+
+      if (added && isBuyNow) {
         navigate('/shopping-cart');
       }
     } catch (err) {
@@ -274,6 +381,15 @@ const ProductDetails = () => {
     }
   };
 
+  const handleSelectOption = (opt) => {
+    if (opt.isOutOfStock) {
+      message.warning(common.outOfStock || 'Sold out');
+      return;
+    }
+    handleSelectSku(opt.skuId);
+    setSelectedOptionLabel(opt.label);
+  };
+
   return (
     <div className="w-full">
       <style>
@@ -288,13 +404,12 @@ const ProductDetails = () => {
         `}
       </style>
       <Banner bg={bg}>
-        <div className="w-full md:mt-24 mt-36">
+        <div className="w-full mt-[44px] lg:mt-32">
           {/* navbar */}
           <CategoryNavBar />
 
-          {/* sort and bread crumbs tab */}
-
-          <div className="flex flex-wrap items-center justify-between w-full gap-5 px-6 py-6 border-t border-b text-2nd md:px-10 lg:px-20">
+          {/* sort and bread crumbs tab - hidden on mobile/tablet */}
+          <div className="hidden lg:flex flex-wrap items-center justify-between w-full gap-3 px-4 py-3 border-t border-b text-2nd md:px-10 lg:px-20 md:py-4">
             <div className="w-full md:w-auto">
               <div className="flex flex-wrap gap-3 mt-2 text-lg md:text-xl md:flex-nowrap md:gap-5">
                 <p className="text-base font-bold md:text-xl">
@@ -307,72 +422,114 @@ const ProductDetails = () => {
           </div>
 
           {/* main section */}
-          <main className="w-full px-4 md:px-6 lg:px-4">
-            {/* left */}
+          <main className="w-full px-0 lg:px-4">
+            {/* main product layout */}
             <div className="grid w-full grid-cols-1 lg:grid-cols-12">
-              <div className="col-span-1 p-6 border lg:col-span-3 md:p-10">
+              {/* Mobile / Tablet Single Featured Image Gallery with Bottom Thumbnails (< lg) */}
+              <div className="order-1 col-span-1 block lg:hidden w-full p-3 sm:p-5">
+                <Slider images={productImages} />
+              </div>
+
+              {/* Product Info Box: Name, Price, Options, Buy Now / Add to Cart */}
+              <div
+                className={`order-2 lg:order-1 col-span-1 px-3 py-2 sm:px-4 sm:py-3 md:p-6 lg:p-8 border border-white/10 bg-black/30 backdrop-blur-sm rounded-md lg:rounded-none mx-2 sm:mx-4 lg:mx-0 my-1 lg:my-0 shadow-md ${
+                  hasAccordionContent ? 'lg:col-span-3' : 'lg:col-span-5'
+                }`}
+              >
                 <div className="flex flex-col justify-between">
-                  <h1 className="text-base font-bold md:text-xl">
+                  {/* Category Tag */}
+                  {(product?.translated?.category || productData?.category?.name?.en) && (
+                    <p className="text-[9px] sm:text-[10px] font-semibold tracking-widest text-[#dfba73] uppercase mb-0.5">
+                      {product?.translated?.category || productData?.category?.name?.en}
+                    </p>
+                  )}
+
+                  {/* Product Title */}
+                  <h1 className="text-xs sm:text-sm md:text-base font-bold tracking-wide text-white uppercase leading-snug mb-1.5">
                     {product?.translated?.productName ||
                       productData?.productName?.en}
                   </h1>
-                  {/* <p
-                  className="my-4 text-sm md:text-base"
-                  dangerouslySetInnerHTML={{
-                    __html: product?.translated?.productDescription,
-                  }}
-                ></p> */}
+
+                  {/* Price Block */}
                   {productData?.price && productData?.websitePrice ? (
-                    <>
-                      <h2 className="text-base font-semibold md:text-lg flex gap-3">
-                        {productData?.price && (
-                          <span className="line-through text-gray-400 text-sm md:text-base">
+                    <div className="flex flex-col gap-0.5 pb-1.5 border-b border-white/10">
+                      <div className="flex items-center flex-wrap gap-2">
+                        {/* Current Selling Price */}
+                        <span className="text-base sm:text-lg md:text-xl font-bold text-white tracking-tight">
+                          {formatConvertedPrice(productData?.websitePrice)}
+                        </span>
+
+                        {/* Original MRP (Strike-through) */}
+                        {productData?.price > productData?.websitePrice && (
+                          <span className="text-[11px] sm:text-xs text-neutral-400 line-through font-normal">
                             {formatConvertedPrice(productData?.price)}
                           </span>
                         )}
 
-                        <span className="font-semibold text-lg md:text-xl">
-                          {formatConvertedPrice(productData?.websitePrice)}
-                        </span>
-                      </h2>
-                    </>
+                        {/* Luxury Discount Badge */}
+                        {productData?.price > productData?.websitePrice && (
+                          <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#dfba73]/15 text-[#dfba73] border border-[#dfba73]/40 tracking-wider">
+                            -{Math.round(((productData.price - productData.websitePrice) / productData.price) * 100)}% OFF
+                          </span>
+                        )}
+                      </div>
+
+                      {/* Tax Inclusive Note */}
+                      <p className="text-[9px] text-neutral-400 tracking-wider uppercase font-medium">
+                        Inclusive of all taxes
+                      </p>
+                    </div>
                   ) : (
-                    <>{common.itemUnavailable}</>
+                    <p className="text-xs text-neutral-400 italic py-1">{common.itemUnavailable}</p>
                   )}
 
-                  {productData?.filters?.length > 0 && skuList?.length > 0 && (
-                    <div className="mt-4">
-                      {common.chooseOption} {productData?.filters?.join(' / ')}
-                      <div className="flex flex-wrap gap-x-2">
-                        {skuList.map((sku) => (
-                          <CommonButton
-                            key={sku._id}
-                            onClick={() => handleSelectSku(sku._id)}
-                            variant={selectedSku === sku.sku ? 7 : 1}
-                            size="sm"
-                            className="!px-2"
-                            disabled={sku.quantity <= 0}
-                            title={sku.quantity <= 0 ? common.outOfStock : ''}
-                          >
-                            <span>
-                              {productData?.filters
-                                ?.map((filter) => sku.filters[filter])
-                                .join(' / ')}
-                            </span>
-                            {sku.quantity <= 0 ? (
-                              <span className="block text-[8px]">
-                                {common.outOfStock}
-                              </span>
-                            ) : (
-                              ''
-                            )}
-                          </CommonButton>
-                        ))}
+                  {sizeOptions?.length > 0 && (
+                    <div className="mt-3 sm:mt-4">
+                      <div className="flex items-center justify-between mb-2">
+                        <p className="text-xs uppercase tracking-widest text-gray-300 font-semibold">
+                          {common.chooseOption || 'SELECT'} {productData?.filters?.join(' / ')}
+                        </p>
+                        {selectedOptionLabel && (
+                          <span className="text-[11px] uppercase tracking-wider text-gray-400 font-medium">
+                            Selected: <span className="text-white font-bold">{selectedOptionLabel}</span>
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2 sm:gap-2.5">
+                        {sizeOptions.map((opt) => {
+                          const isActive = selectedOptionLabel
+                            ? selectedOptionLabel === opt.label && selectedSku === opt.skuCode
+                            : selectedSku === opt.skuCode;
+
+                          return (
+                            <button
+                              key={opt.id}
+                              type="button"
+                              onClick={() => handleSelectOption(opt)}
+                              disabled={opt.isOutOfStock}
+                              title={
+                                opt.isOutOfStock
+                                  ? (common.outOfStock || 'Sold out')
+                                  : `Select size ${opt.label}`
+                              }
+                              className={`relative min-w-[36px] h-9 px-2.5 sm:min-w-[40px] sm:h-10 sm:px-3 flex items-center justify-center text-xs sm:text-sm font-semibold tracking-wider uppercase transition-all duration-200 select-none ${
+                                opt.isOutOfStock
+                                  ? 'border border-neutral-700/60 bg-neutral-900/40 text-neutral-500/50 cursor-not-allowed line-through opacity-50'
+                                  : isActive
+                                  ? 'border-2 border-white bg-white text-black font-bold shadow-sm'
+                                  : 'border border-white/40 bg-black/40 text-white hover:border-white hover:bg-white/10 active:scale-95'
+                              }`}
+                            >
+                              <span>{opt.label}</span>
+                            </button>
+                          );
+                        })}
                       </div>
                     </div>
                   )}
 
-                  <div>
+                  {/* Actions & Quantity: Hidden on mobile/tablet (< lg) to match Zara layout (handled by sticky bottom bar), visible on desktop (>= lg) */}
+                  <div className="hidden lg:block">
                     <div className="flex items-center gap-3 mt-5">
                       <div className="flex items-center border border-white">
                         <button
@@ -444,7 +601,12 @@ const ProductDetails = () => {
                 </div>
               </div>
 
-              <div className="col-span-1 p-6 border lg:col-span-5 md:p-8">
+              {/* Desktop Product Image Gallery: Center column on desktop (lg:order-2), hidden on mobile/tablet */}
+              <div
+                className={`hidden lg:block lg:order-2 col-span-1 ${
+                  hasAccordionContent ? 'lg:col-span-5' : 'lg:col-span-7'
+                } p-4 sm:p-6 md:p-8 border`}
+              >
                 <Slider images={productImages} />
                 {/* <div className="absolute top-[%] right-[487px] z-10 hidden md:block ">
                   <div className="flex items-center justify-center w-16 h-16 text-white bg-red-700 rounded-full">
@@ -453,17 +615,22 @@ const ProductDetails = () => {
                 </div> */}
               </div>
 
-              <div className="col-span-1 p-6 border lg:col-span-4 md:p-10">
-                <Accordion data={product} />
-              </div>
+              {/* Accordion: Description, Directions, Benefits */}
+              {hasAccordionContent && (
+                <div className="order-3 lg:order-3 col-span-1 p-4 sm:p-6 border-0 lg:border lg:col-span-4 md:p-8 lg:p-10">
+                  <Accordion data={product} />
+                </div>
+              )}
             </div>
 
             {/* product review section */}
-            <ProductReview product={params.id} />
+            <div className="mt-3 sm:mt-5 lg:mt-8">
+              <ProductReview product={params.id} />
+            </div>
 
-            {/* right */}
-            <div className="w-full mt-6">
-              <div className="flex flex-col items-center justify-between w-full gap-4 px-4 py-6 border border-b md:flex-row md:py-8 lg:py-6 md:gap-5 text-2nd sm:px-10 lg:px-20">
+            {/* related products */}
+            <div className="w-full mt-4 sm:mt-6 px-4 lg:px-0">
+              <div className="flex flex-col items-center justify-between w-full gap-3 px-4 py-4 border-0 lg:border md:flex-row md:py-6 lg:py-4 md:gap-5 text-2nd sm:px-10 lg:px-20">
                 <div className="text-center md:text-left">
                 <h3 className="text-lg font-bold md:text-xl">
                   {productDetails.relatedProducts}
@@ -498,11 +665,124 @@ const ProductDetails = () => {
             <Section10></Section10>
           </div>
 
-          <div className="py-10">
+          <div className="py-6 sm:py-10 pb-28 lg:pb-10">
             <NewsLetter />
           </div>
         </div>
       </Banner>
+
+      {/* Zara-Style Sticky Floating Bottom Bar on Mobile/Tablet (< lg) */}
+      <div
+        className="fixed bottom-0 left-0 right-0 z-40 block lg:hidden bg-white/95 backdrop-blur-md border-t border-gray-200/90 shadow-[0_-4px_20px_rgba(0,0,0,0.12)] transition-all duration-300 ease-in-out px-4"
+        style={{
+          paddingBottom: 'max(env(safe-area-inset-bottom, 0px), 12px)',
+          paddingTop: isScrolled ? '10px' : '12px',
+        }}
+      >
+        {/* Collapsible Info Header (visible before scroll, matching Zara Screenshot 2) */}
+        <div
+          className={`overflow-hidden transition-all duration-300 ease-in-out ${
+            isScrolled
+              ? 'max-h-0 opacity-0 -translate-y-2 pointer-events-none mb-0'
+              : 'max-h-24 opacity-100 translate-y-0 mb-2.5'
+          }`}
+        >
+          <div className="flex items-start justify-between gap-2">
+            <div className="flex-1 min-w-0 pr-2">
+              <p className="text-[11px] font-semibold tracking-wider text-black uppercase truncate">
+                {product?.translated?.productName || productData?.productName?.en}
+              </p>
+              <p className="text-[10px] text-gray-500 uppercase tracking-widest mt-0.5">
+                {product?.translated?.category || productData?.category?.name?.en}
+              </p>
+            </div>
+            <div className="text-right shrink-0">
+              {productData?.price && productData?.websitePrice && (
+                <span className="text-[10px] text-gray-400 line-through block leading-tight">
+                  {formatConvertedPrice(productData?.price)}
+                </span>
+              )}
+              <span className="text-xs font-semibold text-black tracking-wide block leading-tight">
+                {formatConvertedPrice(productData?.websitePrice || productData?.price)}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* Action Row: Dual buttons on initial screen -> Compact buttons + Price on scroll */}
+        <div className="flex items-center justify-between w-full gap-2.5">
+          {/* Button Group: transitions from 100% width to compact ~62% width on scroll */}
+          <div
+            className={`flex items-center gap-2 transition-all duration-300 ease-in-out ${
+              isScrolled ? 'w-[62%] sm:w-[65%]' : 'w-full'
+            }`}
+          >
+            {/* ADD TO CART Button */}
+            <button
+              type="button"
+              onClick={handleAddToCart}
+              disabled={isOutOfStock}
+              aria-label={common.addToCart || 'Add to Cart'}
+              className={`flex-1 border border-black tracking-wider text-[11px] sm:text-xs font-semibold uppercase text-center transition-all duration-300 ease-in-out whitespace-nowrap ${
+                isOutOfStock
+                  ? 'py-2.5 bg-gray-100 text-gray-400 border-gray-300 cursor-not-allowed'
+                  : isScrolled
+                  ? 'py-2.5 bg-white text-black hover:bg-black hover:text-white active:scale-[0.98]'
+                  : 'py-3 bg-white text-black hover:bg-black hover:text-white active:scale-[0.99]'
+              }`}
+            >
+              {isOutOfStock
+                ? (common.outOfStock || 'SOLD OUT').toUpperCase()
+                : isScrolled
+                ? 'ADD'
+                : (common.addToCart || 'ADD TO CART').toUpperCase()}
+            </button>
+
+            {/* BUY NOW Button */}
+            <button
+              type="button"
+              name="buyNow"
+              onClick={handleAddToCart}
+              disabled={isOutOfStock}
+              aria-label={common.buyNow || 'Buy Now'}
+              className={`flex-1 border border-black tracking-wider text-[11px] sm:text-xs font-semibold uppercase text-center transition-all duration-300 ease-in-out whitespace-nowrap ${
+                isOutOfStock
+                  ? 'py-2.5 bg-gray-100 text-gray-400 border-gray-300 cursor-not-allowed'
+                  : isScrolled
+                  ? 'py-2.5 bg-black text-white hover:bg-neutral-800 active:scale-[0.98]'
+                  : 'py-3 bg-black text-white hover:bg-neutral-800 active:scale-[0.99]'
+              }`}
+            >
+              {isOutOfStock
+                ? (common.outOfStock || 'SOLD OUT').toUpperCase()
+                : isScrolled
+                ? 'BUY'
+                : (common.buyNow || 'BUY NOW').toUpperCase()}
+            </button>
+          </div>
+
+          {/* Compact Price Display: Smoothly appears on the right when scrolled (matching Zara Screenshot 3) */}
+          <div
+            className={`flex flex-col items-end justify-center transition-all duration-300 ease-in-out ${
+              isScrolled
+                ? 'w-[38%] sm:w-[35%] max-w-[140px] opacity-100 translate-x-0'
+                : 'w-0 max-w-0 opacity-0 translate-x-4 pointer-events-none overflow-hidden'
+            }`}
+          >
+            {productData?.price && productData?.websitePrice && (
+              <span className="text-[10px] text-gray-400 line-through leading-tight">
+                {formatConvertedPrice(productData?.price)}
+              </span>
+            )}
+            <span className="text-xs sm:text-sm font-bold text-black tracking-wider leading-tight whitespace-nowrap">
+              {formatConvertedPrice(productData?.websitePrice || productData?.price)}
+            </span>
+            <span className="text-[8px] text-gray-500 uppercase tracking-tighter leading-tight whitespace-nowrap">
+              MRP INCL. TAXES
+            </span>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

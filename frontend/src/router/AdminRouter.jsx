@@ -17,6 +17,15 @@ const ProductPerformance = lazy(
 const ProductViewsPage = lazy(
   () => import('../Admin/pages/ProductViews/ProductViewsPage').catch(() => { window.location.reload(); })
 );
+const BestSellingProductsPage = lazy(
+  () => import('../Admin/pages/Reports/BestSellingProductsPage').catch(() => { window.location.reload(); })
+);
+const MostViewedProductsPage = lazy(
+  () => import('../Admin/pages/Reports/MostViewedProductsPage').catch(() => { window.location.reload(); })
+);
+const TrafficSourcesPage = lazy(
+  () => import('../Admin/pages/Reports/TrafficSourcesPage').catch(() => { window.location.reload(); })
+);
 const ReviewPage = lazy(() => import('../Admin/pages/review/ReviewPage').catch(() => { window.location.reload(); }));
 const UserPage = lazy(() => import('../Admin/pages/Users/UserPage').catch(() => { window.location.reload(); }));
 const GiftCardPage = lazy(() => import('../Admin/pages/giftCard/GiftCardPage').catch(() => { window.location.reload(); }));
@@ -79,11 +88,48 @@ export default function AdminRouter() {
               </AdminSidebar>
             }
           />
+          {/* Sales & Reports Section */}
+          <Route path="reports">
+            <Route index element={<Navigate to="best-selling" replace />} />
+            <Route
+              path="best-selling"
+              element={
+                <AdminSidebar>
+                  <BestSellingProductsPage />
+                </AdminSidebar>
+              }
+            />
+            <Route
+              path="most-viewed"
+              element={
+                <AdminSidebar>
+                  <MostViewedProductsPage />
+                </AdminSidebar>
+              }
+            />
+            <Route
+              path="traffic-sources"
+              element={
+                <AdminSidebar>
+                  <TrafficSourcesPage />
+                </AdminSidebar>
+              }
+            />
+            <Route
+              path="abandoned-carts"
+              element={
+                <AdminSidebar>
+                  <AbandonedCartPage showKpiCards={true} />
+                </AdminSidebar>
+              }
+            />
+          </Route>
+          {/* Legacy route aliases for backwards compatibility */}
           <Route
             path="product-performance"
             element={
               <AdminSidebar>
-                <ProductPerformance />
+                <BestSellingProductsPage />
               </AdminSidebar>
             }
           />
@@ -91,7 +137,7 @@ export default function AdminRouter() {
             path="most-viewed"
             element={
               <AdminSidebar>
-                <ProductViewsPage />
+                <MostViewedProductsPage />
               </AdminSidebar>
             }
           />
@@ -99,7 +145,7 @@ export default function AdminRouter() {
             path="product-views"
             element={
               <AdminSidebar>
-                <ProductViewsPage />
+                <MostViewedProductsPage />
               </AdminSidebar>
             }
           />
@@ -139,7 +185,7 @@ export default function AdminRouter() {
             path="abandoned-carts"
             element={
               <AdminSidebar>
-                <AbandonedCartPage />
+                <AbandonedCartPage showKpiCards={true} />
               </AdminSidebar>
             }
           />

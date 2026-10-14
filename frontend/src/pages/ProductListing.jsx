@@ -82,7 +82,11 @@ const ProductListing = () => {
       return { ...prevData, currentPage: value };
     });
     const element = document.getElementById('categories-navbar');
-    element?.scrollIntoView({ top: 0, behavior: 'smooth' });
+    if (element && window.innerWidth >= 1024) {
+      element.scrollIntoView({ top: 0, behavior: 'smooth' });
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   };
 
   // fetching paginated products
@@ -165,11 +169,11 @@ const ProductListing = () => {
         `}
       </style>
       <Banner bg={bg} blurOverlay={false}>
-        <div className="w-full md:mt-32 mt-36">
+        <div className="w-full mt-20 sm:mt-24 md:mt-28 lg:mt-32">
           {/* Navbar */}
           <div
             id="categories-navbar"
-            className="flex items-center z-30 justify-start gap-3 px-6 py-8 border-t border-b lg:px-10 overflow-x-auto whitespace-nowrap no-scrollbar"
+            className="hidden lg:flex items-center z-30 justify-start gap-3 px-6 py-8 border-t border-b lg:px-10 overflow-x-auto whitespace-nowrap no-scrollbar"
           >
             {Array.isArray(categories) && categories.length > 0 ? (
               categories.map((item) => {
@@ -194,7 +198,7 @@ const ProductListing = () => {
           </div>
 
           {/* Sort and breadcrumbs */}
-          <div className="flex flex-wrap items-center justify-between w-full gap-5 px-6 py-6 border-t border-b text-2nd md:px-10 lg:px-20">
+          <div className="flex flex-wrap items-center justify-between w-full gap-3 px-4 py-3 border-t border-b text-2nd md:px-10 lg:px-20 md:py-4">
             <div className="w-full md:w-auto">
               <div className="flex flex-wrap gap-3 mt-2 text-lg md:text-xl md:flex-nowrap md:gap-5">
                 <p>

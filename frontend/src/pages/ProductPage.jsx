@@ -74,7 +74,7 @@ const ProductPage = () => {
   return (
     <div className="w-full">
       <Banner bg={bg}>
-        <div className="w-full md:mt-24 mt-36">
+        <div className="w-full mt-20 sm:mt-24 md:mt-28 lg:mt-32">
           {/* navbar */}
           <CategoryNavBar setUtils={setUtils} />
 

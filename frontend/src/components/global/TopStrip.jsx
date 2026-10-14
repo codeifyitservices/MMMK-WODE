@@ -50,7 +50,7 @@ export default function TopStrip() {
   return (
     <div
       style={{ backgroundColor, color: textColor }}
-      className="w-full h-12 flex items-center overflow-hidden relative z-[51] select-none text-xs md:text-sm tracking-widest border-b border-black/10 font-medium"
+      className="hidden md:flex w-full h-12 items-center overflow-hidden relative z-[51] select-none text-xs md:text-sm tracking-widest border-b border-black/10 font-medium"
     >
       <div className="relative w-full h-full overflow-hidden">
         <div

@@ -39,6 +39,7 @@ import {
 import { useCurrency } from '../../context/CurrencyContext';
 import { resolveAssetUrl } from '../../utils/assetUrl';
 import { Tag } from 'lucide-react';
+import { getActiveInfluencerRef } from '../../hook/useInfluencerTracking';
 
 // ─── Unchanged business logic ─────────────────────────────────────────────────
 
@@ -589,6 +590,19 @@ export default function CheckoutForm({
   });
   const [isApplePayWarningOpen, setIsApplePayWarningOpen] = useState(false);
 
+  // Auto-apply active Influencer referral discount from link / localStorage
+  useEffect(() => {
+    const activeRef = getActiveInfluencerRef();
+    if (
+      activeRef &&
+      !couponCode &&
+      !isCouponApply &&
+      (isUserSignedIn() || guestEmailVerified)
+    ) {
+      handleApplyCoupon(activeRef);
+    }
+  }, [guestEmailVerified]);
+
 
 
   const formatConvertedPrice = (amount) =>
@@ -822,7 +836,8 @@ export default function CheckoutForm({
             deliveryFee: convertPrice(shippingChargesRef.current, currencyRef.current, rates),
             products: productsPayload,
             currency: currencyRef.current,
-            couponCode: isCouponApplyRef.current ? couponCodeRef.current : null,
+            couponCode: isCouponApplyRef.current ? couponCodeRef.current : (getActiveInfluencerRef() || null),
+            influencerCode: getActiveInfluencerRef() || null,
           });
 
           if (res.success) {
@@ -1145,7 +1160,8 @@ export default function CheckoutForm({
           shippingAddress,
           billingAddress,
           shippingCharges: effectiveShippingCharges,
-          couponCode: isCouponApply ? couponCode : null,
+          couponCode: isCouponApply ? couponCode : (getActiveInfluencerRef() || null),
+          influencerCode: getActiveInfluencerRef() || (couponData?.isInfluencerCode ? couponData.couponCode : null),
           creditsUsed: derivedSummary.creditApplied,
           creditsUsedBase: appliedCreditAmount,
           totalAmount: derivedSummary.total,
@@ -1181,7 +1197,8 @@ export default function CheckoutForm({
           shippingAddress,
           billingAddress,
           shippingCharges: convertPrice(effectiveShippingCharges, currency, rates),
-          couponCode: isCouponApply ? couponCode : null,
+          couponCode: isCouponApply ? couponCode : (getActiveInfluencerRef() || null),
+          influencerCode: getActiveInfluencerRef() || (couponData?.isInfluencerCode ? couponData.couponCode : null),
           creditsUsed: derivedSummary.creditApplied,
           creditsUsedBase: appliedCreditAmount,
           totalAmount: derivedSummary.total,
@@ -1232,7 +1249,8 @@ export default function CheckoutForm({
           shippingAddress,
           billingAddress,
           shippingCharges: effectiveShippingCharges,
-          couponCode: isCouponApply ? couponCode : null,
+          couponCode: isCouponApply ? couponCode : (getActiveInfluencerRef() || null),
+          influencerCode: getActiveInfluencerRef() || (couponData?.isInfluencerCode ? couponData.couponCode : null),
           creditsUsed: derivedSummary.creditApplied,
           creditsUsedBase: appliedCreditAmount,
           totalAmount: derivedSummary.total,
@@ -1501,15 +1519,39 @@ export default function CheckoutForm({
             )}
           </>
         ) : (
-          <div className="inline-flex items-stretch overflow-hidden rounded-lg border border-gray-200">
+          <div
+            className={`inline-flex items-stretch overflow-hidden rounded-lg border ${
+              couponData?.isInfluencerCode
+                ? 'border-[#dfba73] bg-[#dfba73]/10'
+                : 'border-gray-200 bg-white'
+            }`}
+          >
             <div className="flex items-center gap-1.5 px-3 py-1.5">
-              <Tag className="h-3 w-3 text-emerald-800" />
-              <span className="text-[14px] font-semibold tracking-widest text-emerald-800">
-                {couponCode}
+              <Tag
+                className={`h-3 w-3 ${
+                  couponData?.isInfluencerCode ? 'text-[#c69a47]' : 'text-emerald-800'
+                }`}
+              />
+              <span
+                className={`text-[13px] font-semibold tracking-wider ${
+                  couponData?.isInfluencerCode ? 'text-[#9b7226]' : 'text-emerald-800'
+                }`}
+              >
+                {couponCode} {couponData?.isInfluencerCode && '(20% Partner Discount)'}
               </span>
             </div>
-            <div className="flex items-center gap-2 border-l border-dashed border-gray-300 bg-gray-50 px-2.5 py-1.5">
-              <span className="text-[14px] font-medium text-emerald-600">
+            <div
+              className={`flex items-center gap-2 border-l border-dashed px-2.5 py-1.5 ${
+                couponData?.isInfluencerCode
+                  ? 'border-[#dfba73]/50 bg-[#dfba73]/20'
+                  : 'border-gray-300 bg-gray-50'
+              }`}
+            >
+              <span
+                className={`text-[13px] font-medium ${
+                  couponData?.isInfluencerCode ? 'text-[#9b7226]' : 'text-emerald-600'
+                }`}
+              >
                 applied
               </span>
               <button
@@ -1537,8 +1579,16 @@ export default function CheckoutForm({
         </div>
         {derivedSummary.couponDiscount > 0 && (
           <div className="flex flex-col gap-0.5">
-            <div className="flex justify-between text-emerald-600">
-              <span>{common.coupon}</span>
+            <div
+              className={`flex justify-between font-medium ${
+                couponData?.isInfluencerCode ? 'text-[#b88c38]' : 'text-emerald-600'
+              }`}
+            >
+              <span>
+                {couponData?.isInfluencerCode
+                  ? 'Influencer Discount (20%)'
+                  : common.coupon}
+              </span>
               <span>
                 −{formatPrice(derivedSummary.couponDiscount, currency)}
               </span>

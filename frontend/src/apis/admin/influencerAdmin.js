@@ -1,7 +1,8 @@
 import { createAdminApiClient } from './client';
 
+const backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
 const influencerAdmin = createAdminApiClient(
-  `${import.meta.env.VITE_BACKEND_URL}/api/v1/admin/influencers`
+  `${backendUrl}/api/v1/admin/influencers`
 );
 
 export const getInfluencerApplicationsAdmin = async (params = {}) => {

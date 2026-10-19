@@ -5,7 +5,7 @@ import {
   clearStoredInfluencerAuth,
 } from '../../utils/influencerAuth';
 
-const BASE_URL = `${import.meta.env.VITE_BACKEND_URL || ''}/api/v1/influencer`;
+const BASE_URL = `${import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001'}/api/v1/influencer`;
 
 export const influencerClient = axios.create({
   baseURL: BASE_URL,

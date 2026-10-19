@@ -142,6 +142,17 @@ const Footer = () => {
                   </Link>
                 </li>
                 <li>
+                  <Link
+                    to="/influencer/apply"
+                    className="hover:underline flex items-center gap-1.5 text-[#dfba73] hover:text-[#ebd296] font-medium transition-colors"
+                  >
+                    <span>{isRTL ? 'انضم كمؤثر وشريك' : 'Become an Influencer'}</span>
+                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#dfba73]/20 border border-[#dfba73]/40 text-[#dfba73]">
+                      {isRTL ? 'خصم 20%' : '20% Off'}
+                    </span>
+                  </Link>
+                </li>
+                <li>
                   <Link to="/privacy-policy" className="hover:underline">
                     {common.privacyPolicy}
                   </Link>

@@ -42,6 +42,7 @@ const PaymentMethods = lazy(
 );
 const AboutUs = lazy(() => import('../components/AboutUs').catch(() => { window.location.reload(); }));
 const RecoverCart = lazy(() => import('../pages/RecoverCart').catch(() => { window.location.reload(); }));
+const InfluencerApplyPage = lazy(() => import('../pages/InfluencerApplyPage'));
 // Add more lazy imports as needed
 const PageNotFound = lazy(() => import('../layout/PageNotFound').catch(() => { window.location.reload(); }));
 
@@ -329,6 +330,14 @@ export default function SiteRouter() {
             element={
               <Suspense fallback={<SiteLoading />}>
                 <TermsConditions />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/influencer/apply"
+            element={
+              <Suspense fallback={<SiteLoading />}>
+                <InfluencerApplyPage />
               </Suspense>
             }
           />

@@ -64,6 +64,10 @@ const InfluencerListPage = lazy(() => import('../Admin/pages/Influencers/Influen
 const InfluencerOrdersAdminPage = lazy(() => import('../Admin/pages/Influencers/InfluencerOrdersAdminPage').catch(() => { window.location.reload(); }));
 const InfluencerPayoutsAdminPage = lazy(() => import('../Admin/pages/Influencers/InfluencerPayoutsAdminPage').catch(() => { window.location.reload(); }));
 
+// Marketing & Newsletter Pages
+const NewsletterSubscribersPage = lazy(() => import('../Admin/pages/Marketing/NewsletterSubscribersPage').catch(() => { window.location.reload(); }));
+const NewsletterPopupSettingsPage = lazy(() => import('../Admin/pages/Marketing/NewsletterPopupSettingsPage').catch(() => { window.location.reload(); }));
+
 export default function AdminRouter() {
   return (
     <AdminProtectedRoute>
@@ -344,6 +348,27 @@ export default function AdminRouter() {
               element={
                 <AdminSidebar>
                   <InfluencerPayoutsAdminPage />
+                </AdminSidebar>
+              }
+            />
+          </Route>
+
+          {/* Newsletter & Email Popup Suite */}
+          <Route path="newsletter">
+            <Route index element={<Navigate to="subscribers" replace />} />
+            <Route
+              path="subscribers"
+              element={
+                <AdminSidebar>
+                  <NewsletterSubscribersPage />
+                </AdminSidebar>
+              }
+            />
+            <Route
+              path="popup-settings"
+              element={
+                <AdminSidebar>
+                  <NewsletterPopupSettingsPage />
                 </AdminSidebar>
               }
             />

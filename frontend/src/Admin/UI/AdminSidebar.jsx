@@ -143,6 +143,24 @@ export default function AdminSidebar({ children }) {
         key: '/admin/email-template',
       },
       {
+        icon: <Mail size={15} />,
+        label: 'Newsletter & Popup',
+        title: 'Newsletter & Popup',
+        key: '/admin/newsletter',
+        children: [
+          {
+            label: 'Subscribers',
+            title: 'Subscribers',
+            key: '/admin/newsletter/subscribers',
+          },
+          {
+            label: 'Popup Settings',
+            title: 'Popup Settings',
+            key: '/admin/newsletter/popup-settings',
+          },
+        ],
+      },
+      {
         icon: <Sparkles size={15} />,
         label: 'Influencers',
         title: 'Influencers',

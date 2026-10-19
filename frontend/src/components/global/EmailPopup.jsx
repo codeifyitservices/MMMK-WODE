@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Sparkles, Check, Copy, ArrowRight } from 'lucide-react';
 import { getPopupConfig, subscribeNewsletter } from '../../apis/nonAuth/newsletter';
+import { getStoredUserAuth } from '../../utils/authStorage';
 
 const STORAGE_KEY_SUBSCRIBED = 'mmmk_newsletter_subscribed';
 const STORAGE_KEY_SUBSCRIBER_EMAIL = 'mmmk_newsletter_subscriber_email';
@@ -54,9 +55,12 @@ const EmailPopup = () => {
     let timer = null;
 
     const storedEmail = localStorage.getItem(STORAGE_KEY_SUBSCRIBER_EMAIL);
+    const auth = getStoredUserAuth();
+    const accountEmail = auth?.email || auth?.user?.email || null;
+    const candidateEmail = storedEmail || accountEmail || null;
 
-    // Fetch config, passing storedEmail if exists to verify with DB
-    getPopupConfig(storedEmail ? { email: storedEmail } : {})
+    // Fetch config, passing candidateEmail if exists to verify with DB
+    getPopupConfig(candidateEmail ? { email: candidateEmail } : {})
       .then((res) => {
         if (!isMounted) return;
         if (res?.success && res?.data?.enabled !== false) {

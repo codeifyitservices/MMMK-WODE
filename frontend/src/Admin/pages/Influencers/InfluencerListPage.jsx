@@ -10,6 +10,8 @@ import {
   Drawer,
   message,
   Space,
+  Popconfirm,
+  Tooltip,
 } from 'antd';
 import {
   Edit,
@@ -20,12 +22,14 @@ import {
   Building,
   ShoppingBag,
   MousePointerClick,
+  Trash2,
 } from 'lucide-react';
 import PageTitle from '../../UI/PageTitle';
 import {
   getInfluencersListAdmin,
   getInfluencerDetailAdmin,
   updateInfluencerAdmin,
+  deleteInfluencerApplicationAdmin,
 } from '../../../apis/admin/influencerAdmin';
 
 const InfluencerListPage = () => {
@@ -138,6 +142,18 @@ const InfluencerListPage = () => {
       message.error(err?.response?.data?.message || 'Failed to update influencer.');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleDeleteInfluencer = async (record) => {
+    try {
+      const res = await deleteInfluencerApplicationAdmin(record._id);
+      if (res.success) {
+        message.success(res.message || 'Influencer deleted successfully.');
+        fetchInfluencers(pagination.page);
+      }
+    } catch (err) {
+      message.error(err?.response?.data?.message || 'Failed to delete influencer.');
     }
   };
 
@@ -255,6 +271,23 @@ const InfluencerListPage = () => {
             >
               Edit
             </Button>
+            <Popconfirm
+              title="Delete Influencer?"
+              description={`Permanently delete "${record.fullName || 'this influencer'}"? Their referral code and portal access will be revoked.`}
+              onConfirm={() => handleDeleteInfluencer(record)}
+              okText="Yes, Delete"
+              okButtonProps={{ danger: true }}
+              cancelText="Cancel"
+            >
+              <Tooltip title="Delete Influencer">
+                <Button
+                  danger
+                  size="small"
+                  icon={<Trash2 size={13} />}
+                  className="flex items-center justify-center text-red-500 hover:text-red-700 hover:border-red-500"
+                />
+              </Tooltip>
+            </Popconfirm>
           </Space>
         ),
       },

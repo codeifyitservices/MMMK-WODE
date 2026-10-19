@@ -310,6 +310,44 @@ exports.rejectApplication = async (req, res) => {
 };
 
 /**
+ * DELETE: Permanently delete an application / approval record
+ */
+exports.deleteApplication = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const influencer = await Influencer.findById(id);
+    if (!influencer) {
+      return res.status(404).json({
+        success: false,
+        message: "Influencer record not found.",
+      });
+    }
+
+    const applicantName = influencer.fullName || influencer.username || "Influencer";
+
+    // Clean up tracking clicks if any
+    await InfluencerClick.deleteMany({ influencerId: id }).catch(() => {});
+
+    // Delete the influencer record
+    await Influencer.findByIdAndDelete(id);
+
+    return res.status(200).json({
+      success: true,
+      message: `Influencer "${applicantName}" has been successfully deleted from the dashboard.`,
+      data: { id },
+    });
+  } catch (error) {
+    console.error("[InfluencerAdmin] Delete application error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to delete influencer record.",
+      error: error.message,
+    });
+  }
+};
+
+/**
  * GET: Retrieve list of all approved / active influencers with lifetime stats
  */
 exports.getAllInfluencers = async (req, res) => {

@@ -10,6 +10,8 @@ import {
   Tabs,
   Space,
   Tooltip,
+  Popconfirm,
+  Divider,
 } from 'antd';
 import {
   CheckCircle,
@@ -19,12 +21,22 @@ import {
   Send,
   UserCheck,
   Search,
+  Eye,
+  Trash2,
+  Copy,
+  Check,
+  Phone,
+  Mail,
+  Calendar,
+  Sparkles,
+  User,
 } from 'lucide-react';
 import PageTitle from '../../UI/PageTitle';
 import {
   getInfluencerApplicationsAdmin,
   approveInfluencerApplicationAdmin,
   rejectInfluencerApplicationAdmin,
+  deleteInfluencerApplicationAdmin,
 } from '../../../apis/admin/influencerAdmin';
 
 const InfluencerApplicationsPage = () => {
@@ -37,8 +49,12 @@ const InfluencerApplicationsPage = () => {
   // Modal States
   const [approveModalVisible, setApproveModalVisible] = useState(false);
   const [rejectModalVisible, setRejectModalVisible] = useState(false);
+  const [detailsModalVisible, setDetailsModalVisible] = useState(false);
   const [selectedApp, setSelectedApp] = useState(null);
+  const [detailsRecord, setDetailsRecord] = useState(null);
   const [submitting, setSubmitting] = useState(false);
+  const [deletingId, setDeletingId] = useState(null);
+  const [copiedCode, setCopiedCode] = useState(null);
 
   // Approval Form State
   const [approvalForm, setApprovalForm] = useState({
@@ -85,7 +101,6 @@ const InfluencerApplicationsPage = () => {
 
   const handleOpenApproveModal = (record) => {
     setSelectedApp(record);
-    // Generate suggested username and referral code based on full name
     const cleanName = (record.fullName || 'partner')
       .toLowerCase()
       .trim()
@@ -113,6 +128,36 @@ const InfluencerApplicationsPage = () => {
     setRejectModalVisible(true);
   };
 
+  const handleOpenDetailsModal = (record) => {
+    setDetailsRecord(record);
+    setDetailsModalVisible(true);
+  };
+
+  const handleCopyCode = (text) => {
+    navigator.clipboard.writeText(text);
+    setCopiedCode(text);
+    message.success('Referral code copied to clipboard!');
+    setTimeout(() => setCopiedCode(null), 2000);
+  };
+
+  const handleDeleteApplication = async (record) => {
+    try {
+      setDeletingId(record._id);
+      const res = await deleteInfluencerApplicationAdmin(record._id);
+      if (res.success) {
+        message.success(res.message || 'Influencer application deleted successfully.');
+        if (detailsModalVisible && detailsRecord?._id === record._id) {
+          setDetailsModalVisible(false);
+        }
+        fetchApplications(pagination.page);
+      }
+    } catch (err) {
+      message.error(err?.response?.data?.message || 'Failed to delete influencer record.');
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   const handleApproveSubmit = async () => {
     if (!selectedApp) return;
 
@@ -124,6 +169,9 @@ const InfluencerApplicationsPage = () => {
           `Approved! Welcome credentials dispatched to ${selectedApp.email}.`
         );
         setApproveModalVisible(false);
+        if (detailsModalVisible && detailsRecord?._id === selectedApp._id) {
+          setDetailsModalVisible(false);
+        }
         fetchApplications(pagination.page);
       }
     } catch (err) {
@@ -144,6 +192,9 @@ const InfluencerApplicationsPage = () => {
       if (res.success) {
         message.success('Application marked as Rejected.');
         setRejectModalVisible(false);
+        if (detailsModalVisible && detailsRecord?._id === selectedApp._id) {
+          setDetailsModalVisible(false);
+        }
         fetchApplications(pagination.page);
       }
     } catch (err) {
@@ -254,10 +305,21 @@ const InfluencerApplicationsPage = () => {
       {
         title: 'Action',
         key: 'action',
-        render: (_, record) => {
-          if (record.status === 'Pending') {
-            return (
-              <Space>
+        render: (_, record) => (
+          <Space size="small">
+            {/* View Details Icon Button */}
+            <Tooltip title="View Influencer Details">
+              <Button
+                size="small"
+                icon={<Eye size={13} className="text-gray-600" />}
+                onClick={() => handleOpenDetailsModal(record)}
+                className="flex items-center justify-center hover:border-[#dfba73] hover:text-[#b8860b]"
+              />
+            </Tooltip>
+
+            {/* Status-specific action buttons */}
+            {record.status === 'Pending' && (
+              <>
                 <Button
                   type="primary"
                   size="small"
@@ -276,26 +338,46 @@ const InfluencerApplicationsPage = () => {
                   <XCircle size={13} />
                   <span>Reject</span>
                 </Button>
-              </Space>
-            );
-          }
-          if (record.status === 'Approved') {
-            return (
-              <span className="text-xs text-emerald-600 font-medium flex items-center gap-1">
-                <ShieldCheck size={14} />
+              </>
+            )}
+
+            {record.status === 'Approved' && (
+              <span className="text-xs text-emerald-600 font-medium flex items-center gap-1 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                <ShieldCheck size={13} />
                 <span>Code: {record.referralCode}</span>
               </span>
-            );
-          }
-          return (
-            <span className="text-xs text-gray-400">
-              {record.rejectionReason || 'Rejected'}
-            </span>
-          );
-        },
+            )}
+
+            {record.status === 'Rejected' && (
+              <span className="text-xs text-gray-400 italic">
+                {record.rejectionReason || 'Rejected'}
+              </span>
+            )}
+
+            {/* Delete button with confirmation */}
+            <Popconfirm
+              title="Delete this record?"
+              description={`Are you sure you want to delete "${record.fullName || 'this influencer'}"? This action cannot be undone.`}
+              onConfirm={() => handleDeleteApplication(record)}
+              okText="Yes, Delete"
+              okButtonProps={{ danger: true, loading: deletingId === record._id }}
+              cancelText="Cancel"
+            >
+              <Tooltip title={record.status === 'Approved' ? 'Delete / Revoke Approval' : 'Delete Application'}>
+                <Button
+                  danger
+                  size="small"
+                  icon={<Trash2 size={13} />}
+                  className="flex items-center justify-center text-red-500 hover:text-red-700 hover:border-red-500"
+                />
+              </Tooltip>
+            </Popconfirm>
+          </Space>
+        ),
       },
     ],
-    []
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [deletingId]
   );
 
   return (
@@ -346,6 +428,258 @@ const InfluencerApplicationsPage = () => {
           }}
         />
       </div>
+
+      {/* VIEW DETAILS MODAL */}
+      <Modal
+        title={
+          <div className="flex items-center justify-between pr-6">
+            <div className="flex items-center gap-2 text-base font-semibold text-gray-800">
+              <Eye size={18} className="text-[#b8860b]" />
+              <span>Influencer Application Details</span>
+            </div>
+            {detailsRecord?.status && (
+              <Tag
+                color={
+                  detailsRecord.status === 'Approved'
+                    ? 'green'
+                    : detailsRecord.status === 'Pending'
+                    ? 'gold'
+                    : 'red'
+                }
+              >
+                {detailsRecord.status}
+              </Tag>
+            )}
+          </div>
+        }
+        open={detailsModalVisible}
+        onCancel={() => setDetailsModalVisible(false)}
+        footer={
+          <div className="flex items-center justify-between w-full">
+            <div>
+              <Popconfirm
+                title="Delete this record?"
+                description="Are you sure you want to permanently delete this influencer record?"
+                onConfirm={() => {
+                  if (detailsRecord) {
+                    handleDeleteApplication(detailsRecord);
+                  }
+                }}
+                okText="Yes, Delete"
+                okButtonProps={{ danger: true }}
+                cancelText="Cancel"
+              >
+                <Button danger icon={<Trash2 size={14} />}>
+                  Delete Record
+                </Button>
+              </Popconfirm>
+            </div>
+
+            <Space>
+              {detailsRecord?.status === 'Pending' && (
+                <>
+                  <Button
+                    danger
+                    onClick={() => {
+                      setDetailsModalVisible(false);
+                      handleOpenRejectModal(detailsRecord);
+                    }}
+                  >
+                    Reject
+                  </Button>
+                  <Button
+                    type="primary"
+                    className="bg-emerald-600 hover:bg-emerald-700"
+                    onClick={() => {
+                      setDetailsModalVisible(false);
+                      handleOpenApproveModal(detailsRecord);
+                    }}
+                  >
+                    Approve Application
+                  </Button>
+                </>
+              )}
+              <Button onClick={() => setDetailsModalVisible(false)}>Close</Button>
+            </Space>
+          </div>
+        }
+        width={680}
+      >
+        {detailsRecord && (
+          <div className="py-2 space-y-4 text-xs">
+            {/* Top Identity Card */}
+            <div className="p-4 bg-gray-50 rounded-xl border border-gray-200/80 flex items-start gap-4">
+              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#dfba73] to-[#8c6d2d] flex items-center justify-center text-black font-extrabold text-lg shadow-sm">
+                {detailsRecord.fullName ? detailsRecord.fullName.charAt(0).toUpperCase() : 'I'}
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="text-base font-bold text-gray-900 leading-tight">
+                  {detailsRecord.fullName}
+                </h3>
+                <div className="flex flex-wrap items-center gap-3 text-gray-500 mt-1 text-xs">
+                  <span className="flex items-center gap-1">
+                    <Mail size={12} className="text-gray-400" />
+                    <a href={`mailto:${detailsRecord.email}`} className="text-blue-600 hover:underline">
+                      {detailsRecord.email}
+                    </a>
+                  </span>
+                  {detailsRecord.phoneNumber && (
+                    <span className="flex items-center gap-1">
+                      <Phone size={12} className="text-gray-400" />
+                      <span>{detailsRecord.phoneNumber}</span>
+                    </span>
+                  )}
+                  <span className="flex items-center gap-1 text-gray-400">
+                    <Calendar size={12} />
+                    <span>Submitted: {new Date(detailsRecord.createdAt).toLocaleDateString()}</span>
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Approved Partnership Badge & Credentials (if approved) */}
+            {detailsRecord.status === 'Approved' && (
+              <div className="p-4 bg-emerald-50 rounded-xl border border-emerald-200 space-y-2">
+                <div className="flex items-center gap-1.5 text-emerald-800 font-semibold text-xs">
+                  <ShieldCheck size={15} />
+                  <span>Approved Partner Credentials & Codes</span>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
+                  <div className="bg-white p-2.5 rounded-lg border border-emerald-100">
+                    <span className="text-[10px] uppercase text-gray-400 font-medium block">Referral Code</span>
+                    <div className="flex items-center justify-between mt-0.5">
+                      <span className="font-bold text-emerald-700 text-sm font-mono">{detailsRecord.referralCode}</span>
+                      <button
+                        type="button"
+                        onClick={() => handleCopyCode(detailsRecord.referralCode)}
+                        className="text-gray-400 hover:text-emerald-700"
+                      >
+                        {copiedCode === detailsRecord.referralCode ? <Check size={12} className="text-emerald-600" /> : <Copy size={12} />}
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-2.5 rounded-lg border border-emerald-100">
+                    <span className="text-[10px] uppercase text-gray-400 font-medium block">Commission</span>
+                    <span className="font-bold text-gray-800 text-sm">{detailsRecord.commissionRate || 10}%</span>
+                  </div>
+
+                  <div className="bg-white p-2.5 rounded-lg border border-emerald-100">
+                    <span className="text-[10px] uppercase text-gray-400 font-medium block">Discount Given</span>
+                    <span className="font-bold text-gray-800 text-sm">{detailsRecord.discountRate || 20}%</span>
+                  </div>
+
+                  <div className="bg-white p-2.5 rounded-lg border border-emerald-100">
+                    <span className="text-[10px] uppercase text-gray-400 font-medium block">Username</span>
+                    <span className="font-semibold text-gray-800 text-xs truncate block">{detailsRecord.username || detailsRecord.email}</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Rejection Notice (if rejected) */}
+            {detailsRecord.status === 'Rejected' && (
+              <div className="p-3.5 bg-rose-50 rounded-xl border border-rose-200 text-rose-800">
+                <span className="font-semibold block mb-0.5">Rejection Feedback / Internal Note:</span>
+                <p className="text-xs text-rose-700 mb-0 font-light leading-relaxed">
+                  {detailsRecord.rejectionReason || 'No specific reason provided.'}
+                </p>
+              </div>
+            )}
+
+            {/* Creator Metrics: Niche & Audience */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="p-3 bg-white rounded-xl border border-gray-200">
+                <span className="text-[10px] uppercase text-gray-400 font-semibold tracking-wider block mb-1">
+                  Content Niche
+                </span>
+                <span className="text-sm font-bold text-gray-800">{detailsRecord.niche || 'Not specified'}</span>
+              </div>
+
+              <div className="p-3 bg-white rounded-xl border border-gray-200">
+                <span className="text-[10px] uppercase text-gray-400 font-semibold tracking-wider block mb-1">
+                  Audience Size / Reach
+                </span>
+                <span className="text-sm font-bold text-[#b8860b]">{detailsRecord.followerCount || 'Not specified'}</span>
+              </div>
+            </div>
+
+            {/* Social Media Links */}
+            <div className="p-3.5 bg-white rounded-xl border border-gray-200">
+              <span className="text-[10px] uppercase text-gray-400 font-semibold tracking-wider block mb-2">
+                Connected Social Channels
+              </span>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                {detailsRecord.socialMedia?.instagram ? (
+                  <a
+                    href={detailsRecord.socialMedia.instagram.startsWith('http') ? detailsRecord.socialMedia.instagram : `https://${detailsRecord.socialMedia.instagram}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center justify-between p-2 rounded-lg bg-pink-50/60 hover:bg-pink-100/70 border border-pink-100 text-pink-700 transition-colors"
+                  >
+                    <span className="font-medium text-xs truncate mr-2">Instagram: {detailsRecord.socialMedia.instagram}</span>
+                    <ExternalLink size={12} />
+                  </a>
+                ) : (
+                  <div className="p-2 rounded-lg bg-gray-50 border border-gray-100 text-gray-400 text-xs">Instagram: Not provided</div>
+                )}
+
+                {detailsRecord.socialMedia?.tiktok ? (
+                  <a
+                    href={detailsRecord.socialMedia.tiktok.startsWith('http') ? detailsRecord.socialMedia.tiktok : `https://${detailsRecord.socialMedia.tiktok}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center justify-between p-2 rounded-lg bg-gray-100 hover:bg-gray-200 border border-gray-200 text-gray-800 transition-colors"
+                  >
+                    <span className="font-medium text-xs truncate mr-2">TikTok: {detailsRecord.socialMedia.tiktok}</span>
+                    <ExternalLink size={12} />
+                  </a>
+                ) : (
+                  <div className="p-2 rounded-lg bg-gray-50 border border-gray-100 text-gray-400 text-xs">TikTok: Not provided</div>
+                )}
+
+                {detailsRecord.socialMedia?.youtube ? (
+                  <a
+                    href={detailsRecord.socialMedia.youtube.startsWith('http') ? detailsRecord.socialMedia.youtube : `https://${detailsRecord.socialMedia.youtube}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center justify-between p-2 rounded-lg bg-red-50/60 hover:bg-red-100/70 border border-red-100 text-red-700 transition-colors"
+                  >
+                    <span className="font-medium text-xs truncate mr-2">YouTube: {detailsRecord.socialMedia.youtube}</span>
+                    <ExternalLink size={12} />
+                  </a>
+                ) : (
+                  <div className="p-2 rounded-lg bg-gray-50 border border-gray-100 text-gray-400 text-xs">YouTube: Not provided</div>
+                )}
+
+                {detailsRecord.socialMedia?.other ? (
+                  <a
+                    href={detailsRecord.socialMedia.other.startsWith('http') ? detailsRecord.socialMedia.other : `https://${detailsRecord.socialMedia.other}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="flex items-center justify-between p-2 rounded-lg bg-amber-50/60 hover:bg-amber-100/70 border border-amber-100 text-amber-800 transition-colors"
+                  >
+                    <span className="font-medium text-xs truncate mr-2">Website / Blog: {detailsRecord.socialMedia.other}</span>
+                    <ExternalLink size={12} />
+                  </a>
+                ) : (
+                  <div className="p-2 rounded-lg bg-gray-50 border border-gray-100 text-gray-400 text-xs">Website / Blog: None</div>
+                )}
+              </div>
+            </div>
+
+            {/* Bio & Strategy Statement */}
+            <div className="p-3.5 bg-white rounded-xl border border-gray-200">
+              <span className="text-[10px] uppercase text-gray-400 font-semibold tracking-wider block mb-1">
+                Bio & Promotional Strategy
+              </span>
+              <p className="text-gray-700 leading-relaxed whitespace-pre-wrap text-xs bg-gray-50/80 p-3 rounded-lg border border-gray-100">
+                {detailsRecord.bio || 'Applicant did not provide a bio statement.'}
+              </p>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       {/* APPROVE INFLUENCER MODAL */}
       <Modal

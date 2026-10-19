@@ -35,6 +35,16 @@ export const rejectInfluencerApplicationAdmin = async (id, data = {}) => {
   }
 };
 
+export const deleteInfluencerApplicationAdmin = async (id) => {
+  try {
+    const response = await influencerAdmin.delete(`/applications/${id}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting influencer application:', error);
+    throw error;
+  }
+};
+
 export const getInfluencersListAdmin = async (params = {}) => {
   try {
     const response = await influencerAdmin.get('/list', { params });

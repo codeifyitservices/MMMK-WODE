@@ -136,6 +136,7 @@ const EmailPopup = () => {
         setErrorMessage(response?.message || 'Something went wrong. Please try again.');
       }
     } catch (error) {
+      console.error('[EmailPopup] Subscription error:', error?.response || error);
       const msg =
         error?.response?.data?.message ||
         'Unable to subscribe right now. Please try again later.';

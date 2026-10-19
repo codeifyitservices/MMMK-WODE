@@ -6,10 +6,10 @@ const {
   subscribeNewsletter,
 } = require("../../Controller/non-auth-controllers/newsletter.controller");
 
-// Anti-spam rate limiter for public subscriptions
+// Anti-spam rate limiter for public subscriptions (relaxed for testing)
 const subscribeLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 15, // limit each IP to 15 subscription attempts per windowMs
+  max: 200, // allow up to 200 requests per 15 minutes
   standardHeaders: true,
   legacyHeaders: false,
   message: {

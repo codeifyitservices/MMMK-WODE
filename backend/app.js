@@ -88,7 +88,12 @@ app.use(
       if (!origin) return callback(null, true);
 
       const normalizedOrigin = origin.replace(/\/$/, "");
-      if (allowedOrigins.includes(normalizedOrigin)) {
+      if (
+        allowedOrigins.includes(normalizedOrigin) ||
+        (process.env.NODE_ENV !== "production" &&
+          (normalizedOrigin.startsWith("http://localhost:") ||
+            normalizedOrigin.startsWith("http://127.0.0.1:")))
+      ) {
         return callback(null, true);
       }
 

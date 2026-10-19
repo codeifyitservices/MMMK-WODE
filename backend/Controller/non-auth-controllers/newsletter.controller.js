@@ -1,8 +1,34 @@
 const NewsletterSubscriber = require("../../Models/NewsletterSubscriber");
 const NewsletterPopupSettings = require("../../Models/NewsletterPopupSettings");
+const Coupon = require("../../Models/coupon");
 
 // Basic email validation regex conforming to standard RFC specs
 const EMAIL_REGEX = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)+$/;
+
+/**
+ * Ensure coupon exists in MongoDB so customer can apply it at checkout
+ */
+const ensureCouponExists = async (settings) => {
+  if (!settings.offerCoupon || !settings.discountCode) return null;
+  const code = String(settings.discountCode).trim().toUpperCase();
+  let coupon = await Coupon.findOne({ couponCode: code });
+  if (!coupon) {
+    coupon = await Coupon.create({
+      couponName: `Newsletter VIP Voucher (${code})`,
+      couponCode: code,
+      discount: Number(settings.discountValue) || 15,
+      discountType: settings.discountType === "amount" ? "amount" : "percentage",
+      showToUsers: true,
+      applyToProducts: true,
+      applyToDelivery: false,
+      scope: "All",
+      perUserLimit: 1,
+      maxUsage: null,
+      expiryDate: null,
+    });
+  }
+  return coupon;
+};
 
 /**
  * GET /api/v1/newsletter/popup-config
@@ -12,6 +38,11 @@ const getPublicPopupConfig = async (req, res) => {
   try {
     const settings = await NewsletterPopupSettings.getSettings();
 
+    // Ensure coupon exists in DB
+    if (settings.offerCoupon && settings.discountCode) {
+      await ensureCouponExists(settings);
+    }
+
     return res.status(200).json({
       success: true,
       data: {
@@ -19,9 +50,13 @@ const getPublicPopupConfig = async (req, res) => {
         title: settings.title || "JOIN THE MAISON MMMK WODE",
         subtitle:
           settings.subtitle ||
-          "Enjoy 15% off your first purchase and receive private invitations to exclusive releases.",
-        discountCode: settings.discountCode || "WELCOME15",
-        discountText: settings.discountText || "Use code at checkout for 15% off",
+          "Enjoy exclusive privileges and receive private invitations to new releases.",
+        offerCoupon: settings.offerCoupon !== false,
+        discountCode: settings.offerCoupon !== false ? settings.discountCode : null,
+        discountValue: Number(settings.discountValue) || 15,
+        discountType: settings.discountType || "percentage",
+        discountText: settings.discountText || "Use code at checkout for discount",
+        buttonText: settings.buttonText || "CLAIM MY PRIVILEGE",
         delaySeconds: Number(settings.delaySeconds) || 6,
         displayFrequencyDays: Number(settings.displayFrequencyDays) || 7,
         backgroundImage: settings.backgroundImage || "",
@@ -66,7 +101,12 @@ const subscribeNewsletter = async (req, res) => {
 
     // Retrieve active popup configuration for discount code
     const settings = await NewsletterPopupSettings.getSettings();
-    const discountCode = settings.discountCode || "WELCOME15";
+    const hasCoupon = settings.offerCoupon !== false && Boolean(settings.discountCode);
+    const discountCode = hasCoupon ? settings.discountCode : null;
+
+    if (hasCoupon) {
+      await ensureCouponExists(settings);
+    }
 
     // Extract client IP safely
     const rawIp =
@@ -93,8 +133,11 @@ const subscribeNewsletter = async (req, res) => {
 
         return res.status(200).json({
           success: true,
-          message: "Welcome back! Your subscription has been reactivated.",
+          message: hasCoupon
+            ? "Welcome back! Your subscription has been reactivated."
+            : "Welcome back! You are now subscribed to our VIP circle.",
           discountCode,
+          hasCoupon,
           alreadySubscribed: false,
         });
       }
@@ -102,8 +145,11 @@ const subscribeNewsletter = async (req, res) => {
       // Already active subscriber
       return res.status(200).json({
         success: true,
-        message: "You are already part of our VIP circle! Here is your privilege code.",
+        message: hasCoupon
+          ? "You are already part of our VIP circle! Here is your privilege code."
+          : "You are already subscribed to our VIP circle.",
         discountCode,
+        hasCoupon,
         alreadySubscribed: true,
       });
     }
@@ -120,8 +166,11 @@ const subscribeNewsletter = async (req, res) => {
 
     return res.status(201).json({
       success: true,
-      message: "Thank you for joining Maison MMMK WODE. Enjoy your welcome discount!",
+      message: hasCoupon
+        ? "Thank you for joining Maison MMMK WODE. Enjoy your welcome discount!"
+        : "Thank you for joining Maison MMMK WODE VIP circle.",
       discountCode,
+      hasCoupon,
       alreadySubscribed: false,
     });
   } catch (error) {

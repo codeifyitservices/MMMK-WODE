@@ -1,10 +1,62 @@
 const mongoose = require("mongoose");
 const NewsletterSubscriber = require("../../Models/NewsletterSubscriber");
 const NewsletterPopupSettings = require("../../Models/NewsletterPopupSettings");
+const Coupon = require("../../Models/coupon");
 
 // Safe regex escape helper to prevent ReDoS
 const escapeRegex = (string) =>
   string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+/**
+ * Helper to ensure the coupon configured for newsletter popup
+ * actually exists in the Coupon collection so checkout accepts it
+ */
+const syncCouponInDatabase = async ({
+  couponCode,
+  discountValue = 15,
+  discountType = "percentage",
+}) => {
+  if (!couponCode || typeof couponCode !== "string") return null;
+
+  const normalizedCode = couponCode.trim().toUpperCase();
+  if (!normalizedCode) return null;
+
+  let coupon = await Coupon.findOne({ couponCode: normalizedCode });
+
+  if (!coupon) {
+    coupon = await Coupon.create({
+      couponName: `Newsletter VIP Voucher (${normalizedCode})`,
+      couponCode: normalizedCode,
+      discount: Number(discountValue) || 15,
+      discountType: discountType === "amount" ? "amount" : "percentage",
+      showToUsers: true,
+      applyToProducts: true,
+      applyToDelivery: false,
+      scope: "All",
+      perUserLimit: 1,
+      maxUsage: null, // unlimited uses across new subscribers
+      expiryDate: null, // no expiration
+    });
+    console.log(`[NewsletterAdmin] Auto-created active coupon in DB: ${normalizedCode}`);
+  } else {
+    // Update discount value/type if changed
+    let modified = false;
+    if (discountValue !== undefined && coupon.discount !== Number(discountValue)) {
+      coupon.discount = Number(discountValue);
+      modified = true;
+    }
+    if (discountType && coupon.discountType !== discountType) {
+      coupon.discountType = discountType === "amount" ? "amount" : "percentage";
+      modified = true;
+    }
+    if (modified) {
+      await coupon.save();
+      console.log(`[NewsletterAdmin] Synchronized coupon details for: ${normalizedCode}`);
+    }
+  }
+
+  return coupon;
+};
 
 /**
  * GET /api/v1/admin/newsletter/subscribers
@@ -227,12 +279,46 @@ const updateSubscriberStatus = async (req, res) => {
 };
 
 /**
+ * GET /api/v1/admin/newsletter/available-coupons
+ * Returns existing store coupons for admin selection
+ */
+const getAvailableCoupons = async (req, res) => {
+  try {
+    const coupons = await Coupon.find({ showToUsers: true })
+      .select("couponCode couponName discount discountType expiryDate")
+      .sort({ createdAt: -1 })
+      .lean();
+
+    return res.status(200).json({
+      success: true,
+      data: coupons,
+    });
+  } catch (error) {
+    console.error("[NewsletterAdminController] getAvailableCoupons error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to load store coupons.",
+    });
+  }
+};
+
+/**
  * GET /api/v1/admin/newsletter/popup-settings
- * Fetches full admin popup configuration
+ * Fetches full admin popup configuration and ensures coupon exists
  */
 const getPopupSettings = async (req, res) => {
   try {
     const settings = await NewsletterPopupSettings.getSettings();
+
+    // Ensure configured coupon exists in Coupon collection
+    if (settings.offerCoupon && settings.discountCode) {
+      await syncCouponInDatabase({
+        couponCode: settings.discountCode,
+        discountValue: settings.discountValue,
+        discountType: settings.discountType,
+      });
+    }
+
     return res.status(200).json({
       success: true,
       data: settings,
@@ -248,7 +334,7 @@ const getPopupSettings = async (req, res) => {
 
 /**
  * PUT /api/v1/admin/newsletter/popup-settings
- * Updates popup configuration
+ * Updates popup configuration and synchronizes coupon in DB
  */
 const updatePopupSettings = async (req, res) => {
   try {
@@ -256,8 +342,12 @@ const updatePopupSettings = async (req, res) => {
       enabled,
       title,
       subtitle,
+      offerCoupon,
       discountCode,
+      discountValue,
+      discountType,
       discountText,
+      buttonText,
       delaySeconds,
       displayFrequencyDays,
       backgroundImage,
@@ -273,10 +363,26 @@ const updatePopupSettings = async (req, res) => {
       settings.title = title.trim();
     if (typeof subtitle === "string" && subtitle.trim())
       settings.subtitle = subtitle.trim();
-    if (typeof discountCode === "string" && discountCode.trim())
+
+    if (offerCoupon !== undefined) settings.offerCoupon = Boolean(offerCoupon);
+
+    if (typeof discountCode === "string" && discountCode.trim()) {
       settings.discountCode = discountCode.trim().toUpperCase();
+    }
+
+    if (discountValue !== undefined && Number.isFinite(Number(discountValue))) {
+      settings.discountValue = Math.max(0, Number(discountValue));
+    }
+
+    if (discountType && ["percentage", "amount"].includes(discountType)) {
+      settings.discountType = discountType;
+    }
+
     if (typeof discountText === "string")
       settings.discountText = discountText.trim();
+    if (typeof buttonText === "string" && buttonText.trim())
+      settings.buttonText = buttonText.trim();
+
     if (Number.isFinite(Number(delaySeconds)))
       settings.delaySeconds = Math.max(1, Math.min(120, Number(delaySeconds)));
     if (Number.isFinite(Number(displayFrequencyDays)))
@@ -289,9 +395,18 @@ const updatePopupSettings = async (req, res) => {
 
     await settings.save();
 
+    // Synchronize coupon in database so checkout applies it without error
+    if (settings.offerCoupon && settings.discountCode) {
+      await syncCouponInDatabase({
+        couponCode: settings.discountCode,
+        discountValue: settings.discountValue,
+        discountType: settings.discountType,
+      });
+    }
+
     return res.status(200).json({
       success: true,
-      message: "Newsletter popup settings updated successfully.",
+      message: "Newsletter popup settings and coupon synchronized successfully.",
       data: settings,
     });
   } catch (error) {
@@ -308,6 +423,7 @@ module.exports = {
   exportSubscribersCsv,
   deleteSubscriber,
   updateSubscriberStatus,
+  getAvailableCoupons,
   getPopupSettings,
   updatePopupSettings,
 };

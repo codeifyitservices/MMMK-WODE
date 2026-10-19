@@ -5,6 +5,7 @@ const {
   exportSubscribersCsv,
   deleteSubscriber,
   updateSubscriberStatus,
+  getAvailableCoupons,
   getPopupSettings,
   updatePopupSettings,
 } = require("../Controller/admin-controllers/newsletterAdmin.controller");
@@ -15,7 +16,8 @@ router.get("/subscribers/export", exportSubscribersCsv);
 router.delete("/subscribers/:id", deleteSubscriber);
 router.patch("/subscribers/:id/status", updateSubscriberStatus);
 
-// Popup settings endpoints
+// Popup settings & coupon endpoints
+router.get("/available-coupons", getAvailableCoupons);
 router.get("/popup-settings", getPopupSettings);
 router.put("/popup-settings", updatePopupSettings);
 

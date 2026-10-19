@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Card,
@@ -10,23 +10,28 @@ import {
   Row,
   Col,
   Slider,
+  Select,
+  Radio,
   message,
   Spin,
   Divider,
+  Alert,
 } from 'antd';
 import {
   LuSparkles,
   LuClock,
-  LuCalendar,
   LuTag,
   LuSave,
   LuEye,
   LuArrowRight,
+  LuCheck,
+  LuGift,
 } from 'react-icons/lu';
 import PageTitle from '../../UI/PageTitle';
 import {
   getPopupSettingsAdmin,
   updatePopupSettingsAdmin,
+  getAvailableCouponsAdmin,
 } from '../../../apis/admin/newsletterAdmin';
 
 const { TextArea } = Input;
@@ -34,44 +39,80 @@ const { TextArea } = Input;
 export default function NewsletterPopupSettingsPage() {
   const [form] = Form.useForm();
   const queryClient = useQueryClient();
+  const [couponMode, setCouponMode] = useState('custom'); // 'custom' | 'existing'
 
   // Watch form fields for live visual preview
   const enabled = Form.useWatch('enabled', form);
   const title = Form.useWatch('title', form);
   const subtitle = Form.useWatch('subtitle', form);
+  const offerCoupon = Form.useWatch('offerCoupon', form);
   const discountCode = Form.useWatch('discountCode', form);
+  const discountValue = Form.useWatch('discountValue', form);
+  const discountType = Form.useWatch('discountType', form);
   const discountText = Form.useWatch('discountText', form);
+  const buttonText = Form.useWatch('buttonText', form);
   const delaySeconds = Form.useWatch('delaySeconds', form);
   const displayFrequencyDays = Form.useWatch('displayFrequencyDays', form);
 
   // Fetch settings
-  const { data, isLoading } = useQuery({
+  const { data: settingsData, isLoading: isSettingsLoading } = useQuery({
     queryKey: ['newsletter-popup-settings'],
     queryFn: getPopupSettingsAdmin,
   });
 
+  // Fetch available store coupons
+  const { data: couponsData } = useQuery({
+    queryKey: ['available-store-coupons'],
+    queryFn: getAvailableCouponsAdmin,
+  });
+
+  const availableCoupons = couponsData?.data || [];
+
   useEffect(() => {
-    if (data?.data) {
+    if (settingsData?.data) {
+      const s = settingsData.data;
       form.setFieldsValue({
-        enabled: data.data.enabled !== false,
-        title: data.data.title || 'JOIN THE MAISON MMMK WODE',
+        enabled: s.enabled !== false,
+        title: s.title || 'JOIN THE MAISON MMMK WODE',
         subtitle:
-          data.data.subtitle ||
-          'Enjoy 15% off your first purchase and receive private invitations to exclusive releases.',
-        discountCode: data.data.discountCode || 'WELCOME15',
-        discountText: data.data.discountText || 'Use code at checkout for 15% off',
-        delaySeconds: data.data.delaySeconds || 6,
-        displayFrequencyDays: data.data.displayFrequencyDays || 7,
+          s.subtitle ||
+          'Enjoy exclusive privileges and receive private invitations to new releases.',
+        offerCoupon: s.offerCoupon !== false,
+        discountCode: s.discountCode || 'WELCOME15',
+        discountValue: s.discountValue !== undefined ? s.discountValue : 15,
+        discountType: s.discountType || 'percentage',
+        discountText: s.discountText || 'Use code at checkout for 15% off',
+        buttonText: s.buttonText || 'CLAIM MY PRIVILEGE',
+        delaySeconds: s.delaySeconds || 6,
+        displayFrequencyDays: s.displayFrequencyDays || 7,
       });
     }
-  }, [data, form]);
+  }, [settingsData, form]);
+
+  // Handle selecting an existing coupon
+  const handleSelectExistingCoupon = (selectedCode) => {
+    const found = availableCoupons.find((c) => c.couponCode === selectedCode);
+    if (found) {
+      form.setFieldsValue({
+        discountCode: found.couponCode,
+        discountValue: found.discount || 0,
+        discountType: found.discountType || 'percentage',
+        discountText: `Use code ${found.couponCode} at checkout for ${found.discount}${
+          found.discountType === 'percentage' ? '%' : ''
+        } off`,
+      });
+    }
+  };
 
   // Save settings mutation
   const mutation = useMutation({
     mutationFn: (values) => updatePopupSettingsAdmin(values),
-    onSuccess: () => {
-      message.success('Newsletter popup settings saved successfully');
+    onSuccess: (res) => {
+      message.success(
+        res?.message || 'Popup settings and discount coupon saved successfully'
+      );
       queryClient.invalidateQueries(['newsletter-popup-settings']);
+      queryClient.invalidateQueries(['available-store-coupons']);
     },
     onError: (err) => {
       message.error(err?.response?.data?.message || 'Failed to save settings');
@@ -82,7 +123,7 @@ export default function NewsletterPopupSettingsPage() {
     mutation.mutate(values);
   };
 
-  if (isLoading) {
+  if (isSettingsLoading) {
     return (
       <div className="flex h-96 items-center justify-center">
         <Spin size="large" />
@@ -93,7 +134,7 @@ export default function NewsletterPopupSettingsPage() {
   return (
     <div className="space-y-6">
       {/* Title */}
-      <PageTitle title="Email Popup Configuration" />
+      <PageTitle title="Email Popup & Coupon Management" />
 
       <Row gutter={[24, 24]}>
         {/* Left Column: Form Settings */}
@@ -108,8 +149,13 @@ export default function NewsletterPopupSettingsPage() {
               onFinish={onFinish}
               initialValues={{
                 enabled: true,
+                offerCoupon: true,
                 delaySeconds: 6,
                 displayFrequencyDays: 7,
+                discountType: 'percentage',
+                discountValue: 15,
+                discountCode: 'WELCOME15',
+                buttonText: 'CLAIM MY PRIVILEGE',
               }}
             >
               {/* Enable Switch */}
@@ -125,6 +171,140 @@ export default function NewsletterPopupSettingsPage() {
                 <Form.Item name="enabled" valuePropName="checked" noStyle>
                   <Switch checkedChildren="ON" unCheckedChildren="OFF" />
                 </Form.Item>
+              </div>
+
+              {/* Coupon Management Section */}
+              <div className="rounded-xl border border-[#dfba73]/40 bg-[#dfba73]/5 p-4.5 mb-6">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <LuGift className="text-[#dfba73]" size={18} />
+                    <h4 className="font-semibold text-stone-900 text-sm">
+                      Offer Discount Coupon to Subscribers
+                    </h4>
+                  </div>
+                  <Form.Item name="offerCoupon" valuePropName="checked" noStyle>
+                    <Switch checkedChildren="YES" unCheckedChildren="NO" />
+                  </Form.Item>
+                </div>
+                <p className="text-xs text-stone-600 mb-4">
+                  Reward customers who subscribe with an instant voucher code valid at checkout.
+                </p>
+
+                {offerCoupon && (
+                  <div className="space-y-4 pt-2 border-t border-[#dfba73]/20">
+                    {/* Mode Selector */}
+                    <div>
+                      <span className="text-xs font-semibold text-stone-700 block mb-1.5">
+                        Coupon Source:
+                      </span>
+                      <Radio.Group
+                        value={couponMode}
+                        onChange={(e) => setCouponMode(e.target.value)}
+                        size="small"
+                      >
+                        <Radio.Button value="custom">Create / Custom Coupon</Radio.Button>
+                        <Radio.Button
+                          value="existing"
+                          disabled={availableCoupons.length === 0}
+                        >
+                          Select Existing Store Coupon ({availableCoupons.length})
+                        </Radio.Button>
+                      </Radio.Group>
+                    </div>
+
+                    {couponMode === 'existing' && availableCoupons.length > 0 && (
+                      <Form.Item label="Select Store Coupon" tooltip="Select an existing coupon already created in store">
+                        <Select
+                          placeholder="Choose an existing coupon..."
+                          onChange={handleSelectExistingCoupon}
+                          options={availableCoupons.map((c) => ({
+                            label: `${c.couponCode} — ${c.discount}${
+                              c.discountType === 'percentage' ? '%' : ' off'
+                            }`,
+                            value: c.couponCode,
+                          }))}
+                        />
+                      </Form.Item>
+                    )}
+
+                    <Row gutter={16}>
+                      <Col xs={24} sm={12}>
+                        <Form.Item
+                          label="Coupon Code"
+                          name="discountCode"
+                          tooltip="The exact promo code customers enter at checkout."
+                          rules={[{ required: true, message: 'Please enter promo code' }]}
+                        >
+                          <Input
+                            placeholder="e.g. WELCOME15"
+                            className="uppercase font-mono font-bold"
+                          />
+                        </Form.Item>
+                      </Col>
+
+                      <Col xs={24} sm={12}>
+                        <Form.Item
+                          label="Discount Value & Type"
+                          rules={[{ required: true }]}
+                        >
+                          <Space.Compact className="w-full">
+                            <Form.Item
+                              name="discountValue"
+                              noStyle
+                              rules={[{ required: true, message: 'Enter discount value' }]}
+                            >
+                              <InputNumber
+                                min={1}
+                                max={100}
+                                placeholder="15"
+                                className="w-2/3"
+                              />
+                            </Form.Item>
+                            <Form.Item name="discountType" noStyle>
+                              <Select
+                                className="w-1/3"
+                                options={[
+                                  { label: '%', value: 'percentage' },
+                                  { label: 'Amount', value: 'amount' },
+                                ]}
+                              />
+                            </Form.Item>
+                          </Space.Compact>
+                        </Form.Item>
+                      </Col>
+                    </Row>
+
+                    <Row gutter={16}>
+                      <Col xs={24} sm={12}>
+                        <Form.Item
+                          label="Offer Badge Text"
+                          name="discountText"
+                          tooltip="Highlighted text shown inside the popup offer banner."
+                        >
+                          <Input placeholder="e.g. Use code at checkout for 15% off" />
+                        </Form.Item>
+                      </Col>
+
+                      <Col xs={24} sm={12}>
+                        <Form.Item
+                          label="Button Label"
+                          name="buttonText"
+                          tooltip="CTA button text in the popup."
+                        >
+                          <Input placeholder="e.g. CLAIM MY 15% PRIVILEGE" />
+                        </Form.Item>
+                      </Col>
+                    </Row>
+
+                    <Alert
+                      type="success"
+                      showIcon
+                      message="Automatic Checkout Validation"
+                      description="When you save, this coupon is automatically activated in the store's checkout system. Customers can apply it at checkout immediately with 0 errors."
+                      className="text-xs"
+                    />
+                  </div>
+                )}
               </div>
 
               <Divider className="my-5" />
@@ -164,7 +344,7 @@ export default function NewsletterPopupSettingsPage() {
               {/* Promotional Content */}
               <h4 className="text-xs uppercase font-bold tracking-wider text-stone-400 mb-4 flex items-center gap-1.5">
                 <LuTag size={14} />
-                <span>Marketing & Copywriting</span>
+                <span>Headlines & Copywriting</span>
               </h4>
 
               <Form.Item
@@ -182,31 +362,9 @@ export default function NewsletterPopupSettingsPage() {
               >
                 <TextArea
                   rows={2}
-                  placeholder="e.g. Enjoy 15% off your first purchase and receive private invitations to exclusive releases."
+                  placeholder="e.g. Enjoy exclusive privileges and receive private invitations to new releases."
                 />
               </Form.Item>
-
-              <Row gutter={16}>
-                <Col xs={24} sm={12}>
-                  <Form.Item
-                    label="Welcome Coupon Code"
-                    name="discountCode"
-                    rules={[{ required: true, message: 'Please enter voucher code' }]}
-                  >
-                    <Input placeholder="e.g. WELCOME15" className="uppercase font-mono font-semibold" />
-                  </Form.Item>
-                </Col>
-
-                <Col xs={24} sm={12}>
-                  <Form.Item
-                    label="Offer Badge Text"
-                    name="discountText"
-                    rules={[{ required: true, message: 'Please enter offer text' }]}
-                  >
-                    <Input placeholder="e.g. Use code at checkout for 15% off" />
-                  </Form.Item>
-                </Col>
-              </Row>
 
               <div className="mt-8 flex justify-end">
                 <Button
@@ -216,7 +374,7 @@ export default function NewsletterPopupSettingsPage() {
                   loading={mutation.isPending}
                   className="bg-[#dfba73] hover:!bg-[#cda65b] border-none text-black font-medium px-6 h-10"
                 >
-                  Save Configuration
+                  Save Configuration & Sync Coupon
                 </Button>
               </div>
             </Form>
@@ -260,15 +418,17 @@ export default function NewsletterPopupSettingsPage() {
                 {/* Subtitle */}
                 <p className="mt-2 text-xs leading-relaxed text-stone-300">
                   {subtitle ||
-                    'Enjoy 15% off your first purchase and receive private invitations to exclusive releases.'}
+                    'Enjoy exclusive privileges and receive private invitations to new releases.'}
                 </p>
 
-                {/* Discount Highlight Banner */}
-                <div className="mt-3 rounded-lg border border-[#dfba73]/20 bg-[#dfba73]/5 py-2 px-3 text-center">
-                  <span className="text-[11px] uppercase tracking-wider text-[#dfba73]">
-                    {discountText || 'Use code at checkout for 15% off'}
-                  </span>
-                </div>
+                {/* Discount Highlight Banner (Only if offerCoupon is ON) */}
+                {offerCoupon && (
+                  <div className="mt-3 rounded-lg border border-[#dfba73]/20 bg-[#dfba73]/5 py-2 px-3 text-center">
+                    <span className="text-[11px] uppercase tracking-wider text-[#dfba73]">
+                      {discountText || `Use code ${discountCode || 'WELCOME15'} at checkout`}
+                    </span>
+                  </div>
+                )}
 
                 {/* Preview Input & Button */}
                 <div className="mt-5 space-y-2.5 text-left">
@@ -279,7 +439,9 @@ export default function NewsletterPopupSettingsPage() {
                     className="w-full rounded-lg border border-white/15 bg-black/40 px-3.5 py-2.5 text-xs text-white placeholder-stone-500 cursor-not-allowed"
                   />
                   <div className="flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-[#e7cb8c] via-[#dfba73] to-[#cba358] py-2.5 px-4 font-semibold text-black text-xs tracking-wider shadow">
-                    <span>CLAIM 15% PRIVILEGE</span>
+                    <span>
+                      {buttonText || (offerCoupon ? 'CLAIM MY PRIVILEGE' : 'JOIN THE MAISON')}
+                    </span>
                     <LuArrowRight size={13} />
                   </div>
                 </div>
@@ -292,7 +454,13 @@ export default function NewsletterPopupSettingsPage() {
               {/* Preview Footer note */}
               <div className="mt-6 pt-3 border-t border-white/10 flex items-center justify-between text-[11px] text-stone-400">
                 <span>Triggers after: {delaySeconds || 6}s</span>
-                <span>Cooldown: {displayFrequencyDays || 7} days</span>
+                <span>
+                  {offerCoupon
+                    ? `Coupon: ${discountCode || 'WELCOME15'} (${discountValue || 15}${
+                        discountType === 'percentage' ? '%' : ''
+                      })`
+                    : 'Coupon: Disabled'}
+                </span>
               </div>
             </div>
           </div>

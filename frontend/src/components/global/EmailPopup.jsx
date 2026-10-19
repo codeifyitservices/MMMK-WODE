@@ -28,7 +28,7 @@ const EmailPopup = () => {
   const [config, setConfig] = useState(null);
   const [email, setEmail] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
-  const [successData, setSuccessData] = useState(null); // { discountCode, message }
+  const [successData, setSuccessData] = useState(null); // { discountCode, message, hasCoupon }
   const [copied, setCopied] = useState(false);
 
   // Check if current route is excluded
@@ -111,8 +111,9 @@ const EmailPopup = () => {
         // Mark as permanently subscribed in localStorage
         localStorage.setItem(STORAGE_KEY_SUBSCRIBED, 'true');
         setSuccessData({
-          discountCode: response.discountCode || config?.discountCode || 'WELCOME15',
+          discountCode: response.discountCode || (config?.offerCoupon !== false ? config?.discountCode : null),
           message: response.message,
+          hasCoupon: Boolean(response.discountCode || (config?.offerCoupon !== false && config?.discountCode)),
         });
       } else {
         setErrorMessage(response?.message || 'Something went wrong. Please try again.');
@@ -140,6 +141,8 @@ const EmailPopup = () => {
   };
 
   if (!isOpen || isExcludedRoute) return null;
+
+  const showCouponOffer = config?.offerCoupon !== false;
 
   return (
     <AnimatePresence>
@@ -193,15 +196,18 @@ const EmailPopup = () => {
               {/* Subtitle */}
               <p className="mt-2 text-sm md:text-base leading-relaxed text-stone-300">
                 {config?.subtitle ||
-                  'Enjoy 15% off your first purchase and receive private invitations to exclusive releases.'}
+                  'Enjoy exclusive privileges and receive private invitations to new releases.'}
               </p>
 
-              {/* Discount Highlight Banner */}
-              <div className="mt-4 rounded-xl border border-[#dfba73]/20 bg-[#dfba73]/5 py-2.5 px-4 text-center">
-                <span className="text-xs uppercase tracking-wider text-[#dfba73]">
-                  {config?.discountText || 'Use code at checkout for 15% off'}
-                </span>
-              </div>
+              {/* Discount Highlight Banner (Only if offerCoupon is enabled) */}
+              {showCouponOffer && (
+                <div className="mt-4 rounded-xl border border-[#dfba73]/20 bg-[#dfba73]/5 py-2.5 px-4 text-center">
+                  <span className="text-xs uppercase tracking-wider text-[#dfba73]">
+                    {config?.discountText ||
+                      `Use code ${config?.discountCode || 'WELCOME15'} at checkout for discount`}
+                  </span>
+                </div>
+              )}
 
               {/* Form */}
               <form onSubmit={handleSubscribe} className="mt-6 space-y-3.5 text-left">
@@ -254,7 +260,10 @@ const EmailPopup = () => {
                     </span>
                   ) : (
                     <>
-                      <span>CLAIM MY 15% PRIVILEGE</span>
+                      <span>
+                        {config?.buttonText ||
+                          (showCouponOffer ? 'CLAIM MY PRIVILEGE' : 'JOIN THE MAISON')}
+                      </span>
                       <ArrowRight
                         size={15}
                         className="transition-transform group-hover:translate-x-1"
@@ -274,7 +283,7 @@ const EmailPopup = () => {
               </button>
             </div>
           ) : (
-            /* ================= SUCCESS STATE WITH PROMO CODE ================= */
+            /* ================= SUCCESS STATE ================= */
             <div className="relative text-center py-2">
               <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-[#dfba73]/15 border border-[#dfba73]/40 text-[#dfba73]">
                 <Check size={28} />
@@ -286,33 +295,37 @@ const EmailPopup = () => {
 
               <p className="mt-2 text-sm text-stone-300">
                 {successData.message ||
-                  'Your privilege is unlocked. Use this voucher code at checkout.'}
+                  (successData.hasCoupon
+                    ? 'Your privilege is unlocked. Use this voucher code at checkout.'
+                    : 'You will receive private invitations to exclusive drops and releases.')}
               </p>
 
-              {/* Copyable Voucher Box */}
-              <div className="mt-6 flex items-center justify-between rounded-xl border border-dashed border-[#dfba73]/50 bg-black/60 p-3.5 px-5">
-                <span className="font-mono text-lg font-bold tracking-widest text-[#dfba73]">
-                  {successData.discountCode}
-                </span>
+              {/* Copyable Voucher Box (Only if coupon is awarded) */}
+              {successData.hasCoupon && successData.discountCode && (
+                <div className="mt-6 flex items-center justify-between rounded-xl border border-dashed border-[#dfba73]/50 bg-black/60 p-3.5 px-5">
+                  <span className="font-mono text-lg font-bold tracking-widest text-[#dfba73]">
+                    {successData.discountCode}
+                  </span>
 
-                <button
-                  type="button"
-                  onClick={handleCopyCode}
-                  className="flex items-center gap-1.5 rounded-lg bg-[#dfba73]/20 hover:bg-[#dfba73]/30 px-3 py-1.5 text-xs font-semibold text-[#dfba73] transition-colors active:scale-95"
-                >
-                  {copied ? (
-                    <>
-                      <Check size={14} />
-                      <span>Copied!</span>
-                    </>
-                  ) : (
-                    <>
-                      <Copy size={14} />
-                      <span>Copy</span>
-                    </>
-                  )}
-                </button>
-              </div>
+                  <button
+                    type="button"
+                    onClick={handleCopyCode}
+                    className="flex items-center gap-1.5 rounded-lg bg-[#dfba73]/20 hover:bg-[#dfba73]/30 px-3 py-1.5 text-xs font-semibold text-[#dfba73] transition-colors active:scale-95"
+                  >
+                    {copied ? (
+                      <>
+                        <Check size={14} />
+                        <span>Copied!</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy size={14} />
+                        <span>Copy</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
 
               {/* Shop CTA */}
               <button

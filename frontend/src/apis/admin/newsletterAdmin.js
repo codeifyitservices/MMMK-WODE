@@ -63,6 +63,19 @@ export const updateSubscriberStatusAdmin = async (id, status) => {
 };
 
 /**
+ * Fetch existing store coupons for selection
+ */
+export const getAvailableCouponsAdmin = async () => {
+  try {
+    const response = await newsletterAdmin.get('/available-coupons');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching available coupons:', error);
+    throw error;
+  }
+};
+
+/**
  * Fetch popup configuration for Admin
  */
 export const getPopupSettingsAdmin = async () => {

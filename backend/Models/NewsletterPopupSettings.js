@@ -15,17 +15,37 @@ const newsletterPopupSettingsSchema = new mongoose.Schema(
       type: String,
       trim: true,
       default:
-        "Enjoy 15% off your first purchase and receive private invitations to exclusive releases.",
+        "Enjoy exclusive privileges and receive private invitations to new releases.",
+    },
+    offerCoupon: {
+      type: Boolean,
+      default: true,
     },
     discountCode: {
       type: String,
       trim: true,
+      uppercase: true,
       default: "WELCOME15",
+    },
+    discountValue: {
+      type: Number,
+      default: 15,
+      min: 0,
+    },
+    discountType: {
+      type: String,
+      enum: ["percentage", "amount"],
+      default: "percentage",
     },
     discountText: {
       type: String,
       trim: true,
       default: "Use code at checkout for 15% off",
+    },
+    buttonText: {
+      type: String,
+      trim: true,
+      default: "CLAIM MY PRIVILEGE",
     },
     delaySeconds: {
       type: Number,

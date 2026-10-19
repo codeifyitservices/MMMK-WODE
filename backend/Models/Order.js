@@ -97,6 +97,35 @@ const orderSchema = new mongoose.Schema(
       type: String,
       trim: true,
     },
+    influencerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Influencer",
+      index: true,
+    },
+    influencerCode: {
+      type: String,
+      trim: true,
+      uppercase: true,
+      index: true,
+    },
+    influencerDiscountAmount: {
+      type: Number,
+      default: 0,
+    },
+    influencerCommissionRate: {
+      type: Number,
+      default: 0,
+    },
+    influencerCommissionAmount: {
+      type: Number,
+      default: 0,
+    },
+    influencerCommissionStatus: {
+      type: String,
+      enum: ["None", "Pending", "Earned", "Cancelled", "Paid"],
+      default: "None",
+      index: true,
+    },
     status: {
       type: String,
       enum: ["Pending", "Processing", "Complete", "Cancelled"],
@@ -136,6 +165,7 @@ const orderSchema = new mongoose.Schema(
       tax: { type: Number, default: 0 },
       extraCharges: { type: Number, default: 0 },
       couponDiscount: { type: Number, default: 0 },
+      influencerDiscount: { type: Number, default: 0 },
       creditApplied: { type: Number, default: 0 },
       total: { type: Number, required: true },
       payableTotal: { type: Number, default: 0 },

@@ -72,6 +72,16 @@ export default function MenuDrawer({ isOpen, onClose }) {
         <Link to={'/gift-cards'} onClick={onClose}>{common.giftCards}</Link>
         <Link to={'/'} onClick={onClose}>{common.mmmk}</Link>
         <Link to={'/contact-us'} onClick={onClose}>{common.contactUs}</Link>
+        <Link
+          to={'/influencer/apply'}
+          onClick={onClose}
+          className="text-[#997328] font-semibold flex items-center justify-center gap-1.5"
+        >
+          <span>{translateLanguage === 'ar' ? 'انضم كمؤثر' : 'Become an Influencer'}</span>
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#dfba73]/30 border border-[#dfba73] text-[#745313]">
+            20% Off
+          </span>
+        </Link>
       </div>
     </Drawer>
   );

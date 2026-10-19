@@ -327,6 +327,33 @@ const buildCheckoutCalculation = async ({
     }
   }
 
+  let influencer = null;
+  let influencerDiscountBaseMinor = 0;
+  let influencerCommissionRate = 0;
+  let influencerCommissionBaseMinor = 0;
+
+  const rawCandidateCode = body.influencerCode || body.couponCode;
+  if (!coupon && rawCandidateCode) {
+    const Influencer = require("../Models/Influencer");
+    influencer = await Influencer.findOne({
+      referralCode: String(rawCandidateCode).trim().toUpperCase(),
+      status: "Approved",
+    });
+
+    if (influencer) {
+      appliedCouponCode = influencer.referralCode;
+      const discountPercent = influencer.discountRate || 20;
+      // 20% discount on products subtotal
+      influencerDiscountBaseMinor = percentMinor(subtotalBaseMinor, discountPercent);
+      couponDiscountBaseMinor += influencerDiscountBaseMinor;
+
+      // Influencer commission calculated on the post-discount subtotal
+      influencerCommissionRate = influencer.commissionRate || 10;
+      const netProductsBaseMinor = Math.max(0, subtotalBaseMinor - influencerDiscountBaseMinor);
+      influencerCommissionBaseMinor = percentMinor(netProductsBaseMinor, influencerCommissionRate);
+    }
+  }
+
   const grossBaseMinor = subtotalBaseMinor + shippingBaseMinor + extraBaseMinor;
   couponDiscountBaseMinor = clampMinor(
     couponDiscountBaseMinor,
@@ -492,6 +519,11 @@ const buildCheckoutCalculation = async ({
     totalQuantity,
     appliedCouponCode,
     coupon,
+    influencerId: influencer?._id || null,
+    influencerCode: influencer?.referralCode || "",
+    influencerDiscountAmount: fromMinor(influencerDiscountBaseMinor),
+    influencerCommissionRate: influencerCommissionRate,
+    influencerCommissionAmount: fromMinor(influencerCommissionBaseMinor),
     base: {
       subtotal: fromMinor(subtotalBaseMinor),
       shippingCharges: fromMinor(shippingBaseMinor),

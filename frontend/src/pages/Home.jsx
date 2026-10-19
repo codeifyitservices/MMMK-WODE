@@ -5,8 +5,8 @@ import { CommonButton } from '../components/global/UIButtons';
 import { useTranslationContext } from '../context/TranslationContext';
 import LazySection from '../components/global/LazySection';
 
-import Section8 from '../components/home/Section8';
 import Slider from '../components/global/Slider';
+const Section8 = lazy(() => import('../components/home/Section8').catch(() => { window.location.reload(); }));
 
 import { useQuery } from '@tanstack/react-query';
 import { getHomeBanner } from '../apis/nonAuth/editPage';
@@ -59,9 +59,11 @@ const Home = () => {
           </CommonButton>
         </div>
       </BannerVideo>
-      <div style={{ minHeight: '420px' }}>
-        <Section8 />
-      </div>
+      <LazySection minHeight="550px">
+        <Suspense fallback={<div className="h-[900px]" />}>
+          <BikiniSection />
+        </Suspense>
+      </LazySection>
       <div style={{ minHeight: '520px' }}>
         <Slider />
       </div>
@@ -70,14 +72,9 @@ const Home = () => {
           <Section2 />
         </Suspense>
       </LazySection>
-      <LazySection minHeight="55wishlist will still require 0px">
-        <Suspense fallback={<div className="h-[900px]" />}>
-          <BikiniSection />
-        </Suspense>
-      </LazySection>
-        <Suspense fallback={<div className="h-[680px]" />}>
-          <RecommendedSection />
-        </Suspense>
+      <Suspense fallback={<div className="h-[680px]" />}>
+        <RecommendedSection />
+      </Suspense>
       <LazySection minHeight="500px">
         <Suspense fallback={<div className="h-[700px]" />}>
           <BannerSection />
@@ -117,6 +114,11 @@ const Home = () => {
       <LazySection minHeight="700px">
         <Suspense fallback={<div className="h-[700px]" />}>
           <Section7 />
+        </Suspense>
+      </LazySection>
+      <LazySection minHeight="520px">
+        <Suspense fallback={<div className="h-[520px]" />}>
+          <Section8 />
         </Suspense>
       </LazySection>
       <LazySection minHeight="100vh">

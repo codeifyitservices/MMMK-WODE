@@ -122,6 +122,12 @@ const createTabbySession = async (req, res) => {
       shippingAddress,
       billingAddress,
       couponCode: appliedCouponCode || "",
+      influencerId: checkout.influencerId,
+      influencerCode: checkout.influencerCode,
+      influencerDiscountAmount: checkout.influencerDiscountAmount,
+      influencerCommissionRate: checkout.influencerCommissionRate,
+      influencerCommissionAmount: checkout.influencerCommissionAmount,
+      influencerCommissionStatus: checkout.influencerId ? "Pending" : "None",
       creditsUsed: finalCreditAppliedBase,
       creditsDeducted: false,
       price: {
@@ -131,6 +137,7 @@ const createTabbySession = async (req, res) => {
         shippingCharges: display.shippingCharges.amount,
         extraCharges: display.extraCharges.amount,
         couponDiscount: display.couponDiscount.amount,
+        influencerDiscount: checkout.influencerDiscountAmount,
         creditApplied,
       },
       temp: {
@@ -362,6 +369,15 @@ const handleTabbyWebhook = async (req, res) => {
       }
 
       sendOrderConfirmationEmail(updatedOrder).catch(console.error);
+
+      try {
+        const { processOrderCommission } = require("../../services/influencerCommissionService");
+        processOrderCommission(updatedOrder).catch((err) => {
+          console.error("[TABBY_WEBHOOK] Failed to process influencer commission:", err.message);
+        });
+      } catch (commErr) {
+        console.error("[TABBY_WEBHOOK] Commission hook require error:", commErr.message);
+      }
     } else if (status === "closed" || status === "expired" || status === "rejected") {
       order.paymentStatus = "Failed";
       await order.save();
@@ -466,6 +482,15 @@ const refreshTabbyStatus = async (req, res) => {
       }
 
       sendOrderConfirmationEmail(updatedOrder).catch(console.error);
+
+      try {
+        const { processOrderCommission } = require("../../services/influencerCommissionService");
+        processOrderCommission(updatedOrder).catch((err) => {
+          console.error("[TABBY_REFRESH] Failed to process influencer commission:", err.message);
+        });
+      } catch (commErr) {
+        console.error("[TABBY_REFRESH] Commission hook require error:", commErr.message);
+      }
 
       return res.status(200).json({
         success: true,

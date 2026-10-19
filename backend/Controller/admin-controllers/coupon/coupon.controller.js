@@ -156,6 +156,32 @@ const applyCoupon = async (req, res) => {
       .populate("scopeProduct");
 
     if (!coupon) {
+      const Influencer = require("../../../Models/Influencer");
+      const influencer = await Influencer.findOne({
+        referralCode: String(couponCode).trim().toUpperCase(),
+        status: "Approved",
+      });
+
+      if (influencer) {
+        return res.status(200).json({
+          success: true,
+          message: `20% Influencer discount applied via ${influencer.fullName}`,
+          data: {
+            _id: influencer._id,
+            couponCode: influencer.referralCode,
+            discountType: "percentage",
+            discount: influencer.discountRate || 20,
+            applyToProducts: true,
+            applyToDelivery: false,
+            scope: "All",
+            isInfluencerCode: true,
+            influencerId: influencer._id,
+            influencerName: influencer.fullName,
+            influencerCode: influencer.referralCode,
+          },
+        });
+      }
+
       return res.status(404).json({
         success: false,
         message: "Coupon not found",

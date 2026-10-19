@@ -345,6 +345,12 @@ const createPaymentIntent = async (req, res) => {
       shippingAddress,
       billingAddress,
       couponCode: appliedCouponCode || "",
+      influencerId: checkout.influencerId,
+      influencerCode: checkout.influencerCode,
+      influencerDiscountAmount: checkout.influencerDiscountAmount,
+      influencerCommissionRate: checkout.influencerCommissionRate,
+      influencerCommissionAmount: checkout.influencerCommissionAmount,
+      influencerCommissionStatus: checkout.influencerId ? "Pending" : "None",
       creditsUsed: finalCreditAppliedBase,
       creditsDeducted: false,
       creditsRestored: false,
@@ -355,6 +361,7 @@ const createPaymentIntent = async (req, res) => {
         shippingCharges: display.shippingCharges.amount,
         extraCharges: display.extraCharges.amount,
         couponDiscount: display.couponDiscount.amount,
+        influencerDiscount: checkout.influencerDiscountAmount,
         creditApplied,
       },
       temp: {
@@ -752,6 +759,15 @@ const orderCreation = async (req, res) => {
       if (session.payment_status === "paid" && !giftCardOrder) {
         const latestOrder = await Order.findById(order._id);
         sendOrderConfirmationEmail(latestOrder || order).catch(console.error);
+
+        try {
+          const { processOrderCommission } = require("../../services/influencerCommissionService");
+          processOrderCommission(latestOrder || order).catch((err) => {
+            console.error("[WEBHOOK] Failed to process influencer commission:", err.message);
+          });
+        } catch (commErr) {
+          console.error("[WEBHOOK] Commission hook require error:", commErr.message);
+        }
       }
     }
 

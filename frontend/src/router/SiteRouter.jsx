@@ -3,6 +3,8 @@ import { lazy, Suspense } from 'react';
 
 import UserProtectedRoute from '../components/global/UserProtectedRoute';
 import CartProvider from '../context/CartProvider';
+import InfluencerAuthProvider from '../context/InfluencerAuthProvider';
+import InfluencerProtectedRoute from '../components/influencer/InfluencerProtectedRoute';
 import SiteLoading from '../layout/SiteLoading';
 import '../css/index.css';
 import Root from '../pages/Root';
@@ -42,15 +44,89 @@ const PaymentMethods = lazy(
 );
 const AboutUs = lazy(() => import('../components/AboutUs').catch(() => { window.location.reload(); }));
 const RecoverCart = lazy(() => import('../pages/RecoverCart').catch(() => { window.location.reload(); }));
+const InfluencerApplyPage = lazy(() => import('../pages/InfluencerApplyPage'));
+
+// Influencer Portal Pages
+const InfluencerLoginPage = lazy(() => import('../pages/influencer/InfluencerLoginPage'));
+const InfluencerPortalLayout = lazy(() => import('../layout/InfluencerPortalLayout'));
+const InfluencerDashboardPage = lazy(() => import('../pages/influencer/InfluencerDashboardPage'));
+const InfluencerProductsPage = lazy(() => import('../pages/influencer/InfluencerProductsPage'));
+const InfluencerOrdersPage = lazy(() => import('../pages/influencer/InfluencerOrdersPage'));
+const InfluencerWalletPage = lazy(() => import('../pages/influencer/InfluencerWalletPage'));
+const InfluencerProfilePage = lazy(() => import('../pages/influencer/InfluencerProfilePage'));
+
 // Add more lazy imports as needed
 const PageNotFound = lazy(() => import('../layout/PageNotFound').catch(() => { window.location.reload(); }));
 
 export default function SiteRouter() {
   return (
-    <CartProvider>
-      <Routes>
-        {/* User Routes */}
-        <Route element={<Root />}>
+    <InfluencerAuthProvider>
+      <CartProvider>
+        <Routes>
+          {/* Influencer Portal Dedicated Routes */}
+          <Route
+            path="/influencer/login"
+            element={
+              <Suspense fallback={<SiteLoading />}>
+                <InfluencerLoginPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/influencer"
+            element={
+              <InfluencerProtectedRoute>
+                <Suspense fallback={<SiteLoading />}>
+                  <InfluencerPortalLayout />
+                </Suspense>
+              </InfluencerProtectedRoute>
+            }
+          >
+            <Route index element={<Navigate to="/influencer/dashboard" replace />} />
+            <Route
+              path="dashboard"
+              element={
+                <Suspense fallback={<SiteLoading />}>
+                  <InfluencerDashboardPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="products"
+              element={
+                <Suspense fallback={<SiteLoading />}>
+                  <InfluencerProductsPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="orders"
+              element={
+                <Suspense fallback={<SiteLoading />}>
+                  <InfluencerOrdersPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="wallet"
+              element={
+                <Suspense fallback={<SiteLoading />}>
+                  <InfluencerWalletPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="profile"
+              element={
+                <Suspense fallback={<SiteLoading />}>
+                  <InfluencerProfilePage />
+                </Suspense>
+              }
+            />
+          </Route>
+
+          {/* User Routes */}
+          <Route element={<Root />}>
           <Route
             index
             element={
@@ -332,6 +408,14 @@ export default function SiteRouter() {
               </Suspense>
             }
           />
+          <Route
+            path="/influencer/apply"
+            element={
+              <Suspense fallback={<SiteLoading />}>
+                <InfluencerApplyPage />
+              </Suspense>
+            }
+          />
 
           <Route
             path="*"
@@ -344,5 +428,7 @@ export default function SiteRouter() {
         </Route>
       </Routes>
     </CartProvider>
+  </InfluencerAuthProvider>
   );
 }
+

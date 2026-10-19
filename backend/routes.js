@@ -21,6 +21,9 @@ const analyticsRoutes = require("./Routes/analytics.router");
 const uploadRoutes = require("./Routes/upload.router");
 const emailTemplateRoutes = require("./Routes/emailTemplate.router");
 const abandonedCartRoutes = require("./Routes/abandonedCart.router");
+const influencerAdminRoutes = require("./Routes/influencerAdmin.router");
+const influencerRoutes = require("./Routes/influencer.router");
+const newsletterAdminRoutes = require("./Routes/newsletterAdmin.router");
 
 // non Auth router
 const nonAuth_ProductsRoutes = require("./Routes/non-auth-routes/product.routes");
@@ -36,6 +39,7 @@ const nonAuth_webhookRoutes = require("./Routes/non-auth-routes/webhook.routes")
 const nonAuth_translateRoutes = require("./Routes/non-auth-routes/translate.routes");
 const nonAuth_localeRoutes = require("./Routes/non-auth-routes/locale.routes");
 const nonAuth_checkoutRoutes = require("./Routes/non-auth-routes/checkout.routes");
+const nonAuth_newsletterRoutes = require("./Routes/non-auth-routes/newsletter.routes");
 
 // user router
 const user_cartRouter = require("./Routes/user-routes/cart.router");
@@ -69,8 +73,11 @@ router.use("/api/v1/admin/analytics", isAdmin, analyticsRoutes);
 router.use("/api/v1/admin/upload", isAdmin, uploadRoutes);
 router.use("/api/v1/admin/emailTemplate", isAdmin, emailTemplateRoutes);
 router.use("/api/v1/admin/abandoned-cart", isAdmin, abandonedCartRoutes);
+router.use("/api/v1/admin/influencers", isAdmin, influencerAdminRoutes);
+router.use("/api/v1/admin/newsletter", isAdmin, newsletterAdminRoutes);
 
-// non auth
+// non auth & influencer
+router.use("/api/v1/influencer", influencerRoutes);
 router.use("/api/v1/products", nonAuth_ProductsRoutes);
 router.use("/api/v1/category", nonAuth_CategoryRoutes);
 router.use("/api/v1/editPage", nonAuth_editPageRoutes);
@@ -84,6 +91,7 @@ router.use("/api/v1/webhook", nonAuth_webhookRoutes);
 router.use("/api/v1/translate", nonAuth_translateRoutes);
 router.use("/api/v1", nonAuth_localeRoutes);
 router.use("/api/v1/checkout", nonAuth_checkoutRoutes);
+router.use("/api/v1/newsletter", nonAuth_newsletterRoutes);
 
 // user
 router.use("/api/v1/user/cart", isUser, user_cartRouter);

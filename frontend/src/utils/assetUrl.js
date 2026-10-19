@@ -1,38 +1,10 @@
-const DEPLOYED_UPLOADS_BASE_URL =
-  import.meta.env.VITE_PUBLIC_UPLOAD_BASE_URL ||
-  (typeof window !== 'undefined' ? `${window.location.origin}/uploads` : '');
+const LIVE_UPLOADS_URL = 'https://mmmk-wode.com/uploads';
+
 const ASSET_BASE_URL = (
   import.meta.env.VITE_IMAGE_URL ||
-  DEPLOYED_UPLOADS_BASE_URL ||
-  ''
+  import.meta.env.VITE_PUBLIC_UPLOAD_BASE_URL ||
+  LIVE_UPLOADS_URL
 ).replace(/\/$/, '');
-
-const isLocalEnv =
-  typeof window !== 'undefined' &&
-  (window.location.hostname === 'localhost' ||
-    window.location.hostname === '127.0.0.1' ||
-    window.location.hostname === '0.0.0.0' ||
-    window.location.hostname.endsWith('.local'));
-
-const shouldRewriteAbsoluteUrl = (value) => {
-  // Don't rewrite local URLs to production if we are currently developing locally
-  if (isLocalEnv) return false;
-
-  try {
-    const parsedUrl = new URL(value);
-    const host = parsedUrl.hostname.toLowerCase();
-
-    return (
-      parsedUrl.pathname.includes('/uploads/') &&
-      (host === 'localhost' ||
-        host === '127.0.0.1' ||
-        host === '0.0.0.0' ||
-        host.endsWith('.local'))
-    );
-  } catch {
-    return false;
-  }
-};
 
 export const isAbsoluteAssetUrl = (value = '') =>
   /^(?:https?:)?\/\//i.test(value) ||
@@ -41,19 +13,25 @@ export const isAbsoluteAssetUrl = (value = '') =>
 
 export const resolveAssetUrl = (value = '') => {
   if (!value) return '';
-  
+
   // If it's already an absolute URL (http, https, data, blob)
   if (isAbsoluteAssetUrl(value)) {
-    // But if it's a local absolute URL and we are in production, rewrite it
-    if (shouldRewriteAbsoluteUrl(value)) {
-      const filename = String(value)
-        .split('/uploads/')
-        .pop()
-        ?.replace(/^\/+/, '');
+    try {
+      const parsedUrl = new URL(value);
+      const host = parsedUrl.hostname.toLowerCase();
+      const isLocalHost =
+        host === 'localhost' ||
+        host === '127.0.0.1' ||
+        host === '0.0.0.0' ||
+        host.endsWith('.local');
 
-      return filename
-        ? `${DEPLOYED_UPLOADS_BASE_URL.replace(/\/$/, '')}/${filename}`
-        : value;
+      // If an absolute URL points to a local uploads server, redirect to live assets
+      if (isLocalHost && parsedUrl.pathname.includes('/uploads/')) {
+        const filename = parsedUrl.pathname.split('/uploads/').pop()?.replace(/^\/+/, '');
+        return filename ? `${ASSET_BASE_URL}/${filename}` : value;
+      }
+    } catch {
+      // not a valid URL, return as is
     }
 
     return value;
@@ -65,16 +43,7 @@ export const resolveAssetUrl = (value = '') => {
     filename = filename.replace(/^uploads\//, '');
   }
 
-  if (ASSET_BASE_URL) {
-    return `${ASSET_BASE_URL.replace(/\/$/, '')}/${filename}`;
-  }
-
-  // Fallback for local development if ASSET_BASE_URL is missing
-  if (isLocalEnv) {
-    return `http://localhost:3001/uploads/${filename}`;
-  }
-
-  return `${DEPLOYED_UPLOADS_BASE_URL.replace(/\/$/, '')}/${filename}`;
+  return `${ASSET_BASE_URL}/${filename}`;
 };
 
 const getFileNameFromAsset = (value = '') => {
@@ -98,6 +67,7 @@ export const getThumbnailAssetUrl = (value = '') => {
     return resolveAssetUrl(fileName);
   }
 
-  const baseName = fileName.replace(/\.[^.]+$/, '');
-  return resolveAssetUrl(`thumb-${baseName}.webp`);
+  // The production upload store does not host pre-generated thumb-*.webp files.
+  // Directly resolving the actual asset prevents 404 network errors and avoids image load delays.
+  return resolveAssetUrl(value);
 };

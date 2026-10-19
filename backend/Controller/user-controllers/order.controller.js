@@ -157,6 +157,12 @@ const createOrder = async (req, res) => {
       shippingAddress: data?.shippingAddress,
       billingAddress: data?.billingAddress,
       couponCode: appliedCouponCode,
+      influencerId: checkout.influencerId,
+      influencerCode: checkout.influencerCode,
+      influencerDiscountAmount: checkout.influencerDiscountAmount,
+      influencerCommissionRate: checkout.influencerCommissionRate,
+      influencerCommissionAmount: checkout.influencerCommissionAmount,
+      influencerCommissionStatus: checkout.influencerId ? "Pending" : "None",
       creditsUsed: creditAppliedBase,
       creditsDeducted: creditAppliedBase > 0,
       creditsRestored: false,
@@ -167,6 +173,7 @@ const createOrder = async (req, res) => {
         shippingCharges: display.shippingCharges.amount,
         extraCharges: display.extraCharges.amount,
         couponDiscount: display.couponDiscount.amount,
+        influencerDiscount: checkout.influencerDiscountAmount,
         creditApplied,
       },
       stockAdjusted: false,
@@ -210,6 +217,8 @@ const createOrder = async (req, res) => {
     });
     await recordCouponUsageForOrder(createdOrder);
     onOrderCompleted(req.user.id, createdOrder).catch(() => {});
+    const { processOrderCommission } = require("../../services/influencerCommissionService");
+    processOrderCommission(createdOrder).catch(() => {});
 
     // Send to delivery provider (best-effort). If this fails, still return the created order to client
     let juraResponse = null;

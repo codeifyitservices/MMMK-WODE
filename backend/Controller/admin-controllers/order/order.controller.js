@@ -470,6 +470,18 @@ const updateStatus = async (req, res) => {
       runValidators: true,
     });
     console.log('[DEBUG_ADMIN_UPDATE] Saved Data:', savedData);
+
+    // Influencer Commission Lifecycle Hook
+    try {
+      const { processOrderCommission, reverseOrderCommission } = require("../../../services/influencerCommissionService");
+      if (savedData?.status === "Cancelled") {
+        reverseOrderCommission(savedData._id, "Admin order cancelled").catch(() => {});
+      } else if (["Processing", "Complete"].includes(savedData?.status)) {
+        processOrderCommission(savedData._id).catch(() => {});
+      }
+    } catch (commErr) {
+      console.warn("[InfluencerCommission] Hook error:", commErr?.message);
+    }
     
     try {
       const orderForSync = await Order.findById(savedData._id).populate("products.id");

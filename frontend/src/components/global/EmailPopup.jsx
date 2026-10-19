@@ -36,16 +36,30 @@ const EmailPopup = () => {
     location.pathname.toLowerCase().startsWith(prefix)
   );
 
+  // Allow ?test_popup=true or #test-popup for developers/admins to test anytime without clearing storage
+  const isForceTest =
+    location.search.includes('test_popup=true') ||
+    location.hash === '#test-popup';
+
   useEffect(() => {
     if (isExcludedRoute) return;
 
-    // Check localStorage suppression
-    const isSubscribed = localStorage.getItem(STORAGE_KEY_SUBSCRIBED) === 'true';
-    if (isSubscribed) return;
+    if (!isForceTest) {
+      // Check localStorage suppression
+      const isSubscribed = localStorage.getItem(STORAGE_KEY_SUBSCRIBED) === 'true';
+      if (isSubscribed) {
+        console.log('[EmailPopup] Suppressed: Visitor is already subscribed.');
+        return;
+      }
 
-    const dismissedUntil = localStorage.getItem(STORAGE_KEY_DISMISSED_UNTIL);
-    if (dismissedUntil && Number(dismissedUntil) > Date.now()) {
-      return;
+      const dismissedUntil = localStorage.getItem(STORAGE_KEY_DISMISSED_UNTIL);
+      if (dismissedUntil && Number(dismissedUntil) > Date.now()) {
+        const remainingMinutes = Math.round((Number(dismissedUntil) - Date.now()) / 60000);
+        console.log(`[EmailPopup] Suppressed: Dismissed cooldown active (${remainingMinutes} mins remaining). Use ?test_popup=true to force test.`);
+        return;
+      }
+    } else {
+      console.log('[EmailPopup] Force test mode active (?test_popup=true)');
     }
 
     let isMounted = true;
@@ -60,11 +74,14 @@ const EmailPopup = () => {
           setConfig(popupConfig);
 
           const delayMs = (popupConfig.delaySeconds || 6) * 1000;
+          console.log(`[EmailPopup] Waiting ${popupConfig.delaySeconds || 6}s before displaying popup...`);
           timer = setTimeout(() => {
             if (isMounted) {
               setIsOpen(true);
             }
           }, delayMs);
+        } else {
+          console.log('[EmailPopup] Popup is currently disabled in Admin settings.');
         }
       })
       .catch((err) => {
@@ -75,7 +92,7 @@ const EmailPopup = () => {
       isMounted = false;
       if (timer) clearTimeout(timer);
     };
-  }, [location.pathname, isExcludedRoute]);
+  }, [location.pathname, location.search, location.hash, isExcludedRoute, isForceTest]);
 
   const handleDismiss = () => {
     setIsOpen(false);

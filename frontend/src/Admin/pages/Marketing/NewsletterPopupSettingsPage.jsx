@@ -27,6 +27,8 @@ import {
   LuArrowRight,
   LuCheck,
   LuGift,
+  LuExternalLink,
+  LuRotateCcw,
 } from 'react-icons/lu';
 import PageTitle from '../../UI/PageTitle';
 import {
@@ -134,8 +136,30 @@ export default function NewsletterPopupSettingsPage() {
 
   return (
     <div className="space-y-6">
-      {/* Title */}
-      <PageTitle title="Email Popup & Coupon Management" />
+      {/* Title Bar */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <PageTitle title="Email Popup & Coupon Management" />
+        <div className="flex items-center gap-2">
+          <Button
+            icon={<LuRotateCcw size={14} />}
+            onClick={() => {
+              localStorage.removeItem('mmmk_newsletter_subscribed');
+              localStorage.removeItem('mmmk_newsletter_dismissed_until');
+              message.success('Browser test status reset! Popup will appear on your next visit.');
+            }}
+          >
+            Reset Test Status
+          </Button>
+          <Button
+            type="default"
+            icon={<LuExternalLink size={14} />}
+            onClick={() => window.open('/?test_popup=true', '_blank')}
+            className="border-[#dfba73] text-[#9a7428] hover:!text-[#dfba73]"
+          >
+            Test Popup in New Tab
+          </Button>
+        </div>
+      </div>
 
       <Row gutter={[24, 24]}>
         {/* Left Column: Form Settings */}

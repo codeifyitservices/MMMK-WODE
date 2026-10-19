@@ -3,6 +3,7 @@ const router = express.Router();
 const rateLimit = require("express-rate-limit");
 const {
   getPublicPopupConfig,
+  checkSubscriberStatus,
   subscribeNewsletter,
 } = require("../../Controller/non-auth-controllers/newsletter.controller");
 
@@ -19,6 +20,7 @@ const subscribeLimiter = rateLimit({
 });
 
 router.get("/popup-config", getPublicPopupConfig);
+router.get("/check-status", checkSubscriberStatus);
 router.post("/subscribe", subscribeLimiter, subscribeNewsletter);
 
 module.exports = router;

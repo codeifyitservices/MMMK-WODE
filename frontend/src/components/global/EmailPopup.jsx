@@ -5,6 +5,7 @@ import { X, Sparkles, Check, Copy, ArrowRight } from 'lucide-react';
 import { getPopupConfig, subscribeNewsletter } from '../../apis/nonAuth/newsletter';
 
 const STORAGE_KEY_SUBSCRIBED = 'mmmk_newsletter_subscribed';
+const STORAGE_KEY_SUBSCRIBER_EMAIL = 'mmmk_newsletter_subscriber_email';
 const STORAGE_KEY_DISMISSED_UNTIL = 'mmmk_newsletter_dismissed_until';
 
 const EXCLUDED_PREFIXES = [
@@ -42,36 +43,40 @@ const EmailPopup = () => {
     location.hash === '#test-popup';
 
   useEffect(() => {
+    // Clear any legacy dismissal blocker so popup always appears on refresh
+    try {
+      localStorage.removeItem(STORAGE_KEY_DISMISSED_UNTIL);
+    } catch (_) {}
+
     if (isExcludedRoute) return;
-
-    if (!isForceTest) {
-      // Check localStorage suppression
-      const isSubscribed = localStorage.getItem(STORAGE_KEY_SUBSCRIBED) === 'true';
-      if (isSubscribed) {
-        console.log('[EmailPopup] Suppressed: Visitor is already subscribed.');
-        return;
-      }
-
-      const dismissedUntil = localStorage.getItem(STORAGE_KEY_DISMISSED_UNTIL);
-      if (dismissedUntil && Number(dismissedUntil) > Date.now()) {
-        const remainingMinutes = Math.round((Number(dismissedUntil) - Date.now()) / 60000);
-        console.log(`[EmailPopup] Suppressed: Dismissed cooldown active (${remainingMinutes} mins remaining). Use ?test_popup=true to force test.`);
-        return;
-      }
-    } else {
-      console.log('[EmailPopup] Force test mode active (?test_popup=true)');
-    }
 
     let isMounted = true;
     let timer = null;
 
-    // Fetch config
-    getPopupConfig()
+    const storedEmail = localStorage.getItem(STORAGE_KEY_SUBSCRIBER_EMAIL);
+
+    // Fetch config, passing storedEmail if exists to verify with DB
+    getPopupConfig(storedEmail ? { email: storedEmail } : {})
       .then((res) => {
         if (!isMounted) return;
         if (res?.success && res?.data?.enabled !== false) {
           const popupConfig = res.data;
           setConfig(popupConfig);
+
+          // If the visitor's email is actively found in DB, suppress popup
+          if (!isForceTest && popupConfig.isSubscribed) {
+            console.log('[EmailPopup] Suppressed: Visitor is actively subscribed in DB.');
+            return;
+          }
+
+          // If the email was deleted by the Admin from DB, reactivate popup on refresh
+          if (storedEmail && !popupConfig.isSubscribed) {
+            console.log('[EmailPopup] Email was deleted by Admin. Reactivating popup!');
+            try {
+              localStorage.removeItem(STORAGE_KEY_SUBSCRIBER_EMAIL);
+              localStorage.removeItem(STORAGE_KEY_SUBSCRIBED);
+            } catch (_) {}
+          }
 
           const delayMs = (popupConfig.delaySeconds || 6) * 1000;
           console.log(`[EmailPopup] Waiting ${popupConfig.delaySeconds || 6}s before displaying popup...`);
@@ -96,9 +101,8 @@ const EmailPopup = () => {
 
   const handleDismiss = () => {
     setIsOpen(false);
-    const frequencyDays = config?.displayFrequencyDays || 7;
-    const expiry = Date.now() + frequencyDays * 24 * 60 * 60 * 1000;
-    localStorage.setItem(STORAGE_KEY_DISMISSED_UNTIL, String(expiry));
+    // Dismissing only closes the current popup view.
+    // It will show again on browser refresh if user hasn't submitted their email.
   };
 
   const handleSubscribe = async (e) => {
@@ -125,8 +129,12 @@ const EmailPopup = () => {
       });
 
       if (response?.success) {
-        // Mark as permanently subscribed in localStorage
-        localStorage.setItem(STORAGE_KEY_SUBSCRIBED, 'true');
+        // Mark as subscribed and record email for dynamic DB synchronization
+        try {
+          localStorage.setItem(STORAGE_KEY_SUBSCRIBER_EMAIL, cleanEmail);
+          localStorage.setItem(STORAGE_KEY_SUBSCRIBED, 'true');
+        } catch (_) {}
+
         setSuccessData({
           discountCode: response.discountCode || (config?.offerCoupon !== false ? config?.discountCode : null),
           message: response.message,

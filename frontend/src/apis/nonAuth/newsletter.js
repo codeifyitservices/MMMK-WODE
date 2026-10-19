@@ -10,14 +10,30 @@ const newsletterApi = axios.create({
 
 /**
  * Fetch public popup display configuration
+ * @param {object} params - optional query params e.g. { email }
  */
-export const getPopupConfig = async () => {
+export const getPopupConfig = async (params = {}) => {
   try {
-    const response = await newsletterApi.get('/popup-config');
+    const response = await newsletterApi.get('/popup-config', { params });
     return response.data;
   } catch (error) {
     console.error('Error fetching newsletter popup configuration:', error);
     throw error;
+  }
+};
+
+/**
+ * Check if a subscriber email is active in DB
+ */
+export const checkSubscriberStatus = async (email) => {
+  try {
+    const response = await newsletterApi.get('/check-status', {
+      params: { email },
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error checking subscriber status:', error);
+    return { success: false, isSubscribed: false };
   }
 };
 

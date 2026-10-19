@@ -43,10 +43,21 @@ const getPublicPopupConfig = async (req, res) => {
       await ensureCouponExists(settings);
     }
 
+    const { email } = req.query;
+    let isSubscribed = false;
+    if (email && typeof email === "string" && email.trim()) {
+      const existing = await NewsletterSubscriber.findOne({
+        email: email.trim().toLowerCase(),
+        status: "subscribed",
+      });
+      isSubscribed = Boolean(existing);
+    }
+
     return res.status(200).json({
       success: true,
       data: {
         enabled: Boolean(settings.enabled),
+        isSubscribed,
         title: settings.title || "JOIN THE MAISON MMMK WODE",
         subtitle:
           settings.subtitle ||
@@ -68,6 +79,30 @@ const getPublicPopupConfig = async (req, res) => {
       success: false,
       message: "Failed to load newsletter configuration.",
     });
+  }
+};
+
+/**
+ * GET /api/v1/newsletter/check-status
+ * Checks if an email is actively subscribed in DB
+ */
+const checkSubscriberStatus = async (req, res) => {
+  try {
+    const { email } = req.query;
+    if (!email || typeof email !== "string" || !email.trim()) {
+      return res.status(200).json({ success: true, isSubscribed: false });
+    }
+    const subscriber = await NewsletterSubscriber.findOne({
+      email: email.trim().toLowerCase(),
+      status: "subscribed",
+    });
+    return res.status(200).json({
+      success: true,
+      isSubscribed: Boolean(subscriber),
+    });
+  } catch (error) {
+    console.error("[NewsletterController] checkSubscriberStatus error:", error);
+    return res.status(200).json({ success: true, isSubscribed: false });
   }
 };
 
@@ -184,5 +219,6 @@ const subscribeNewsletter = async (req, res) => {
 
 module.exports = {
   getPublicPopupConfig,
+  checkSubscriberStatus,
   subscribeNewsletter,
 };

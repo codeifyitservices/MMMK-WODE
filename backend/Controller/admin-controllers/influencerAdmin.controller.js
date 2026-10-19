@@ -15,6 +15,8 @@ const FRONTEND_URL =
   process.env.CLIENT_URL ||
   "https://mmmk-wode.com";
 
+const escapeRegex = (text) => text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
+
 /**
  * Helper to generate a unique referral code (e.g. JATIN20)
  */
@@ -106,12 +108,13 @@ exports.getApplications = async (req, res) => {
     }
 
     if (search) {
+      const safeSearch = escapeRegex(search);
       filter.$or = [
-        { fullName: { $regex: search, $options: "i" } },
-        { email: { $regex: search, $options: "i" } },
-        { phoneNumber: { $regex: search, $options: "i" } },
-        { niche: { $regex: search, $options: "i" } },
-        { referralCode: { $regex: search, $options: "i" } },
+        { fullName: { $regex: safeSearch, $options: "i" } },
+        { email: { $regex: safeSearch, $options: "i" } },
+        { phoneNumber: { $regex: safeSearch, $options: "i" } },
+        { niche: { $regex: safeSearch, $options: "i" } },
+        { referralCode: { $regex: safeSearch, $options: "i" } },
       ];
     }
 
@@ -325,11 +328,12 @@ exports.getAllInfluencers = async (req, res) => {
     }
 
     if (search) {
+      const safeSearch = escapeRegex(search);
       filter.$or = [
-        { fullName: { $regex: search, $options: "i" } },
-        { email: { $regex: search, $options: "i" } },
-        { username: { $regex: search, $options: "i" } },
-        { referralCode: { $regex: search, $options: "i" } },
+        { fullName: { $regex: safeSearch, $options: "i" } },
+        { email: { $regex: safeSearch, $options: "i" } },
+        { username: { $regex: safeSearch, $options: "i" } },
+        { referralCode: { $regex: safeSearch, $options: "i" } },
       ];
     }
 
@@ -570,10 +574,10 @@ exports.updatePayoutStatus = async (req, res) => {
       });
     }
 
-    if (payoutRequest.status === "Paid") {
+    if (["Paid", "Rejected"].includes(payoutRequest.status)) {
       return res.status(400).json({
         success: false,
-        message: "This payout request is already marked as Paid and finalized.",
+        message: `This payout request is already finalized as "${payoutRequest.status}" and cannot be modified again.`,
       });
     }
 

@@ -544,6 +544,12 @@ const confirmApplePayPayment = async (req, res) => {
       shippingAddress,
       billingAddress: billingAddress || shippingAddress,
       couponCode: appliedCouponCode || "",
+      influencerId: checkout.influencerId,
+      influencerCode: checkout.influencerCode,
+      influencerDiscountAmount: checkout.influencerDiscountAmount,
+      influencerCommissionRate: checkout.influencerCommissionRate,
+      influencerCommissionAmount: checkout.influencerCommissionAmount,
+      influencerCommissionStatus: checkout.influencerId ? "Pending" : "None",
       creditsUsed: 0,
       creditsDeducted: false,
       creditsRestored: false,
@@ -554,6 +560,7 @@ const confirmApplePayPayment = async (req, res) => {
         shippingCharges: display.shippingCharges.amount,
         extraCharges: display.extraCharges.amount,
         couponDiscount: display.couponDiscount.amount,
+        influencerDiscount: checkout.influencerDiscountAmount,
         creditApplied: 0,
       },
       stripeSessionId: null,
@@ -612,6 +619,15 @@ const confirmApplePayPayment = async (req, res) => {
     }
 
     sendOrderConfirmationEmail(order, user).catch(console.error);
+
+    try {
+      const { processOrderCommission } = require("../../services/influencerCommissionService");
+      processOrderCommission(order).catch((err) => {
+        console.error("[APPLE_PAY] Failed to process influencer commission:", err.message);
+      });
+    } catch (commErr) {
+      console.error("[APPLE_PAY] Commission hook require error:", commErr.message);
+    }
 
     return res.status(200).json({
       success: true,

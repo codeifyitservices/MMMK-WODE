@@ -28,7 +28,14 @@ const isInfluencer = async (req, res, next) => {
   }
 
   try {
-    const secret = process.env.SECRET_KEY || process.env.JWT_SECRET || "mmmk_secret_jwt_key_2026";
+    const secret = process.env.SECRET_KEY || process.env.JWT_SECRET;
+    if (!secret) {
+      console.error("[InfluencerAuth] SECRET_KEY environment variable is not defined!");
+      return res.status(500).json({
+        success: false,
+        message: "Server authentication configuration error.",
+      });
+    }
     const decoded = jwt.verify(token, secret);
 
     const influencer = await Influencer.findById(decoded.id);

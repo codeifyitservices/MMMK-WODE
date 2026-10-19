@@ -7,15 +7,14 @@ const InfluencerWalletTransaction = require("../Models/InfluencerWalletTransacti
 const Order = require("../Models/Order");
 const Product = require("../Models/Product");
 
-const JWT_SECRET =
-  process.env.SECRET_KEY ||
-  process.env.JWT_SECRET ||
-  "mmmk_secret_jwt_key_2026";
+const JWT_SECRET = process.env.SECRET_KEY || process.env.JWT_SECRET;
 
 const FRONTEND_URL =
   process.env.FRONTEND_URL ||
   process.env.CLIENT_URL ||
   "https://mmmk-wode.com";
+
+const escapeRegex = (text) => text.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, "\\$&");
 
 // ==========================================
 // PUBLIC INFLUENCER ENDPOINTS
@@ -586,9 +585,10 @@ exports.getInfluencerProducts = async (req, res) => {
 
     const filter = { isDeleted: { $ne: true } };
     if (search) {
+      const safeSearch = escapeRegex(search);
       filter.$or = [
-        { "title.en": { $regex: search, $options: "i" } },
-        { "title.ar": { $regex: search, $options: "i" } },
+        { "title.en": { $regex: safeSearch, $options: "i" } },
+        { "title.ar": { $regex: safeSearch, $options: "i" } },
       ];
     }
 

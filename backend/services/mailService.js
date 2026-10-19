@@ -172,5 +172,146 @@ async function sendOrderConfirmationEmail(orderInput, userInput) {
   }
 }
 
-module.exports = { sendMail, sendOrderConfirmationEmail };
+/**
+ * Send welcome & credentials email to an approved influencer.
+ */
+async function sendInfluencerWelcomeEmail({
+  email,
+  fullName,
+  username,
+  rawPassword,
+  referralCode,
+  commissionRate = 10,
+  discountRate = 20,
+  portalUrl,
+  referralLink,
+}) {
+  try {
+    const subject = "Welcome to MMMK WODE Influencer Community — Your Login Credentials";
+    const appPortalUrl = portalUrl || `${process.env.FRONTEND_URL || "https://mmmk-wode.com"}/influencer/login`;
+    const shareableLink = referralLink || `${process.env.FRONTEND_URL || "https://mmmk-wode.com"}?ref=${referralCode}`;
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="utf-8">
+        <style>
+          body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #0b0b0b; color: #f5f5f5; margin: 0; padding: 24px; }
+          .container { max-width: 600px; margin: 0 auto; background-color: #141414; border: 1px solid #2a2a2a; border-radius: 8px; overflow: hidden; }
+          .header { background-color: #000000; padding: 32px 24px; text-align: center; border-bottom: 2px solid #dfba73; }
+          .logo { max-width: 130px; }
+          .content { padding: 32px 28px; line-height: 1.6; }
+          .badge { display: inline-block; background-color: rgba(223, 186, 115, 0.15); color: #dfba73; padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 16px; }
+          h1 { color: #ffffff; font-size: 22px; margin: 0 0 16px; font-weight: 600; }
+          p { color: #b5b5b5; font-size: 14px; margin: 0 0 16px; }
+          .credentials-box { background-color: #1a1a1a; border-left: 4px solid #dfba73; padding: 18px; margin: 24px 0; border-radius: 4px; }
+          .credential-item { margin: 8px 0; font-size: 14px; color: #e5e5e5; }
+          .credential-item strong { color: #dfba73; display: inline-block; width: 140px; }
+          .button { display: inline-block; background-color: #dfba73; color: #000000; text-decoration: none; padding: 12px 28px; font-size: 14px; font-weight: bold; border-radius: 4px; margin-top: 16px; }
+          .footer { background-color: #0d0d0d; padding: 20px; text-align: center; font-size: 12px; color: #666666; border-top: 1px solid #222222; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h2 style="color: #dfba73; margin: 0; letter-spacing: 2px;">MMMK WODE</h2>
+            <p style="color: #888888; font-size: 12px; margin: 4px 0 0; text-transform: uppercase; letter-spacing: 1px;">Luxury Affiliate Community</p>
+          </div>
+          <div class="content">
+            <div class="badge">Application Approved</div>
+            <h1>Congratulations, ${fullName || "Partner"}!</h1>
+            <p>Your application to join the <strong>MMMK WODE Influencer Community</strong> has been approved. You are now officially partnered with us.</p>
+            
+            <p>Here are your secure credentials to access your dedicated Influencer Dashboard:</p>
+            
+            <div class="credentials-box">
+              <div class="credential-item"><strong>Username:</strong> ${username}</div>
+              <div class="credential-item"><strong>Temporary Password:</strong> <code style="background:#262626; padding: 2px 6px; border-radius:3px; color:#ffffff;">${rawPassword}</code></div>
+              <div class="credential-item"><strong>Your Unique Code:</strong> <span style="font-weight:bold; color:#dfba73;">${referralCode}</span></div>
+              <div class="credential-item"><strong>Community Discount:</strong> ${discountRate}% OFF for your buyers</div>
+              <div class="credential-item"><strong>Your Commission:</strong> ${commissionRate}% per completed order</div>
+            </div>
+
+            <p><strong>Your Storefront Referral Link:</strong><br/>
+              <a href="${shareableLink}" style="color: #dfba73; word-break: break-all;">${shareableLink}</a>
+            </p>
+
+            <p>Every customer who visits using your link will automatically receive <strong>${discountRate}% OFF</strong> their entire order at checkout, and you will earn <strong>${commissionRate}% commission</strong> on every verified purchase!</p>
+
+            <center>
+              <a href="${appPortalUrl}" class="button">Log In to Influencer Dashboard</a>
+            </center>
+            
+            <p style="font-size: 12px; color: #777777; margin-top: 24px;">* For security, please change your password immediately after your first login in your profile settings.</p>
+          </div>
+          <div class="footer">
+            &copy; ${new Date().getFullYear()} MMMK WODE. All rights reserved.
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    const text = `Congratulations ${fullName || "Partner"}! Your MMMK WODE Influencer application is approved. Username: ${username}, Password: ${rawPassword}, Referral Code: ${referralCode}. Log in at: ${appPortalUrl}`;
+
+    await sendMail(email, subject, text, html);
+    console.log(`[MailService] Influencer credentials sent to ${email}`);
+  } catch (err) {
+    console.error("[MailService] Failed to send influencer welcome email:", err?.message || err);
+  }
+}
+
+/**
+ * Send payout status update email to influencer.
+ */
+async function sendInfluencerPayoutStatusEmail(influencer, payoutRequest) {
+  try {
+    const isPaid = payoutRequest.status === "Paid";
+    const subject = isPaid
+      ? "Payout Processed — MMMK WODE Influencer Community"
+      : `Payout Request Update: ${payoutRequest.status}`;
+
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <body style="font-family: Arial, sans-serif; background-color: #0b0b0b; color: #f5f5f5; padding: 24px;">
+        <div style="max-width: 600px; margin: 0 auto; background: #141414; border: 1px solid #2a2a2a; border-radius: 8px; padding: 28px;">
+          <h2 style="color: #dfba73; margin-top: 0;">MMMK WODE Influencer Community</h2>
+          <h3>Hello, ${influencer?.fullName || "Partner"}</h3>
+          <p>Your payout request for <strong>AED ${payoutRequest?.requestedAmount}</strong> is now marked as <strong>${payoutRequest?.status}</strong>.</p>
+          ${
+            payoutRequest?.transactionReference
+              ? `<p><strong>Transaction / UTR Reference:</strong> ${payoutRequest.transactionReference}</p>`
+              : ""
+          }
+          ${
+            payoutRequest?.adminNote
+              ? `<p><strong>Admin Note:</strong> ${payoutRequest.adminNote}</p>`
+              : ""
+          }
+          <p>You can review your updated balance and ledger in your <a href="${process.env.FRONTEND_URL || "https://mmmk-wode.com"}/influencer/login" style="color: #dfba73;">Influencer Dashboard</a>.</p>
+        </div>
+      </body>
+      </html>
+    `;
+
+    await sendMail(
+      influencer.email,
+      subject,
+      `Payout update for AED ${payoutRequest.requestedAmount}: ${payoutRequest.status}`,
+      html
+    );
+  } catch (err) {
+    console.error("[MailService] Failed to send payout status email:", err?.message || err);
+  }
+}
+
+module.exports = {
+  sendMail,
+  sendOrderConfirmationEmail,
+  sendInfluencerWelcomeEmail,
+  sendInfluencerPayoutStatusEmail,
+};
+
 

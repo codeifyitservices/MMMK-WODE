@@ -21,6 +21,8 @@ const analyticsRoutes = require("./Routes/analytics.router");
 const uploadRoutes = require("./Routes/upload.router");
 const emailTemplateRoutes = require("./Routes/emailTemplate.router");
 const abandonedCartRoutes = require("./Routes/abandonedCart.router");
+const influencerAdminRoutes = require("./Routes/influencerAdmin.router");
+const influencerRoutes = require("./Routes/influencer.router");
 
 // non Auth router
 const nonAuth_ProductsRoutes = require("./Routes/non-auth-routes/product.routes");
@@ -69,8 +71,10 @@ router.use("/api/v1/admin/analytics", isAdmin, analyticsRoutes);
 router.use("/api/v1/admin/upload", isAdmin, uploadRoutes);
 router.use("/api/v1/admin/emailTemplate", isAdmin, emailTemplateRoutes);
 router.use("/api/v1/admin/abandoned-cart", isAdmin, abandonedCartRoutes);
+router.use("/api/v1/admin/influencers", isAdmin, influencerAdminRoutes);
 
-// non auth
+// non auth & influencer
+router.use("/api/v1/influencer", influencerRoutes);
 router.use("/api/v1/products", nonAuth_ProductsRoutes);
 router.use("/api/v1/category", nonAuth_CategoryRoutes);
 router.use("/api/v1/editPage", nonAuth_editPageRoutes);

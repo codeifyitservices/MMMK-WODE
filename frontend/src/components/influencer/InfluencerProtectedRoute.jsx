@@ -1,4 +1,4 @@
-import React from 'react';
+/* eslint-disable react/prop-types */
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useInfluencerAuth } from '../../context/InfluencerAuthProvider';
 

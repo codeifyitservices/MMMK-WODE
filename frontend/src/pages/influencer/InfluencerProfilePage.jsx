@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   User,
   Share2,
@@ -8,16 +8,12 @@ import {
   AlertCircle,
   Save,
   ShieldCheck,
-  Sparkles,
-  Instagram,
-  Youtube,
-  Globe,
 } from 'lucide-react';
 import { useInfluencerAuth } from '../../context/InfluencerAuthProvider';
 import { changeInfluencerPasswordApi } from '../../apis/influencer/client';
 
 const InfluencerProfilePage = () => {
-  const { influencer, updateProfile, refreshProfile } = useInfluencerAuth();
+  const { influencer, updateProfile } = useInfluencerAuth();
 
   const [activeTab, setActiveTab] = useState('profile'); // 'profile', 'payout', 'security'
 

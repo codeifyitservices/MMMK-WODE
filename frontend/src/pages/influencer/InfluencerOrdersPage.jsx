@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   ShoppingBag,
   Filter,
@@ -9,7 +9,6 @@ import {
   Coins,
   ChevronLeft,
   ChevronRight,
-  Sparkles,
 } from 'lucide-react';
 import { getInfluencerOrdersApi } from '../../apis/influencer/client';
 

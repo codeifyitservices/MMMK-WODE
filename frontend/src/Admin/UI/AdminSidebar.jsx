@@ -26,6 +26,7 @@ import {
   Mail,
   TrendingUp,
   Eye,
+  Sparkles,
 } from 'lucide-react';
 import { FaGift } from 'react-icons/fa';
 import { cn } from '../../utils/cn';
@@ -140,6 +141,34 @@ export default function AdminSidebar({ children }) {
         label: 'Email Template',
         title: 'Email Template',
         key: '/admin/email-template',
+      },
+      {
+        icon: <Sparkles size={15} />,
+        label: 'Influencers',
+        title: 'Influencers',
+        key: '/admin/influencers',
+        children: [
+          {
+            label: 'Applications',
+            title: 'Applications',
+            key: '/admin/influencers/applications',
+          },
+          {
+            label: 'Active Influencers',
+            title: 'Active Influencers',
+            key: '/admin/influencers/list',
+          },
+          {
+            label: 'Attributed Orders',
+            title: 'Attributed Orders',
+            key: '/admin/influencers/orders',
+          },
+          {
+            label: 'Payout Requests',
+            title: 'Payout Requests',
+            key: '/admin/influencers/payouts',
+          },
+        ],
       },
       {
         icon: <Ticket size={15} />,

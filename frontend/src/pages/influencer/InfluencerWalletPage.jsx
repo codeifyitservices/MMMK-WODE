@@ -1,24 +1,17 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
   Wallet,
   Coins,
-  ArrowUpRight,
-  ArrowDownLeft,
   Clock,
   CheckCircle2,
   AlertCircle,
   X,
   CreditCard,
-  Building,
-  Sparkles,
-  HelpCircle,
-  ShieldCheck,
 } from 'lucide-react';
 import {
   getPayoutHistoryApi,
   requestPayoutApi,
-  getInfluencerProfileApi,
 } from '../../apis/influencer/client';
 import { useInfluencerAuth } from '../../context/InfluencerAuthProvider';
 
@@ -329,7 +322,7 @@ const InfluencerWalletPage = () => {
               <Wallet size={32} className="mx-auto text-gray-600 mb-2" />
               <p>No withdrawal requests submitted yet.</p>
               <p className="text-[11px] text-gray-600 mt-1">
-                Once your available balance reaches AED 100, click "Request Payout" above.
+                Once your available balance reaches AED 100, click &quot;Request Payout&quot; above.
               </p>
             </div>
           )}

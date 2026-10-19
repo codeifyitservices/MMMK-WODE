@@ -10,6 +10,7 @@ const {
   getPayoutRequests,
   updatePayoutStatus,
   getAggregatedAffiliateStats,
+  getAttributedOrdersAdmin,
 } = require("../Controller/admin-controllers/influencerAdmin.controller");
 
 // ==========================================
@@ -20,6 +21,7 @@ router.post("/applications/:id/approve", approveApplication);
 router.post("/applications/:id/reject", rejectApplication);
 
 router.get("/list", getAllInfluencers);
+router.get("/orders", getAttributedOrdersAdmin);
 router.get("/analytics", getAggregatedAffiliateStats);
 router.get("/payouts", getPayoutRequests);
 router.put("/payouts/:id/status", updatePayoutStatus);

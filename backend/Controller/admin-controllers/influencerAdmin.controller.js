@@ -725,3 +725,68 @@ exports.getAggregatedAffiliateStats = async (req, res) => {
     });
   }
 };
+
+/**
+ * GET: Retrieve all customer orders attributed to influencers
+ */
+exports.getAttributedOrdersAdmin = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const search = req.query.search ? String(req.query.search).trim() : "";
+    const status = req.query.status;
+    const skip = (page - 1) * limit;
+
+    const filter = {
+      $or: [
+        { influencerId: { $exists: true, $ne: null } },
+        { influencerCode: { $exists: true, $ne: "" } },
+      ],
+    };
+
+    if (status && status !== "All") {
+      filter.status = status;
+    }
+
+    if (search) {
+      filter.$and = [
+        {
+          $or: [
+            { orderId: { $regex: search, $options: "i" } },
+            { influencerCode: { $regex: search, $options: "i" } },
+          ],
+        },
+      ];
+    }
+
+    const total = await Order.countDocuments(filter);
+    const orders = await Order.find(filter)
+      .populate("influencerId", "fullName username email referralCode")
+      .populate("userId", "fullName email")
+      .populate("products.id", "title image images price")
+      .sort({ createdAt: -1 })
+      .skip(skip)
+      .limit(limit);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        orders,
+        pagination: {
+          total,
+          page,
+          pages: Math.ceil(total / limit) || 1,
+          limit,
+        },
+      },
+    });
+  } catch (error) {
+    console.error("[InfluencerAdmin] Get attributed orders error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to load attributed orders.",
+      error: error.message,
+    });
+  }
+};
+

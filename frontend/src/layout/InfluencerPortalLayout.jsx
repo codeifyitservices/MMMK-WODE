@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { NavLink, Outlet, useNavigate, Link } from 'react-router-dom';
+import { useState } from 'react';
+import { NavLink, Outlet, Link } from 'react-router-dom';
 import {
   LayoutDashboard,
   PackageSearch,
@@ -23,7 +23,6 @@ const InfluencerPortalLayout = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [copiedCode, setCopiedCode] = useState(false);
   const [copiedStoreLink, setCopiedStoreLink] = useState(false);
-  const navigate = useNavigate();
 
   const referralCode = influencer?.referralCode || 'PARTNER';
   const storefrontUrl = `${window.location.origin}?ref=${referralCode}`;

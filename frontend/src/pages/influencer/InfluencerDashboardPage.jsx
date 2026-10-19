@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import {
   MousePointerClick,
@@ -10,8 +10,6 @@ import {
   Copy,
   Check,
   QrCode,
-  Share2,
-  ExternalLink,
   ArrowUpRight,
   Sparkles,
   Clock,

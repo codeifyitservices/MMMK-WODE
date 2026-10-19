@@ -11,12 +11,12 @@ const CategoryPage = lazy(() => import('../Admin/pages/Category/CategoryPage').c
 const AdminProductPage = lazy(
   () => import('../Admin/pages/Products/ProductPage')
 );
-const ProductPerformance = lazy(
-  () => import('../Admin/pages/ProductPerformance/ProductPerformance').catch(() => { window.location.reload(); })
-);
-const ProductViewsPage = lazy(
-  () => import('../Admin/pages/ProductViews/ProductViewsPage').catch(() => { window.location.reload(); })
-);
+// const ProductPerformance = lazy(
+//   () => import('../Admin/pages/ProductPerformance/ProductPerformance').catch(() => { window.location.reload(); })
+// );
+// const ProductViewsPage = lazy(
+//   () => import('../Admin/pages/ProductViews/ProductViewsPage').catch(() => { window.location.reload(); })
+// );
 const BestSellingProductsPage = lazy(
   () => import('../Admin/pages/Reports/BestSellingProductsPage').catch(() => { window.location.reload(); })
 );
@@ -57,6 +57,12 @@ const TopStripPage = lazy(() => import('../Admin/pages/TopStrip/TopStripPage').c
 const HomeBanner = lazy(() => import('../Admin/pages/editPage/home/banner/BannerBubbleSettings').catch(() => { window.location.reload(); }));
 const EmailTemplatePage = lazy(() => import('../Admin/pages/EmailTemplate/EmailTemplatePage').catch(() => { window.location.reload(); }));
 const AbandonedCartPage = lazy(() => import('../Admin/pages/AbandonedCart/AbandonedCartPage').catch(() => { window.location.reload(); }));
+
+// Influencer Admin Pages
+const InfluencerApplicationsPage = lazy(() => import('../Admin/pages/Influencers/InfluencerApplicationsPage').catch(() => { window.location.reload(); }));
+const InfluencerListPage = lazy(() => import('../Admin/pages/Influencers/InfluencerListPage').catch(() => { window.location.reload(); }));
+const InfluencerOrdersAdminPage = lazy(() => import('../Admin/pages/Influencers/InfluencerOrdersAdminPage').catch(() => { window.location.reload(); }));
+const InfluencerPayoutsAdminPage = lazy(() => import('../Admin/pages/Influencers/InfluencerPayoutsAdminPage').catch(() => { window.location.reload(); }));
 
 export default function AdminRouter() {
   return (
@@ -305,6 +311,43 @@ export default function AdminRouter() {
               </AdminSidebar>
             }
           />
+
+          {/* Influencers Management Suite */}
+          <Route path="influencers">
+            <Route index element={<Navigate to="applications" replace />} />
+            <Route
+              path="applications"
+              element={
+                <AdminSidebar>
+                  <InfluencerApplicationsPage />
+                </AdminSidebar>
+              }
+            />
+            <Route
+              path="list"
+              element={
+                <AdminSidebar>
+                  <InfluencerListPage />
+                </AdminSidebar>
+              }
+            />
+            <Route
+              path="orders"
+              element={
+                <AdminSidebar>
+                  <InfluencerOrdersAdminPage />
+                </AdminSidebar>
+              }
+            />
+            <Route
+              path="payouts"
+              element={
+                <AdminSidebar>
+                  <InfluencerPayoutsAdminPage />
+                </AdminSidebar>
+              }
+            />
+          </Route>
         </Routes>
       </AdminProvider>
 

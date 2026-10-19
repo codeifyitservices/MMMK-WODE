@@ -144,10 +144,14 @@ const Footer = () => {
                 <li>
                   <Link
                     to="/influencer/apply"
-                    className="hover:underline flex items-center gap-1.5 text-[#dfba73] hover:text-[#ebd296] font-medium transition-colors"
+                    className={`group inline-flex items-center gap-2 text-white hover:text-[#dfba73] transition-colors w-full ${
+                      isRTL ? 'justify-center md:justify-start' : 'justify-center md:justify-end'
+                    }`}
                   >
-                    <span>{isRTL ? 'انضم كمؤثر وشريك' : 'Become an Influencer'}</span>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#dfba73]/20 border border-[#dfba73]/40 text-[#dfba73]">
+                    <span className="group-hover:underline">
+                      {isRTL ? 'انضم كمؤثر وشريك' : 'Become an Influencer'}
+                    </span>
+                    <span className="text-[10px] tracking-wider uppercase font-semibold text-[#dfba73] bg-[#dfba73]/15 border border-[#dfba73]/40 px-2 py-0.5 rounded-full transition-transform group-hover:scale-105">
                       {isRTL ? 'خصم 20%' : '20% Off'}
                     </span>
                   </Link>

@@ -115,29 +115,35 @@ export default function InfluencerApplyModal({ isOpen, onClose }) {
       open={isOpen}
       onCancel={handleClose}
       footer={null}
-      width={680}
+      width={700}
       centered
       className="influencer-apply-modal"
       styles={{
         content: {
-          backgroundColor: '#0f0f0f',
+          backgroundColor: '#09090c',
           color: '#ffffff',
-          border: '1px solid #262626',
-          borderRadius: '12px',
-          padding: '28px',
+          border: '1px solid rgba(223, 186, 115, 0.25)',
+          borderRadius: '20px',
+          padding: '32px',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.9), 0 0 50px rgba(223, 186, 115, 0.08)',
+          backgroundImage: 'radial-gradient(ellipse at top, rgba(223, 186, 115, 0.12), transparent 70%)',
+        },
+        mask: {
+          backdropFilter: 'blur(8px)',
+          backgroundColor: 'rgba(0, 0, 0, 0.75)',
         },
       }}
     >
       <div className={`text-white ${isRTL ? 'rtl' : 'ltr'}`}>
         {submitted ? (
-          <div className="py-8 text-center">
-            <div className="w-14 h-14 rounded-full bg-[#dfba73]/20 border border-[#dfba73] text-[#dfba73] flex items-center justify-center mx-auto mb-4">
-              <LuCheckCircle2 className="w-7 h-7" />
+          <div className="py-8 text-center animate-fadeIn">
+            <div className="w-16 h-16 rounded-full bg-[#dfba73]/20 border border-[#dfba73] text-[#dfba73] flex items-center justify-center mx-auto mb-4 shadow-lg shadow-[#dfba73]/20">
+              <LuCheckCircle2 className="w-8 h-8" />
             </div>
-            <h3 className="text-xl font-bold text-white mb-2">
+            <h3 className="text-2xl font-serif font-bold text-white mb-2">
               {isRTL ? 'تم استلام طلبك بنجاح!' : 'Application Submitted!'}
             </h3>
-            <p className="text-xs sm:text-sm text-neutral-300 max-w-md mx-auto leading-relaxed mb-6">
+            <p className="text-xs sm:text-sm text-neutral-300 max-w-md mx-auto leading-relaxed mb-6 font-light">
               {isRTL
                 ? 'شكراً لاهتمامك بالانضمام إلى MMMK WODE. سنقوم بمراجعة طلبك وإرسال بيانات تسجيل الدخول ورمز الخصم الخاص بك عبر البريد الإلكتروني فور الموافقة.'
                 : 'Thank you for your interest! We are reviewing your application and will email your unique referral code and login credentials upon approval.'}
@@ -145,30 +151,30 @@ export default function InfluencerApplyModal({ isOpen, onClose }) {
             <button
               type="button"
               onClick={handleClose}
-              className="px-6 py-2.5 rounded bg-[#dfba73] hover:bg-[#cfa557] text-black font-semibold text-xs tracking-wider uppercase transition-colors"
+              className="px-7 py-2.5 rounded-xl bg-gradient-to-r from-[#dfba73] via-[#cca154] to-[#8d6f30] hover:brightness-110 active:scale-95 text-black font-semibold text-xs tracking-wider uppercase transition-all shadow-md shadow-[#dfba73]/20"
             >
               {isRTL ? 'إغلاق' : 'Close'}
             </button>
           </div>
         ) : (
           <div>
-            <div className="flex items-center gap-2 text-[#dfba73] text-xs font-semibold uppercase tracking-widest mb-1.5">
-              <LuSparkles className="w-4 h-4" />
-              <span>{isRTL ? 'برنامج الشركاء' : 'Partner Program'}</span>
+            <div className="flex items-center gap-2 text-[#dfba73] text-[10px] font-semibold uppercase tracking-widest mb-1.5">
+              <LuSparkles className="w-3.5 h-3.5 text-[#dfba73]" />
+              <span>{isRTL ? 'برنامج الشركاء الحصري' : 'EXCLUSIVE PARTNER PROGRAM'}</span>
             </div>
-            <h2 className="text-2xl font-serif font-bold text-white mb-1">
+            <h2 className="text-2xl sm:text-3xl font-serif font-bold text-white mb-1.5">
               {isRTL ? 'انضم إلى مجتمع المؤثرين' : 'Apply to Join the Influencer Community'}
             </h2>
-            <p className="text-xs text-neutral-400 mb-6">
+            <p className="text-xs text-neutral-400 mb-6 font-light">
               {isRTL
                 ? 'قدم لمتابعيك خصمًا حصريًا بنسبة 20% واحصل على عمولة بنسبة 10% على كل عملية بيع.'
                 : 'Offer your audience 20% off all products and earn 10% monthly commission on every sale.'}
             </p>
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
-                  <label className="block text-[11px] uppercase tracking-wider text-neutral-400 font-medium mb-1">
+                  <label className="block text-[11px] uppercase tracking-wider text-neutral-300 font-medium mb-1.5">
                     {isRTL ? 'الاسم الكامل *' : 'Full Name *'}
                   </label>
                   <input
@@ -178,11 +184,11 @@ export default function InfluencerApplyModal({ isOpen, onClose }) {
                     value={formData.fullName}
                     onChange={handleChange}
                     placeholder="Full name"
-                    className="w-full px-3 py-2 rounded bg-black/60 border border-white/15 text-white placeholder-neutral-500 text-xs focus:outline-none focus:border-[#dfba73]"
+                    className="w-full px-3.5 py-2.5 rounded-lg bg-black/60 border border-white/15 text-white placeholder-neutral-500 text-xs focus:outline-none focus:border-[#dfba73] focus:ring-1 focus:ring-[#dfba73]/40 transition-all"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] uppercase tracking-wider text-neutral-400 font-medium mb-1">
+                  <label className="block text-[11px] uppercase tracking-wider text-neutral-300 font-medium mb-1.5">
                     {isRTL ? 'البريد الإلكتروني *' : 'Email Address *'}
                   </label>
                   <input
@@ -192,14 +198,14 @@ export default function InfluencerApplyModal({ isOpen, onClose }) {
                     value={formData.email}
                     onChange={handleChange}
                     placeholder="creator@email.com"
-                    className="w-full px-3 py-2 rounded bg-black/60 border border-white/15 text-white placeholder-neutral-500 text-xs focus:outline-none focus:border-[#dfba73]"
+                    className="w-full px-3.5 py-2.5 rounded-lg bg-black/60 border border-white/15 text-white placeholder-neutral-500 text-xs focus:outline-none focus:border-[#dfba73] focus:ring-1 focus:ring-[#dfba73]/40 transition-all"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
                 <div>
-                  <label className="block text-[11px] uppercase tracking-wider text-neutral-400 font-medium mb-1">
+                  <label className="block text-[11px] uppercase tracking-wider text-neutral-300 font-medium mb-1.5">
                     {isRTL ? 'رقم الهاتف' : 'Phone Number'}
                   </label>
                   <input
@@ -208,18 +214,18 @@ export default function InfluencerApplyModal({ isOpen, onClose }) {
                     value={formData.phoneNumber}
                     onChange={handleChange}
                     placeholder="+971..."
-                    className="w-full px-3 py-2 rounded bg-black/60 border border-white/15 text-white placeholder-neutral-500 text-xs focus:outline-none focus:border-[#dfba73]"
+                    className="w-full px-3.5 py-2.5 rounded-lg bg-black/60 border border-white/15 text-white placeholder-neutral-500 text-xs focus:outline-none focus:border-[#dfba73] focus:ring-1 focus:ring-[#dfba73]/40 transition-all"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] uppercase tracking-wider text-neutral-400 font-medium mb-1">
+                  <label className="block text-[11px] uppercase tracking-wider text-neutral-300 font-medium mb-1.5">
                     {isRTL ? 'المجال / التخصص' : 'Niche'}
                   </label>
                   <select
                     name="niche"
                     value={formData.niche}
                     onChange={handleChange}
-                    className="w-full px-3 py-2 rounded bg-neutral-900 border border-white/15 text-white text-xs focus:outline-none focus:border-[#dfba73]"
+                    className="w-full px-3.5 py-2.5 rounded-lg bg-neutral-900 border border-white/15 text-white text-xs focus:outline-none focus:border-[#dfba73] focus:ring-1 focus:ring-[#dfba73]/40 transition-all"
                   >
                     <option value="Luxury Lifestyle & Fashion">Luxury Lifestyle & Fashion</option>
                     <option value="Perfume & Oud Fragrances">Perfume & Oud Fragrances</option>
@@ -231,12 +237,12 @@ export default function InfluencerApplyModal({ isOpen, onClose }) {
               </div>
 
               <div>
-                <label className="block text-[11px] uppercase tracking-wider text-neutral-300 font-semibold mb-2">
+                <label className="block text-[11px] uppercase tracking-wider text-neutral-200 font-semibold mb-2">
                   {isRTL ? 'حسابات التواصل الاجتماعي (رابط واحد على الأقل) *' : 'Social Profiles (At least 1 required) *'}
                 </label>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   <div className="relative flex items-center">
-                    <span className="absolute left-2.5 text-neutral-400">
+                    <span className="absolute left-3 text-[#dfba73]">
                       <LuInstagram className="w-3.5 h-3.5" />
                     </span>
                     <input
@@ -245,11 +251,11 @@ export default function InfluencerApplyModal({ isOpen, onClose }) {
                       value={formData.instagram}
                       onChange={handleChange}
                       placeholder="Instagram @handle or URL"
-                      className="w-full pl-8 pr-2.5 py-1.5 rounded bg-black/60 border border-white/15 text-white placeholder-neutral-500 text-xs focus:outline-none focus:border-[#dfba73]"
+                      className="w-full pl-9 pr-3 py-2 rounded-lg bg-black/60 border border-white/15 text-white placeholder-neutral-500 text-xs focus:outline-none focus:border-[#dfba73] focus:ring-1 focus:ring-[#dfba73]/40 transition-all"
                     />
                   </div>
                   <div className="relative flex items-center">
-                    <span className="absolute left-2.5 text-neutral-400">
+                    <span className="absolute left-3 text-[#dfba73]">
                       <FaTiktok className="w-3.5 h-3.5" />
                     </span>
                     <input
@@ -258,11 +264,11 @@ export default function InfluencerApplyModal({ isOpen, onClose }) {
                       value={formData.tiktok}
                       onChange={handleChange}
                       placeholder="TikTok @handle or URL"
-                      className="w-full pl-8 pr-2.5 py-1.5 rounded bg-black/60 border border-white/15 text-white placeholder-neutral-500 text-xs focus:outline-none focus:border-[#dfba73]"
+                      className="w-full pl-9 pr-3 py-2 rounded-lg bg-black/60 border border-white/15 text-white placeholder-neutral-500 text-xs focus:outline-none focus:border-[#dfba73] focus:ring-1 focus:ring-[#dfba73]/40 transition-all"
                     />
                   </div>
                   <div className="relative flex items-center">
-                    <span className="absolute left-2.5 text-neutral-400">
+                    <span className="absolute left-3 text-[#dfba73]">
                       <FaYoutube className="w-3.5 h-3.5" />
                     </span>
                     <input
@@ -271,11 +277,11 @@ export default function InfluencerApplyModal({ isOpen, onClose }) {
                       value={formData.youtube}
                       onChange={handleChange}
                       placeholder="YouTube channel URL"
-                      className="w-full pl-8 pr-2.5 py-1.5 rounded bg-black/60 border border-white/15 text-white placeholder-neutral-500 text-xs focus:outline-none focus:border-[#dfba73]"
+                      className="w-full pl-9 pr-3 py-2 rounded-lg bg-black/60 border border-white/15 text-white placeholder-neutral-500 text-xs focus:outline-none focus:border-[#dfba73] focus:ring-1 focus:ring-[#dfba73]/40 transition-all"
                     />
                   </div>
                   <div className="relative flex items-center">
-                    <span className="absolute left-2.5 text-neutral-400">
+                    <span className="absolute left-3 text-[#dfba73]">
                       <LuGlobe className="w-3.5 h-3.5" />
                     </span>
                     <input
@@ -284,14 +290,14 @@ export default function InfluencerApplyModal({ isOpen, onClose }) {
                       value={formData.other}
                       onChange={handleChange}
                       placeholder="Other profile / website"
-                      className="w-full pl-8 pr-2.5 py-1.5 rounded bg-black/60 border border-white/15 text-white placeholder-neutral-500 text-xs focus:outline-none focus:border-[#dfba73]"
+                      className="w-full pl-9 pr-3 py-2 rounded-lg bg-black/60 border border-white/15 text-white placeholder-neutral-500 text-xs focus:outline-none focus:border-[#dfba73] focus:ring-1 focus:ring-[#dfba73]/40 transition-all"
                     />
                   </div>
                 </div>
               </div>
 
               <div>
-                <label className="block text-[11px] uppercase tracking-wider text-neutral-400 font-medium mb-1">
+                <label className="block text-[11px] uppercase tracking-wider text-neutral-300 font-medium mb-1.5">
                   {isRTL ? 'نبذة قصيرة' : 'Brief Bio / Notes'}
                 </label>
                 <textarea
@@ -300,7 +306,7 @@ export default function InfluencerApplyModal({ isOpen, onClose }) {
                   value={formData.bio}
                   onChange={handleChange}
                   placeholder="Tell us briefly about your audience..."
-                  className="w-full px-3 py-1.5 rounded bg-black/60 border border-white/15 text-white placeholder-neutral-500 text-xs focus:outline-none focus:border-[#dfba73] resize-none"
+                  className="w-full px-3.5 py-2 rounded-lg bg-black/60 border border-white/15 text-white placeholder-neutral-500 text-xs focus:outline-none focus:border-[#dfba73] focus:ring-1 focus:ring-[#dfba73]/40 transition-all resize-none"
                 />
               </div>
 
@@ -308,14 +314,14 @@ export default function InfluencerApplyModal({ isOpen, onClose }) {
                 <button
                   type="button"
                   onClick={handleClose}
-                  className="px-4 py-2 rounded text-xs text-neutral-400 hover:text-white transition-colors"
+                  className="px-4 py-2 rounded-lg text-xs text-neutral-400 hover:text-white transition-colors"
                 >
                   {isRTL ? 'إلغاء' : 'Cancel'}
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
-                  className="px-6 py-2 rounded bg-[#dfba73] hover:bg-[#cfa557] text-black font-semibold text-xs tracking-wide transition-all shadow disabled:opacity-50"
+                  className="px-7 py-2.5 rounded-xl bg-gradient-to-r from-[#dfba73] via-[#cca154] to-[#8d6f30] hover:brightness-110 active:scale-95 text-black font-semibold text-xs tracking-wider uppercase transition-all shadow-md shadow-[#dfba73]/20 disabled:opacity-50"
                 >
                   {loading
                     ? isRTL

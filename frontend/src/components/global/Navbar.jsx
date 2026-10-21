@@ -12,9 +12,11 @@ import { useTranslationContext } from '../../context/TranslationContext';
 import LanguageDropdown from './LanguageDropdown';
 import CurrencyDropdown from './CurrencyDropdown';
 import { useGlobalContext } from '../../context/GlobalProvider';
+import useInfluencerTracking from '../../hook/useInfluencerTracking';
 
 export default function Navbar() {
   const { topStrip } = useGlobalContext();
+  const { activeReferralCode, hasActiveDiscount } = useInfluencerTracking();
   const {
     translateLanguage,
     content: { common },
@@ -26,7 +28,10 @@ export default function Navbar() {
     isSearchOpen: false,
   });
 
-  const showTopStrip = !!(topStrip?.enabled && topStrip?.messages?.some(msg => msg && msg.trim() !== ''));
+  const showTopStrip = !!(
+    (topStrip?.enabled && topStrip?.messages?.some((msg) => msg && msg.trim() !== '')) ||
+    (hasActiveDiscount && activeReferralCode)
+  );
 
   const updateUtils = (newUtils) =>
     setUtils((prev) => ({ ...prev, ...newUtils }));

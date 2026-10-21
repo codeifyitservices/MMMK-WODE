@@ -1,5 +1,6 @@
 import { useGlobalContext } from '../../context/GlobalProvider';
 import { useMemo } from 'react';
+import useInfluencerTracking from '../../hook/useInfluencerTracking';
 
 const getContrastColor = (hexColor) => {
   if (!hexColor) return '#ffffff';
@@ -14,13 +15,27 @@ const getContrastColor = (hexColor) => {
 
 export default function TopStrip() {
   const { topStrip } = useGlobalContext();
+  const { activeReferralCode, hasActiveDiscount } = useInfluencerTracking();
 
   const activeMessages = useMemo(() => {
-    if (!topStrip || !topStrip.messages) return [];
-    return topStrip.messages.filter((msg) => msg && msg.trim() !== '');
-  }, [topStrip]);
+    const messages = [];
 
-  if (!topStrip || !topStrip.enabled || activeMessages.length === 0) {
+    // Prioritize active influencer discount message at the start of the marquee
+    // if (hasActiveDiscount && activeReferralCode) {
+    //   messages.push(
+    //     `EXCLUSIVE 20% INFLUENCER DISCOUNT ACTIVE (${activeReferralCode}) • AUTO-APPLIED AT CHECKOUT`
+    //   );
+    // }
+
+    if (topStrip && topStrip.messages) {
+      messages.push(...topStrip.messages.filter((msg) => msg && msg.trim() !== ''));
+    }
+
+    return messages;
+  }, [topStrip, hasActiveDiscount, activeReferralCode]);
+
+  const isEnabled = (topStrip && topStrip.enabled) || (hasActiveDiscount && activeReferralCode);
+  if (!isEnabled || activeMessages.length === 0) {
     return null;
   }
 

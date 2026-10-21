@@ -653,7 +653,7 @@ exports.requestPayout = async (req, res) => {
       });
     }
 
-    const MIN_PAYOUT_THRESHOLD = 100; // AED 100
+    const MIN_PAYOUT_THRESHOLD = 10; // AED 10
     if (requestedAmount < MIN_PAYOUT_THRESHOLD) {
       return res.status(400).json({
         success: false,

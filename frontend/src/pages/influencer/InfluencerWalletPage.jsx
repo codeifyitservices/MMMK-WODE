@@ -27,7 +27,7 @@ import {
 } from '../../apis/influencer/client';
 import { useInfluencerAuth } from '../../context/InfluencerAuthProvider';
 
-const MIN_PAYOUT = 10;
+const MIN_PAYOUT = 200;
 
 export default function InfluencerWalletPage() {
   const { influencer, refreshProfile } = useInfluencerAuth();

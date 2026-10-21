@@ -1,7 +1,7 @@
 import { TbGiftCardFilled, TbMenu } from 'react-icons/tb';
 import Container from './Container';
 import { Link } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import MenuDrawer from './MenuDrawer';
 import { BsMinecartLoaded } from 'react-icons/bs';
 import { FaHeart, FaUser } from 'react-icons/fa';
@@ -46,8 +46,22 @@ export default function Navbar() {
     return () => window.removeEventListener('mmmk_influencer_banner_dismissed', onDismiss);
   }, []);
 
+  // Check if current URL actively has the referral query (?ref=CODE or ?ref-CODE)
+  const urlReferralCode = useMemo(() => {
+    if (typeof window === 'undefined') return null;
+    const urlParams = new URLSearchParams(window.location.search);
+    let paramCode = urlParams.get('ref') || urlParams.get('influencer');
+    if (!paramCode && window.location.search) {
+      const match = window.location.search.match(/[?&](?:ref|influencer)[=-]([a-zA-Z0-9_-]+)/i);
+      if (match && match[1]) {
+        paramCode = match[1];
+      }
+    }
+    return paramCode ? paramCode.trim().toUpperCase() : null;
+  }, []);
+
   const showTopStrip = !!(topStrip?.enabled && topStrip?.messages?.some((msg) => msg && msg.trim() !== ''));
-  const showInfluencerStrip = !!(hasActiveDiscount && activeReferralCode && !bannerDismissed);
+  const showInfluencerStrip = !!(urlReferralCode && !bannerDismissed);
 
   const topPositionClass =
     showTopStrip && showInfluencerStrip

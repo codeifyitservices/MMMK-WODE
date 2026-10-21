@@ -1,26 +1,43 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { LuSparkles, LuX } from 'react-icons/lu';
 import useInfluencerTracking from '../../hook/useInfluencerTracking';
 
 export default function InfluencerBanner() {
-  const { activeReferralCode, hasActiveDiscount } = useInfluencerTracking();
+  const { activeReferralCode } = useInfluencerTracking();
   const [dismissed, setDismissed] = useState(false);
 
-  useEffect(() => {
-    if (!activeReferralCode) return;
-    const isDismissed = sessionStorage.getItem(`mmmk_banner_dismissed_${activeReferralCode}`);
-    setDismissed(isDismissed === 'true');
-  }, [activeReferralCode]);
+  // Check if current URL actively has the referral query (?ref=CODE or ?ref-CODE)
+  const urlReferralCode = useMemo(() => {
+    if (typeof window === 'undefined') return null;
+    const urlParams = new URLSearchParams(window.location.search);
+    let paramCode = urlParams.get('ref') || urlParams.get('influencer');
+    if (!paramCode && window.location.search) {
+      const match = window.location.search.match(/[?&](?:ref|influencer)[=-]([a-zA-Z0-9_-]+)/i);
+      if (match && match[1]) {
+        paramCode = match[1];
+      }
+    }
+    return paramCode ? paramCode.trim().toUpperCase() : null;
+  }, []);
 
-  if (!hasActiveDiscount || !activeReferralCode || dismissed) {
+  const displayCode = urlReferralCode || activeReferralCode;
+
+  useEffect(() => {
+    if (!displayCode) return;
+    const isDismissed = sessionStorage.getItem(`mmmk_banner_dismissed_${displayCode}`);
+    setDismissed(isDismissed === 'true');
+  }, [displayCode]);
+
+  // Strictly only show when the visitor accesses the URL with an active referral parameter
+  if (!urlReferralCode || dismissed) {
     return null;
   }
 
   const handleDismiss = (e) => {
     e?.stopPropagation();
     setDismissed(true);
-    if (activeReferralCode) {
-      sessionStorage.setItem(`mmmk_banner_dismissed_${activeReferralCode}`, 'true');
+    if (displayCode) {
+      sessionStorage.setItem(`mmmk_banner_dismissed_${displayCode}`, 'true');
       window.dispatchEvent(new CustomEvent('mmmk_influencer_banner_dismissed'));
     }
   };
@@ -35,20 +52,23 @@ export default function InfluencerBanner() {
         <span className="truncate">
           EXCLUSIVE <strong>20% INFLUENCER DISCOUNT</strong> ACTIVE (CODE:{' '}
           <span className="font-mono underline uppercase tracking-wider">
-            {activeReferralCode}
+            {displayCode}
           </span>
           ) • AUTO-APPLIED AT CHECKOUT
         </span>
       </div>
 
-      <button
-        type="button"
-        onClick={handleDismiss}
-        aria-label="Dismiss banner"
-        className="absolute right-3 top-1/2 -translate-y-1/2 p-1.5 text-gray-950/70 hover:text-gray-950 hover:bg-black/10 transition-colors rounded-full z-20 cursor-pointer"
-      >
-        <LuX className="w-4 h-4" />
-      </button>
+      {/* Perfectly Vertically Centered Dismiss Button */}
+      <div className="absolute right-3 inset-y-0 flex items-center justify-center z-20">
+        <button
+          type="button"
+          onClick={handleDismiss}
+          aria-label="Dismiss banner"
+          className="w-7 h-7 flex items-center justify-center text-gray-950/70 hover:text-gray-950 hover:bg-black/10 transition-colors rounded-full cursor-pointer"
+        >
+          <LuX className="w-4 h-4 block" />
+        </button>
+      </div>
     </aside>
   );
 }

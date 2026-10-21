@@ -84,12 +84,14 @@ const InfluencerOrdersPage = () => {
         key: 'orderAmount',
         render: (_, record) => {
           const val = record.price?.total || record.amount || record.totalAmount || 0;
+          const curr = record.currency || 'AED';
+          const sym = curr === 'INR' ? '₹' : curr === 'USD' ? '$' : curr === 'EUR' ? '€' : curr === 'GBP' ? '£' : `${curr} `;
           return (
             <div>
               <span className="font-bold text-gray-900 text-sm">
-                AED {Number(val).toFixed(2)}
+                {sym}{Number(val).toLocaleString(curr === 'INR' ? 'en-IN' : 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
-              <div className="text-[11px] text-gray-400">Net Checkout Total</div>
+              <div className="text-[11px] text-gray-400">Net Checkout ({curr})</div>
             </div>
           );
         },
@@ -98,10 +100,17 @@ const InfluencerOrdersPage = () => {
         title: 'Shopper Discount (20%)',
         key: 'discount',
         render: (_, record) => {
-          const disc = record.influencerDiscountAmount || 0;
+          const curr = record.currency || 'AED';
+          const sym = curr === 'INR' ? '₹' : curr === 'USD' ? '$' : curr === 'EUR' ? '€' : curr === 'GBP' ? '£' : `${curr} `;
+          const disc =
+            record.price?.couponDiscount ||
+            (record.currencyRate && record.influencerDiscountAmount
+              ? record.influencerDiscountAmount / record.currencyRate
+              : record.influencerDiscountAmount) ||
+            0;
           return (
             <span className="text-xs font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
-              -AED {Number(disc).toFixed(2)}
+              -{sym}{Number(disc).toLocaleString(curr === 'INR' ? 'en-IN' : 'en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
             </span>
           );
         },
@@ -114,9 +123,16 @@ const InfluencerOrdersPage = () => {
             record.influencerCommissionAmount ||
             Number(((record.price?.total || record.amount || 0) * 0.1).toFixed(2));
           return (
-            <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200">
-              +AED {Number(comm).toFixed(2)}
-            </span>
+            <div>
+              <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md border border-emerald-200">
+                +AED {Number(comm).toFixed(2)}
+              </span>
+              {record.currency === 'INR' && record.currencyRate ? (
+                <div className="text-[10px] text-gray-400 mt-0.5">
+                  ≈ ₹{Math.round(comm / (record.currencyRate * 3.67 || 0.038))} INR
+                </div>
+              ) : null}
+            </div>
           );
         },
       },

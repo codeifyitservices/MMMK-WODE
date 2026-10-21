@@ -55,6 +55,9 @@ const InfluencerApplicationsPage = () => {
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
   const [copiedCode, setCopiedCode] = useState(null);
+  const [successModalVisible, setSuccessModalVisible] = useState(false);
+  const [successModalData, setSuccessModalData] = useState(null);
+  const [copiedAll, setCopiedAll] = useState(false);
 
   // Approval Form State
   const [approvalForm, setApprovalForm] = useState({
@@ -165,13 +168,23 @@ const InfluencerApplicationsPage = () => {
       setSubmitting(true);
       const res = await approveInfluencerApplicationAdmin(selectedApp._id, approvalForm);
       if (res.success) {
-        message.success(
-          `Approved! Welcome credentials dispatched to ${selectedApp.email}.`
-        );
         setApproveModalVisible(false);
         if (detailsModalVisible && detailsRecord?._id === selectedApp._id) {
           setDetailsModalVisible(false);
         }
+        const isEmailSent = res.emailSent ?? res.data?.emailSent ?? true;
+        setSuccessModalData({
+          fullName: selectedApp.fullName,
+          email: selectedApp.email,
+          username: res.data?.username,
+          rawPassword: res.data?.rawPassword,
+          referralCode: res.data?.referralCode,
+          commissionRate: res.data?.commissionRate || approvalForm.commissionRate || 10,
+          discountRate: res.data?.discountRate || approvalForm.discountRate || 20,
+          emailSent: isEmailSent,
+          emailError: res.emailError || res.data?.emailError,
+        });
+        setSuccessModalVisible(true);
         fetchApplications(pagination.page);
       }
     } catch (err) {
@@ -811,6 +824,101 @@ const InfluencerApplicationsPage = () => {
             />
           </div>
         </div>
+      </Modal>
+
+      {/* APPROVAL CREDENTIALS CONFIRMATION MODAL */}
+      <Modal
+        title={
+          <div className="flex items-center gap-2 text-base font-semibold text-emerald-800">
+            <CheckCircle size={18} className="text-emerald-600" />
+            <span>Influencer Approved: {successModalData?.fullName}</span>
+          </div>
+        }
+        open={successModalVisible}
+        onCancel={() => setSuccessModalVisible(false)}
+        footer={[
+          <Button key="close" onClick={() => setSuccessModalVisible(false)}>
+            Close
+          </Button>,
+          <Button
+            key="copy"
+            type="primary"
+            icon={copiedAll ? <Check size={14} /> : <Copy size={14} />}
+            onClick={() => {
+              if (!successModalData) return;
+              const text = `MMMK WODE Influencer Login Details:
+Portal URL: ${window.location.origin}/influencer/login
+Username: ${successModalData.username}
+Password: ${successModalData.rawPassword}
+Referral Code: ${successModalData.referralCode}
+Storefront Link: ${window.location.origin}?ref=${successModalData.referralCode}`;
+              navigator.clipboard.writeText(text);
+              setCopiedAll(true);
+              message.success('Copied all credentials to clipboard!');
+              setTimeout(() => setCopiedAll(false), 2500);
+            }}
+            className="bg-emerald-600 hover:bg-emerald-700"
+          >
+            {copiedAll ? 'Copied All!' : 'Copy Credentials'}
+          </Button>,
+        ]}
+        width={540}
+      >
+        {successModalData && (
+          <div className="py-2 space-y-3.5 text-xs">
+            {successModalData.emailSent ? (
+              <div className="p-3 bg-emerald-50 rounded-lg border border-emerald-200 text-emerald-800 flex items-start gap-2">
+                <Send size={15} className="shrink-0 mt-0.5 text-emerald-600" />
+                <span>
+                  Welcome email with login credentials has been successfully sent to <strong>{successModalData.email}</strong>.
+                </span>
+              </div>
+            ) : (
+              <div className="p-3 bg-amber-50 rounded-lg border border-amber-200 text-amber-900 flex items-start gap-2">
+                <span className="text-amber-600 text-base leading-none">⚠️</span>
+                <div>
+                  <span className="font-semibold block mb-0.5">Email Could Not Be Delivered:</span>
+                  <span className="text-xs text-amber-800 block">
+                    {successModalData.emailError || 'Server failed to send email. Check BREVO_API_KEY in server environment variables.'}
+                  </span>
+                  <span className="text-[11px] text-amber-700 block mt-1">
+                    You can copy the credentials below and send them to the influencer directly via WhatsApp or Email.
+                  </span>
+                </div>
+              </div>
+            )}
+
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-3 space-y-2">
+              <div className="flex justify-between items-center py-1 border-b border-gray-200/80">
+                <span className="text-gray-500 font-medium">Username:</span>
+                <span className="font-mono font-bold text-gray-800">{successModalData.username}</span>
+              </div>
+              <div className="flex justify-between items-center py-1 border-b border-gray-200/80">
+                <span className="text-gray-500 font-medium">Password:</span>
+                <span className="font-mono font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                  {successModalData.rawPassword}
+                </span>
+              </div>
+              <div className="flex justify-between items-center py-1 border-b border-gray-200/80">
+                <span className="text-gray-500 font-medium">Referral Code:</span>
+                <span className="font-mono font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200">
+                  {successModalData.referralCode}
+                </span>
+              </div>
+              <div className="flex justify-between items-center py-1">
+                <span className="text-gray-500 font-medium">Portal URL:</span>
+                <a
+                  href="/influencer/login"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-blue-600 hover:underline font-mono text-[11px]"
+                >
+                  /influencer/login
+                </a>
+              </div>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );

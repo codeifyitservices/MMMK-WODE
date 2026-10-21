@@ -234,23 +234,33 @@ exports.approveApplication = async (req, res) => {
 
     // 5. Send Credentials Email via Brevo
     const baseStoreUrl = FRONTEND_URL.replace(/\/$/, "");
-    await sendInfluencerWelcomeEmail({
-      email: influencer.email,
-      fullName: influencer.fullName,
-      username,
-      rawPassword,
-      referralCode,
-      commissionRate: influencer.commissionRate,
-      discountRate: influencer.discountRate,
-      portalUrl: `${baseStoreUrl}/influencer/login`,
-      referralLink: `${baseStoreUrl}?ref=${referralCode}`,
-    }).catch((emailErr) => {
+    let emailResult = { success: false, error: "Not dispatched" };
+    try {
+      emailResult = await sendInfluencerWelcomeEmail({
+        email: influencer.email,
+        fullName: influencer.fullName,
+        username,
+        rawPassword,
+        referralCode,
+        commissionRate: influencer.commissionRate,
+        discountRate: influencer.discountRate,
+        portalUrl: `${baseStoreUrl}/influencer/login`,
+        referralLink: `${baseStoreUrl}?ref=${referralCode}`,
+      });
+    } catch (emailErr) {
       console.warn("[InfluencerAdmin] Email dispatch non-fatal failure:", emailErr?.message);
-    });
+      emailResult = { success: false, error: emailErr?.message || "Email dispatch failed" };
+    }
+
+    const isEmailSent = emailResult?.success === true;
 
     return res.status(200).json({
       success: true,
-      message: `Influencer ${influencer.fullName} approved successfully! Login credentials and referral code dispatched to ${influencer.email}.`,
+      emailSent: isEmailSent,
+      emailError: isEmailSent ? null : (emailResult?.error || "Email delivery failed"),
+      message: isEmailSent
+        ? `Influencer ${influencer.fullName} approved successfully! Login credentials dispatched to ${influencer.email}.`
+        : `Influencer ${influencer.fullName} approved! (Email not sent: ${emailResult?.error || "Check BREVO_API_KEY in server environment"}).`,
       data: {
         id: influencer._id,
         username,
@@ -259,6 +269,8 @@ exports.approveApplication = async (req, res) => {
         commissionRate: influencer.commissionRate,
         discountRate: influencer.discountRate,
         rawPassword, // returned to admin in response for immediate confirmation
+        emailSent: isEmailSent,
+        emailError: isEmailSent ? null : (emailResult?.error || "Email delivery failed"),
       },
     });
   } catch (error) {

@@ -21,11 +21,11 @@ export default function TopStrip() {
     const messages = [];
 
     // Prioritize active influencer discount message at the start of the marquee
-    // if (hasActiveDiscount && activeReferralCode) {
-    //   messages.push(
-    //     `EXCLUSIVE 20% INFLUENCER DISCOUNT ACTIVE (${activeReferralCode}) • AUTO-APPLIED AT CHECKOUT`
-    //   );
-    // }
+    if (hasActiveDiscount && activeReferralCode) {
+      messages.push(
+        `EXCLUSIVE 20% INFLUENCER DISCOUNT ACTIVE (${activeReferralCode}) • AUTO-APPLIED AT CHECKOUT`
+      );
+    }
 
     if (topStrip && topStrip.messages) {
       messages.push(...topStrip.messages.filter((msg) => msg && msg.trim() !== ''));
@@ -39,7 +39,7 @@ export default function TopStrip() {
     return null;
   }
 
-  const backgroundColor = topStrip.backgroundColor || '#28120b';
+  const backgroundColor = topStrip?.backgroundColor || '#28120b';
   const textColor = getContrastColor(backgroundColor);
   const N = activeMessages.length;
 
@@ -51,11 +51,13 @@ export default function TopStrip() {
         className="flex-shrink-0 flex items-center justify-center h-full px-12 md:px-16 text-center uppercase whitespace-nowrap"
         {...(ariaHidden ? { 'aria-hidden': 'true' } : {})}
       >
-        <span>{msg}</span>
+        <span className={msg.includes('INFLUENCER DISCOUNT') ? 'text-[#dfba73] font-bold tracking-wider' : ''}>
+          {msg}
+        </span>
       </div>,
       <span
         key={`${keyPrefix}-star-${index}`}
-        className="flex-shrink-0 opacity-60 text-[15px] md:text-md px-8 md:px-12"
+        className="flex-shrink-0 opacity-60 text-[15px] md:text-md px-8 md:px-12 text-[#dfba73]"
         {...(ariaHidden ? { 'aria-hidden': 'true' } : {})}
       >
         ✦

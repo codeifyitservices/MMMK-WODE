@@ -74,9 +74,16 @@ export default function useInfluencerTracking() {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    // 1. Intercept URL Search Params (?ref=CODE or ?influencer=CODE)
+    // 1. Intercept URL Search Params (?ref=CODE or ?ref-CODE or ?influencer=CODE)
     const urlParams = new URLSearchParams(window.location.search);
-    const paramCode = urlParams.get('ref') || urlParams.get('influencer');
+    let paramCode = urlParams.get('ref') || urlParams.get('influencer');
+
+    if (!paramCode && window.location.search) {
+      const match = window.location.search.match(/[?&](?:ref|influencer)[=-]([a-zA-Z0-9_-]+)/i);
+      if (match && match[1]) {
+        paramCode = match[1];
+      }
+    }
 
     if (paramCode) {
       const cleanCode = paramCode.trim().toUpperCase();

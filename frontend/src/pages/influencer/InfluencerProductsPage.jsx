@@ -8,10 +8,13 @@ import {
   Package,
   Percent,
   Coins,
+  Tag,
+  Share2,
 } from 'lucide-react';
-import { Input, Button, Tag, message } from 'antd';
+import { Input, Button, message } from 'antd';
 import { getInfluencerProductsApi } from '../../apis/influencer/client';
 import { useInfluencerAuth } from '../../context/InfluencerAuthProvider';
+import { resolveAssetUrl } from '../../utils/assetUrl';
 
 const InfluencerProductsPage = () => {
   const { influencer } = useInfluencerAuth();
@@ -74,24 +77,45 @@ const InfluencerProductsPage = () => {
 
   const resolveImage = (product) => {
     const raw =
+      product.thumbnail ||
+      product.image ||
+      (Array.isArray(product.images) ? product.images[0] : null) ||
       product.images?.[0]?.url ||
-      product.images?.[0] ||
-      product.image?.url ||
-      product.image;
+      product.image?.url;
 
-    if (!raw) return 'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=600&q=80';
-    if (typeof raw === 'string') {
-      if (raw.startsWith('http')) return raw;
-      const cleanPath = raw.replace(/^\/+/, '');
-      return `https://mmmk-wode.com/${cleanPath}`;
-    }
-    return 'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=600&q=80';
+    if (!raw) return '/bannerSectionImage.jpg';
+    return resolveAssetUrl(raw);
   };
 
   const getTitle = (product) => {
-    if (!product.title) return 'MMMK Luxury Jewelry';
-    if (typeof product.title === 'string') return product.title;
-    return product.title.en || product.title.ar || 'MMMK Luxury Jewelry';
+    if (!product) return 'MMMK WODE Luxury Item';
+    if (product.productName) {
+      if (typeof product.productName === 'string') return product.productName;
+      return (
+        product.productName.en ||
+        product.productName.ar ||
+        product.productName.fr ||
+        Object.values(product.productName).find(Boolean) ||
+        'MMMK WODE Luxury Item'
+      );
+    }
+    if (product.title) {
+      if (typeof product.title === 'string') return product.title;
+      return product.title.en || product.title.ar || 'MMMK WODE Luxury Item';
+    }
+    return product.name || 'MMMK WODE Luxury Item';
+  };
+
+  const getCategoryName = (product) => {
+    if (!product?.category) return 'Luxury Collection';
+    if (typeof product.category === 'string') return 'Collection';
+    return (
+      product.category.name?.en ||
+      product.category.categoryName ||
+      (typeof product.category.name === 'string' ? product.category.name : null) ||
+      product.category.title ||
+      'Luxury Collection'
+    );
   };
 
   return (
@@ -108,7 +132,7 @@ const InfluencerProductsPage = () => {
             </span>
           </div>
           <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
-            Browse the product catalog, generate product-specific referral links, and earn on every checkout.
+            Browse the active store catalog ({pagination.total} products), generate 1-click referral links, and earn 10% commission on every order.
           </p>
         </div>
 
@@ -116,7 +140,7 @@ const InfluencerProductsPage = () => {
         <div className="w-full md:w-80">
           <Input
             prefix={<Search size={15} className="text-gray-400 mr-1" />}
-            placeholder="Search jewelry by title..."
+            placeholder="Search products by title or brand..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             allowClear
@@ -154,18 +178,20 @@ const InfluencerProductsPage = () => {
         <div className="flex flex-col items-center justify-center py-20 text-gray-400">
           <div className="w-9 h-9 border-2 border-[#8d6f30] border-t-transparent rounded-full animate-spin mb-3" />
           <p className="text-xs uppercase tracking-wider text-gray-500 font-semibold">
-            Loading Products & Link Generators...
+            Loading Real Products from Database...
           </p>
         </div>
       ) : products.length > 0 ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-5">
           {products.map((product) => {
-            const rawPrice = product.price || 0;
-            const discountedPrice = Number((rawPrice * 0.8).toFixed(2));
-            const estCommission = Number((discountedPrice * 0.1).toFixed(2));
+            const retailPrice = Number(product.price || product.websitePrice || 0);
+            const storePrice = Number(product.websitePrice || product.price || 0);
+            const followerPrice = Number((storePrice * 0.8).toFixed(2));
+            const estCommission = Number((followerPrice * 0.1).toFixed(2));
             const isCopied = copiedId === product._id;
             const title = getTitle(product);
             const imageUrl = resolveImage(product);
+            const categoryName = getCategoryName(product);
 
             return (
               <div
@@ -180,19 +206,44 @@ const InfluencerProductsPage = () => {
                     className="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500"
                     loading="lazy"
                     onError={(e) => {
-                      e.target.src =
-                        'https://images.unsplash.com/photo-1544816155-12df9643f363?auto=format&fit=crop&w=600&q=80';
+                      const current = e.currentTarget.src;
+                      const raw = product.image || (Array.isArray(product.images) ? product.images[0] : null);
+                      const filename = typeof raw === 'string' ? raw.split('/').pop() : '';
+                      if (filename && !current.includes('localhost:3001')) {
+                        e.currentTarget.src = `http://localhost:3001/uploads/${filename}`;
+                      } else if (!current.includes('bannerSectionImage.jpg')) {
+                        e.currentTarget.src = '/bannerSectionImage.jpg';
+                      }
                     }}
                   />
                   <div className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full bg-white/95 backdrop-blur-md border border-amber-200 shadow-sm text-[#8d6f30] text-[10px] font-bold">
                     20% OFF Code Ready
                   </div>
+                  {categoryName && (
+                    <div className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-md bg-black/75 backdrop-blur-md text-white text-[10px] font-medium tracking-wide">
+                      {categoryName}
+                    </div>
+                  )}
                 </div>
 
                 {/* Content */}
                 <div className="p-4 flex-1 flex flex-col justify-between space-y-3">
                   <div>
-                    <h3 className="text-xs font-semibold text-gray-900 line-clamp-2 group-hover:text-[#8d6f30] transition-colors leading-relaxed">
+                    <div className="flex items-center justify-between text-[11px] text-gray-500 mb-1">
+                      <span className="uppercase tracking-wider font-semibold text-[#8d6f30]">
+                        {product.brand || 'MMMK WODE'}
+                      </span>
+                      {product.quantity > 0 ? (
+                        <span className="text-emerald-600 font-medium">In Stock</span>
+                      ) : (
+                        <span className="text-amber-600 font-medium">Limited</span>
+                      )}
+                    </div>
+
+                    <h3
+                      className="text-xs font-semibold text-gray-900 line-clamp-2 group-hover:text-[#8d6f30] transition-colors leading-relaxed"
+                      title={title}
+                    >
                       {title}
                     </h3>
 
@@ -201,11 +252,13 @@ const InfluencerProductsPage = () => {
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-gray-500 text-[11px]">Follower Price:</span>
                         <div className="flex items-center gap-1.5">
-                          <span className="line-through text-gray-400 text-[11px]">
-                            AED {rawPrice}
-                          </span>
+                          {retailPrice > storePrice ? (
+                            <span className="line-through text-gray-400 text-[11px]">
+                              AED {retailPrice}
+                            </span>
+                          ) : null}
                           <span className="text-gray-900 font-bold">
-                            AED {discountedPrice}
+                            AED {followerPrice}
                           </span>
                         </div>
                       </div>
@@ -254,7 +307,7 @@ const InfluencerProductsPage = () => {
         <div className="bg-white border border-gray-200/80 rounded-xl py-16 text-center text-gray-500 shadow-sm">
           <Package size={36} className="mx-auto text-gray-300 mb-2" />
           <p className="text-sm font-semibold text-gray-700">No products found matching your search.</p>
-          <p className="text-xs text-gray-400 mt-0.5">Try searching for other jewelry or collection keywords.</p>
+          <p className="text-xs text-gray-400 mt-0.5">Try searching for other jewelry or fragrance keywords.</p>
         </div>
       )}
 

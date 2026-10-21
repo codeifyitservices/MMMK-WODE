@@ -6,6 +6,7 @@ const InfluencerPayoutRequest = require("../Models/InfluencerPayoutRequest");
 const InfluencerWalletTransaction = require("../Models/InfluencerWalletTransaction");
 const Order = require("../Models/Order");
 const Product = require("../Models/Product");
+const Category = require("../Models/Category");
 
 const JWT_SECRET = process.env.SECRET_KEY || process.env.JWT_SECRET;
 
@@ -581,29 +582,34 @@ exports.getInfluencerProducts = async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 12;
     const search = req.query.search ? String(req.query.search).trim() : "";
+    const category = req.query.category ? String(req.query.category).trim() : "";
     const skip = (page - 1) * limit;
 
-    const filter = { isDeleted: { $ne: true } };
+    const filter = { status: { $ne: "Inactive" } };
     if (search) {
       const safeSearch = escapeRegex(search);
       filter.$or = [
-        { "title.en": { $regex: safeSearch, $options: "i" } },
-        { "title.ar": { $regex: safeSearch, $options: "i" } },
+        { "productName.en": { $regex: safeSearch, $options: "i" } },
+        { "productName.ar": { $regex: safeSearch, $options: "i" } },
+        { brand: { $regex: safeSearch, $options: "i" } },
       ];
+    }
+    if (category && category !== "all") {
+      filter.category = category;
     }
 
     const total = await Product.countDocuments(filter);
     const products = await Product.find(filter)
-      .select("title image images price discountedPrice sku inStock rating")
+      .populate("category", "categoryName title name")
       .sort({ createdAt: -1 })
       .skip(skip)
-      .limit(limit);
+      .limit(limit)
+      .lean();
 
     const productsWithLinks = products.map((prod) => {
-      const prodObj = prod.toObject ? prod.toObject() : prod;
       return {
-        ...prodObj,
-        referralLink: `${baseStoreUrl}/product/${prod._id}?ref=${referralCode}`,
+        ...prod,
+        referralLink: `${baseStoreUrl}/product-details/${prod._id}?ref=${referralCode}`,
       };
     });
 
@@ -647,7 +653,7 @@ exports.requestPayout = async (req, res) => {
       });
     }
 
-    const MIN_PAYOUT_THRESHOLD = 100; // AED 100
+    const MIN_PAYOUT_THRESHOLD = 200; // AED 200 per specification
     if (requestedAmount < MIN_PAYOUT_THRESHOLD) {
       return res.status(400).json({
         success: false,

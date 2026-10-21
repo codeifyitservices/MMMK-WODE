@@ -1,7 +1,7 @@
 import { TbGiftCardFilled, TbMenu } from 'react-icons/tb';
 import Container from './Container';
 import { Link } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import MenuDrawer from './MenuDrawer';
 import { BsMinecartLoaded } from 'react-icons/bs';
 import { FaHeart, FaUser } from 'react-icons/fa';
@@ -12,9 +12,11 @@ import { useTranslationContext } from '../../context/TranslationContext';
 import LanguageDropdown from './LanguageDropdown';
 import CurrencyDropdown from './CurrencyDropdown';
 import { useGlobalContext } from '../../context/GlobalProvider';
+import useInfluencerTracking from '../../hook/useInfluencerTracking';
 
 export default function Navbar() {
   const { topStrip } = useGlobalContext();
+  const { activeReferralCode, hasActiveDiscount } = useInfluencerTracking();
   const {
     translateLanguage,
     content: { common },
@@ -26,7 +28,49 @@ export default function Navbar() {
     isSearchOpen: false,
   });
 
-  const showTopStrip = !!(topStrip?.enabled && topStrip?.messages?.some(msg => msg && msg.trim() !== ''));
+  const [bannerDismissed, setBannerDismissed] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return sessionStorage.getItem(`mmmk_banner_dismissed_${activeReferralCode}`) === 'true';
+  });
+
+  useEffect(() => {
+    if (!activeReferralCode) return;
+    setBannerDismissed(
+      sessionStorage.getItem(`mmmk_banner_dismissed_${activeReferralCode}`) === 'true'
+    );
+  }, [activeReferralCode]);
+
+  useEffect(() => {
+    const onDismiss = () => setBannerDismissed(true);
+    window.addEventListener('mmmk_influencer_banner_dismissed', onDismiss);
+    return () => window.removeEventListener('mmmk_influencer_banner_dismissed', onDismiss);
+  }, []);
+
+  // Check if current URL actively has the referral query (?ref=CODE or ?ref-CODE)
+  const urlReferralCode = useMemo(() => {
+    if (typeof window === 'undefined') return null;
+    const urlParams = new URLSearchParams(window.location.search);
+    let paramCode = urlParams.get('ref') || urlParams.get('influencer');
+    if (!paramCode && window.location.search) {
+      const match = window.location.search.match(/[?&](?:ref|influencer)[=-]([a-zA-Z0-9_-]+)/i);
+      if (match && match[1]) {
+        paramCode = match[1];
+      }
+    }
+    return paramCode ? paramCode.trim().toUpperCase() : null;
+  }, []);
+
+  const showTopStrip = !!(topStrip?.enabled && topStrip?.messages?.some((msg) => msg && msg.trim() !== ''));
+  const showInfluencerStrip = !!(urlReferralCode && !bannerDismissed);
+
+  const topPositionClass =
+    showTopStrip && showInfluencerStrip
+      ? 'top-10 md:top-[88px]'
+      : showTopStrip
+        ? 'top-0 md:top-12'
+        : showInfluencerStrip
+          ? 'top-10 md:top-10'
+          : 'top-0';
 
   const updateUtils = (newUtils) =>
     setUtils((prev) => ({ ...prev, ...newUtils }));
@@ -53,7 +97,7 @@ export default function Navbar() {
         onClose={() => updateUtils({ isSearchOpen: false })}
       />
 
-      <nav className={`absolute left-0 w-full z-50 transition-all duration-300 ${showTopStrip ? 'top-0 md:top-12' : 'top-0'}`}>
+      <nav className={`absolute left-0 w-full z-50 transition-all duration-300 ${topPositionClass}`}>
         <Container>
 
           {/* ── Mobile (< md) ── */}

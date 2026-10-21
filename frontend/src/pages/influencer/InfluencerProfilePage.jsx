@@ -8,14 +8,16 @@ import {
   AlertCircle,
   Save,
   ShieldCheck,
+  Coins,
 } from 'lucide-react';
+import { Input, Button, Select, Tabs, message, Tag } from 'antd';
 import { useInfluencerAuth } from '../../context/InfluencerAuthProvider';
 import { changeInfluencerPasswordApi } from '../../apis/influencer/client';
 
-const InfluencerProfilePage = () => {
+export default function InfluencerProfilePage() {
   const { influencer, updateProfile } = useInfluencerAuth();
 
-  const [activeTab, setActiveTab] = useState('profile'); // 'profile', 'payout', 'security'
+  const [activeTab, setActiveTab] = useState('profile');
 
   // Profile Information State
   const [fullName, setFullName] = useState('');
@@ -52,13 +54,8 @@ const InfluencerProfilePage = () => {
 
   // Feedback State
   const [profileSaving, setProfileSaving] = useState(false);
-  const [profileMessage, setProfileMessage] = useState({ type: '', text: '' });
-
   const [payoutSaving, setPayoutSaving] = useState(false);
-  const [payoutMessage, setPayoutMessage] = useState({ type: '', text: '' });
-
   const [passwordSaving, setPasswordSaving] = useState(false);
-  const [passwordMessage, setPasswordMessage] = useState({ type: '', text: '' });
 
   // Hydrate fields from influencer auth
   useEffect(() => {
@@ -97,46 +94,40 @@ const InfluencerProfilePage = () => {
   // Handle Save Profile
   const handleSaveProfile = async (e) => {
     e.preventDefault();
-    setProfileMessage({ type: '', text: '' });
-
     try {
       setProfileSaving(true);
-      await updateProfile({
+      const res = await updateProfile({
         fullName,
         phoneNumber,
         niche,
         bio,
         socialMedia,
       });
-      setProfileMessage({ type: 'success', text: 'Profile details saved successfully.' });
-      setTimeout(() => setProfileMessage({ type: '', text: '' }), 4000);
+
+      if (res.success) {
+        message.success('Profile details saved successfully.');
+      }
     } catch (err) {
-      setProfileMessage({
-        type: 'error',
-        text: err.response?.data?.message || err.message || 'Failed to update profile.',
-      });
+      message.error(err.response?.data?.message || err.message || 'Failed to update profile.');
     } finally {
       setProfileSaving(false);
     }
   };
 
-  // Handle Save Banking / Payout
-  const handleSavePayout = async (e) => {
+  // Handle Save Payout Details
+  const handleSavePayoutDetails = async (e) => {
     e.preventDefault();
-    setPayoutMessage({ type: '', text: '' });
-
     try {
       setPayoutSaving(true);
-      await updateProfile({
+      const res = await updateProfile({
         payoutDetails,
       });
-      setPayoutMessage({ type: 'success', text: 'Payout & banking information updated successfully.' });
-      setTimeout(() => setPayoutMessage({ type: '', text: '' }), 4000);
+
+      if (res.success) {
+        message.success('Payout & banking details updated.');
+      }
     } catch (err) {
-      setPayoutMessage({
-        type: 'error',
-        text: err.response?.data?.message || err.message || 'Failed to update payout details.',
-      });
+      message.error(err.response?.data?.message || err.message || 'Failed to update payout details.');
     } finally {
       setPayoutSaving(false);
     }
@@ -145,61 +136,56 @@ const InfluencerProfilePage = () => {
   // Handle Change Password
   const handleChangePassword = async (e) => {
     e.preventDefault();
-    setPasswordMessage({ type: '', text: '' });
 
     if (!currentPassword || !newPassword) {
-      setPasswordMessage({ type: 'error', text: 'Please fill in both current and new password.' });
+      message.error('Please fill in both current and new password.');
       return;
     }
 
     if (newPassword.length < 6) {
-      setPasswordMessage({ type: 'error', text: 'New password must be at least 6 characters.' });
+      message.error('New password must be at least 6 characters.');
       return;
     }
 
     if (newPassword !== confirmPassword) {
-      setPasswordMessage({ type: 'error', text: 'New passwords do not match.' });
+      message.error('New passwords do not match.');
       return;
     }
 
     try {
       setPasswordSaving(true);
       await changeInfluencerPasswordApi(currentPassword, newPassword);
-      setPasswordMessage({ type: 'success', text: 'Password successfully changed.' });
+      message.success('Password successfully changed.');
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-      setTimeout(() => setPasswordMessage({ type: '', text: '' }), 4000);
     } catch (err) {
-      setPasswordMessage({
-        type: 'error',
-        text: err.response?.data?.message || err.message || 'Failed to change password.',
-      });
+      message.error(err.response?.data?.message || err.message || 'Failed to change password.');
     } finally {
       setPasswordSaving(false);
     }
   };
 
   return (
-    <div className="space-y-6 animate-fadeIn font-['Poppins',sans-serif]">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="pb-2 border-b border-white/5">
-        <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-          <span>Influencer Profile & Settings</span>
+      <div className="pb-2">
+        <h1 className="text-2xl font-bold text-gray-900 tracking-tight">
+          Partner Profile & Settings
         </h1>
-        <p className="text-xs text-gray-400 mt-1">
-          Manage your social links, banking details for commission disbursements, and security credentials.
+        <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
+          Manage your personal details, social channels, wire transfer banking info, and security credentials.
         </p>
       </div>
 
-      {/* Tabs */}
-      <div className="flex items-center gap-2 border-b border-white/5 pb-2 text-xs">
+      {/* Clean Tabs */}
+      <div className="flex items-center gap-2 pb-1 text-xs">
         <button
           onClick={() => setActiveTab('profile')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all shadow-sm ${
             activeTab === 'profile'
-              ? 'bg-[#dfba73] text-black font-semibold shadow-md shadow-[#dfba73]/15'
-              : 'bg-[#121217] text-gray-400 hover:text-white'
+              ? 'bg-[#dfba73] text-black font-semibold'
+              : 'bg-white text-gray-600 hover:text-gray-900 border border-gray-200'
           }`}
         >
           <User size={14} />
@@ -208,22 +194,22 @@ const InfluencerProfilePage = () => {
 
         <button
           onClick={() => setActiveTab('payout')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all shadow-sm ${
             activeTab === 'payout'
-              ? 'bg-[#dfba73] text-black font-semibold shadow-md shadow-[#dfba73]/15'
-              : 'bg-[#121217] text-gray-400 hover:text-white'
+              ? 'bg-[#dfba73] text-black font-semibold'
+              : 'bg-white text-gray-600 hover:text-gray-900 border border-gray-200'
           }`}
         >
           <Building size={14} />
-          <span>Payout & Bank Details</span>
+          <span>Payout & Banking</span>
         </button>
 
         <button
           onClick={() => setActiveTab('security')}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all ${
+          className={`flex items-center gap-2 px-4 py-2 rounded-lg font-medium transition-all shadow-sm ${
             activeTab === 'security'
-              ? 'bg-[#dfba73] text-black font-semibold shadow-md shadow-[#dfba73]/15'
-              : 'bg-[#121217] text-gray-400 hover:text-white'
+              ? 'bg-[#dfba73] text-black font-semibold'
+              : 'bg-white text-gray-600 hover:text-gray-900 border border-gray-200'
           }`}
         >
           <Lock size={14} />
@@ -234,190 +220,156 @@ const InfluencerProfilePage = () => {
       {/* TAB 1: Profile & Social Media */}
       {activeTab === 'profile' && (
         <form onSubmit={handleSaveProfile} className="space-y-6">
-          <div className="bg-[#0f0f15] border border-white/5 rounded-2xl p-6 shadow-xl space-y-5">
-            <h3 className="text-sm font-semibold text-white flex items-center gap-2 pb-3 border-b border-white/5">
-              <User size={16} className="text-[#dfba73]" />
+          <div className="bg-white border border-gray-200/80 rounded-xl p-6 shadow-sm space-y-5">
+            <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2 pb-3 border-b border-gray-100">
+              <User size={16} className="text-[#8d6f30]" />
               <span>Identity & Account Details</span>
             </h3>
 
-            {profileMessage.text && (
-              <div
-                className={`p-3 rounded-xl border text-xs flex items-center gap-2 ${
-                  profileMessage.type === 'success'
-                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
-                    : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
-                }`}
-              >
-                {profileMessage.type === 'success' ? (
-                  <Check size={14} />
-                ) : (
-                  <AlertCircle size={14} />
-                )}
-                <span>{profileMessage.text}</span>
-              </div>
-            )}
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block uppercase tracking-wider text-gray-400 font-medium mb-1">
-                  Full Name
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  Full Name / Legal Name
                 </label>
-                <input
-                  type="text"
+                <Input
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
-                  required
-                  className="w-full px-3.5 py-2.5 bg-[#171720] border border-white/10 rounded-xl text-white text-xs focus:outline-none focus:border-[#dfba73]"
+                  placeholder="e.g., Jatin Verma"
+                  size="large"
                 />
               </div>
 
               <div>
-                <label className="block uppercase tracking-wider text-gray-400 font-medium mb-1">
-                  Username (Fixed)
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  Email Address (Login Identifier)
                 </label>
-                <input
-                  type="text"
-                  value={influencer?.username || ''}
-                  disabled
-                  className="w-full px-3.5 py-2.5 bg-[#121217] border border-white/5 rounded-xl text-gray-500 text-xs cursor-not-allowed"
-                />
-              </div>
-
-              <div>
-                <label className="block uppercase tracking-wider text-gray-400 font-medium mb-1">
-                  Email Address (Fixed)
-                </label>
-                <input
-                  type="email"
+                <Input
                   value={influencer?.email || ''}
                   disabled
-                  className="w-full px-3.5 py-2.5 bg-[#121217] border border-white/5 rounded-xl text-gray-500 text-xs cursor-not-allowed"
+                  size="large"
+                  className="bg-gray-50 text-gray-500"
+                />
+                <span className="text-[11px] text-gray-400 mt-1 block">
+                  Contact store support if you need to change your registered email.
+                </span>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  Username
+                </label>
+                <Input
+                  value={influencer?.username || ''}
+                  disabled
+                  size="large"
+                  className="bg-gray-50 text-gray-500 font-mono"
                 />
               </div>
 
               <div>
-                <label className="block uppercase tracking-wider text-gray-400 font-medium mb-1">
-                  Phone / WhatsApp
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  WhatsApp / Phone Number
                 </label>
-                <input
-                  type="tel"
+                <Input
                   value={phoneNumber}
                   onChange={(e) => setPhoneNumber(e.target.value)}
                   placeholder="+971 50 123 4567"
-                  className="w-full px-3.5 py-2.5 bg-[#171720] border border-white/10 rounded-xl text-white text-xs focus:outline-none focus:border-[#dfba73]"
+                  size="large"
                 />
               </div>
 
               <div>
-                <label className="block uppercase tracking-wider text-gray-400 font-medium mb-1">
-                  Primary Niche
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  Primary Creator Niche
                 </label>
-                <input
-                  type="text"
+                <Input
                   value={niche}
                   onChange={(e) => setNiche(e.target.value)}
-                  placeholder="e.g. Luxury Fragrances, Lifestyle, Fashion"
-                  className="w-full px-3.5 py-2.5 bg-[#171720] border border-white/10 rounded-xl text-white text-xs focus:outline-none focus:border-[#dfba73]"
+                  placeholder="e.g. Luxury Jewelry, Fashion, Lifestyle"
+                  size="large"
                 />
               </div>
 
-              <div>
-                <label className="block uppercase tracking-wider text-gray-400 font-medium mb-1">
-                  Assigned Referral Code
+              <div className="md:col-span-2">
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  Bio / Audience Summary
                 </label>
-                <input
-                  type="text"
-                  value={influencer?.referralCode || ''}
-                  disabled
-                  className="w-full px-3.5 py-2.5 bg-[#121217] border border-white/5 rounded-xl text-[#dfba73] font-mono font-bold text-xs cursor-not-allowed"
+                <Input.TextArea
+                  value={bio}
+                  onChange={(e) => setBio(e.target.value)}
+                  placeholder="Tell us a little bit about your content style and audience..."
+                  rows={3}
                 />
               </div>
-            </div>
-
-            <div>
-              <label className="block uppercase tracking-wider text-gray-400 font-medium mb-1 text-xs">
-                Bio / Introduction
-              </label>
-              <textarea
-                rows={3}
-                value={bio}
-                onChange={(e) => setBio(e.target.value)}
-                placeholder="Brief description of your content and channels..."
-                className="w-full px-3.5 py-2.5 bg-[#171720] border border-white/10 rounded-xl text-white text-xs focus:outline-none focus:border-[#dfba73]"
-              />
             </div>
           </div>
 
-          {/* Social Links Card */}
-          <div className="bg-[#0f0f15] border border-white/5 rounded-2xl p-6 shadow-xl space-y-4">
-            <h3 className="text-sm font-semibold text-white flex items-center gap-2 pb-3 border-b border-white/5">
-              <Share2 size={16} className="text-[#dfba73]" />
-              <span>Social Media Accounts & Links</span>
+          {/* Social Channels Card */}
+          <div className="bg-white border border-gray-200/80 rounded-xl p-6 shadow-sm space-y-5">
+            <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2 pb-3 border-b border-gray-100">
+              <Share2 size={16} className="text-[#8d6f30]" />
+              <span>Social Media Channels & Handles</span>
             </h3>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-gray-400 mb-1">Instagram Profile</label>
-                <input
-                  type="text"
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  Instagram Handle / Profile Link
+                </label>
+                <Input
                   value={socialMedia.instagram}
-                  onChange={(e) =>
-                    setSocialMedia({ ...socialMedia, instagram: e.target.value })
-                  }
-                  placeholder="https://instagram.com/yourhandle"
-                  className="w-full px-3.5 py-2.5 bg-[#171720] border border-white/10 rounded-xl text-white text-xs focus:outline-none focus:border-[#dfba73]"
+                  onChange={(e) => setSocialMedia({ ...socialMedia, instagram: e.target.value })}
+                  placeholder="https://instagram.com/username"
+                  size="large"
                 />
               </div>
 
               <div>
-                <label className="block text-gray-400 mb-1">TikTok Profile</label>
-                <input
-                  type="text"
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  TikTok Profile Link
+                </label>
+                <Input
                   value={socialMedia.tiktok}
-                  onChange={(e) =>
-                    setSocialMedia({ ...socialMedia, tiktok: e.target.value })
-                  }
-                  placeholder="https://tiktok.com/@yourhandle"
-                  className="w-full px-3.5 py-2.5 bg-[#171720] border border-white/10 rounded-xl text-white text-xs focus:outline-none focus:border-[#dfba73]"
+                  onChange={(e) => setSocialMedia({ ...socialMedia, tiktok: e.target.value })}
+                  placeholder="https://tiktok.com/@username"
+                  size="large"
                 />
               </div>
 
               <div>
-                <label className="block text-gray-400 mb-1">YouTube Channel</label>
-                <input
-                  type="text"
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  YouTube Channel Link
+                </label>
+                <Input
                   value={socialMedia.youtube}
-                  onChange={(e) =>
-                    setSocialMedia({ ...socialMedia, youtube: e.target.value })
-                  }
+                  onChange={(e) => setSocialMedia({ ...socialMedia, youtube: e.target.value })}
                   placeholder="https://youtube.com/@channel"
-                  className="w-full px-3.5 py-2.5 bg-[#171720] border border-white/10 rounded-xl text-white text-xs focus:outline-none focus:border-[#dfba73]"
+                  size="large"
                 />
               </div>
 
               <div>
-                <label className="block text-gray-400 mb-1">Other / Blog / Website</label>
-                <input
-                  type="text"
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  Website / Other Link
+                </label>
+                <Input
                   value={socialMedia.other}
-                  onChange={(e) =>
-                    setSocialMedia({ ...socialMedia, other: e.target.value })
-                  }
+                  onChange={(e) => setSocialMedia({ ...socialMedia, other: e.target.value })}
                   placeholder="https://yourwebsite.com"
-                  className="w-full px-3.5 py-2.5 bg-[#171720] border border-white/10 rounded-xl text-white text-xs focus:outline-none focus:border-[#dfba73]"
+                  size="large"
                 />
               </div>
             </div>
 
-            <div className="pt-2">
-              <button
-                type="submit"
-                disabled={profileSaving}
-                className="px-6 py-2.5 rounded-xl bg-[#dfba73] hover:bg-[#caa055] text-black font-semibold text-xs flex items-center gap-2 transition-all disabled:opacity-50"
+            <div className="pt-2 flex justify-end">
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={profileSaving}
+                className="bg-[#dfba73] hover:bg-[#cfa557] text-black font-semibold border-0 shadow-sm"
               >
-                <Save size={14} />
-                <span>{profileSaving ? 'Saving...' : 'Save Profile Changes'}</span>
-              </button>
+                Save Profile Changes
+              </Button>
             </div>
           </div>
         </form>
@@ -425,181 +377,104 @@ const InfluencerProfilePage = () => {
 
       {/* TAB 2: Payout & Bank Details */}
       {activeTab === 'payout' && (
-        <form onSubmit={handleSavePayout} className="space-y-6">
-          <div className="bg-[#0f0f15] border border-white/5 rounded-2xl p-6 shadow-xl space-y-5">
-            <div className="flex items-center justify-between pb-3 border-b border-white/5">
-              <h3 className="text-sm font-semibold text-white flex items-center gap-2">
-                <Building size={16} className="text-[#dfba73]" />
-                <span>Banking & Disbursement Information</span>
-              </h3>
-              <span className="text-[11px] text-gray-400 flex items-center gap-1">
-                <ShieldCheck size={13} className="text-emerald-400" />
-                256-bit Encrypted
-              </span>
-            </div>
+        <form onSubmit={handleSavePayoutDetails} className="space-y-6">
+          <div className="bg-white border border-gray-200/80 rounded-xl p-6 shadow-sm space-y-5">
+            <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2 pb-3 border-b border-gray-100">
+              <Building size={16} className="text-[#8d6f30]" />
+              <span>Wire Transfer Banking Details</span>
+            </h3>
 
-            {payoutMessage.text && (
-              <div
-                className={`p-3 rounded-xl border text-xs flex items-center gap-2 ${
-                  payoutMessage.type === 'success'
-                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
-                    : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
-                }`}
-              >
-                {payoutMessage.type === 'success' ? (
-                  <Check size={14} />
-                ) : (
-                  <AlertCircle size={14} />
-                )}
-                <span>{payoutMessage.text}</span>
-              </div>
-            )}
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block uppercase tracking-wider text-gray-400 font-medium mb-1">
-                  Default Payout Method
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  Account Holder Legal Name
                 </label>
-                <select
-                  value={payoutDetails.payoutMethod}
-                  onChange={(e) =>
-                    setPayoutDetails({ ...payoutDetails, payoutMethod: e.target.value })
-                  }
-                  className="w-full px-3.5 py-2.5 bg-[#171720] border border-white/10 rounded-xl text-white text-xs focus:outline-none focus:border-[#dfba73]"
-                >
-                  <option value="BankTransfer">Bank Wire / Transfer (UAE & Global)</option>
-                  <option value="UPI">UPI (India)</option>
-                  <option value="PayPal">PayPal</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block uppercase tracking-wider text-gray-400 font-medium mb-1">
-                  Account Holder Full Legal Name
-                </label>
-                <input
-                  type="text"
+                <Input
                   value={payoutDetails.accountHolderName}
                   onChange={(e) =>
-                    setPayoutDetails({
-                      ...payoutDetails,
-                      accountHolderName: e.target.value,
-                    })
+                    setPayoutDetails({ ...payoutDetails, accountHolderName: e.target.value })
                   }
                   placeholder="As registered with your bank"
-                  className="w-full px-3.5 py-2.5 bg-[#171720] border border-white/10 rounded-xl text-white text-xs focus:outline-none focus:border-[#dfba73]"
+                  size="large"
                 />
               </div>
 
               <div>
-                <label className="block uppercase tracking-wider text-gray-400 font-medium mb-1">
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
                   Bank Name
                 </label>
-                <input
-                  type="text"
+                <Input
                   value={payoutDetails.bankName}
-                  onChange={(e) =>
-                    setPayoutDetails({ ...payoutDetails, bankName: e.target.value })
-                  }
-                  placeholder="e.g. Emirates NBD, ADCB, HDFC Bank"
-                  className="w-full px-3.5 py-2.5 bg-[#171720] border border-white/10 rounded-xl text-white text-xs focus:outline-none focus:border-[#dfba73]"
+                  onChange={(e) => setPayoutDetails({ ...payoutDetails, bankName: e.target.value })}
+                  placeholder="e.g., Emirates NBD / Abu Dhabi Commercial Bank"
+                  size="large"
                 />
               </div>
 
               <div>
-                <label className="block uppercase tracking-wider text-gray-400 font-medium mb-1">
-                  Account Number / IBAN
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  Account Number
                 </label>
-                <input
-                  type="text"
+                <Input
                   value={payoutDetails.accountNumber}
                   onChange={(e) =>
-                    setPayoutDetails({
-                      ...payoutDetails,
-                      accountNumber: e.target.value,
-                    })
+                    setPayoutDetails({ ...payoutDetails, accountNumber: e.target.value })
                   }
-                  placeholder="AE07 0331 2345 6789 012"
-                  className="w-full px-3.5 py-2.5 bg-[#171720] border border-white/10 rounded-xl text-white text-xs focus:outline-none focus:border-[#dfba73]"
+                  placeholder="Your bank account number"
+                  size="large"
                 />
               </div>
 
               <div>
-                <label className="block uppercase tracking-wider text-gray-400 font-medium mb-1">
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  IBAN Number
+                </label>
+                <Input
+                  value={payoutDetails.iban}
+                  onChange={(e) => setPayoutDetails({ ...payoutDetails, iban: e.target.value })}
+                  placeholder="e.g., AE070330000000000000000"
+                  size="large"
+                  className="font-mono uppercase"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
                   SWIFT / BIC / IFSC Code
                 </label>
-                <input
-                  type="text"
+                <Input
                   value={payoutDetails.swiftCode}
                   onChange={(e) =>
                     setPayoutDetails({ ...payoutDetails, swiftCode: e.target.value })
                   }
-                  placeholder="e.g. EBILAEADXXX"
-                  className="w-full px-3.5 py-2.5 bg-[#171720] border border-white/10 rounded-xl text-white text-xs focus:outline-none focus:border-[#dfba73]"
+                  placeholder="Bank routing swift code"
+                  size="large"
+                  className="font-mono uppercase"
                 />
               </div>
 
               <div>
-                <label className="block uppercase tracking-wider text-gray-400 font-medium mb-1">
-                  Branch / City / Country
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  UPI ID (Optional for India Transfers)
                 </label>
-                <input
-                  type="text"
-                  value={payoutDetails.branchCity}
-                  onChange={(e) =>
-                    setPayoutDetails({
-                      ...payoutDetails,
-                      branchCity: e.target.value,
-                    })
-                  }
-                  placeholder="e.g. Dubai, United Arab Emirates"
-                  className="w-full px-3.5 py-2.5 bg-[#171720] border border-white/10 rounded-xl text-white text-xs focus:outline-none focus:border-[#dfba73]"
-                />
-              </div>
-
-              <div>
-                <label className="block uppercase tracking-wider text-gray-400 font-medium mb-1">
-                  UPI ID (Optional)
-                </label>
-                <input
-                  type="text"
+                <Input
                   value={payoutDetails.upiId}
-                  onChange={(e) =>
-                    setPayoutDetails({ ...payoutDetails, upiId: e.target.value })
-                  }
-                  placeholder="username@okhdfcbank"
-                  className="w-full px-3.5 py-2.5 bg-[#171720] border border-white/10 rounded-xl text-white text-xs focus:outline-none focus:border-[#dfba73]"
-                />
-              </div>
-
-              <div>
-                <label className="block uppercase tracking-wider text-gray-400 font-medium mb-1">
-                  PayPal Email (Optional)
-                </label>
-                <input
-                  type="email"
-                  value={payoutDetails.paypalEmail}
-                  onChange={(e) =>
-                    setPayoutDetails({
-                      ...payoutDetails,
-                      paypalEmail: e.target.value,
-                    })
-                  }
-                  placeholder="paypal@yourdomain.com"
-                  className="w-full px-3.5 py-2.5 bg-[#171720] border border-white/10 rounded-xl text-white text-xs focus:outline-none focus:border-[#dfba73]"
+                  onChange={(e) => setPayoutDetails({ ...payoutDetails, upiId: e.target.value })}
+                  placeholder="username@upi"
+                  size="large"
                 />
               </div>
             </div>
 
-            <div className="pt-2">
-              <button
-                type="submit"
-                disabled={payoutSaving}
-                className="px-6 py-2.5 rounded-xl bg-[#dfba73] hover:bg-[#caa055] text-black font-semibold text-xs flex items-center gap-2 transition-all disabled:opacity-50"
+            <div className="pt-2 flex justify-end">
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={payoutSaving}
+                className="bg-[#dfba73] hover:bg-[#cfa557] text-black font-semibold border-0 shadow-sm"
               >
-                <Save size={14} />
-                <span>{payoutSaving ? 'Saving...' : 'Save Payout Details'}</span>
-              </button>
+                Save Payout Details
+              </Button>
             </div>
           </div>
         </form>
@@ -607,89 +482,64 @@ const InfluencerProfilePage = () => {
 
       {/* TAB 3: Security & Password */}
       {activeTab === 'security' && (
-        <form onSubmit={handleChangePassword} className="space-y-6">
-          <div className="bg-[#0f0f15] border border-white/5 rounded-2xl p-6 shadow-xl space-y-5 max-w-lg">
-            <h3 className="text-sm font-semibold text-white flex items-center gap-2 pb-3 border-b border-white/5">
-              <Lock size={16} className="text-[#dfba73]" />
+        <form onSubmit={handleChangePassword} className="space-y-6 max-w-xl">
+          <div className="bg-white border border-gray-200/80 rounded-xl p-6 shadow-sm space-y-5">
+            <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-2 pb-3 border-b border-gray-100">
+              <Lock size={16} className="text-[#8d6f30]" />
               <span>Change Portal Password</span>
             </h3>
 
-            {passwordMessage.text && (
-              <div
-                className={`p-3 rounded-xl border text-xs flex items-center gap-2 ${
-                  passwordMessage.type === 'success'
-                    ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
-                    : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
-                }`}
-              >
-                {passwordMessage.type === 'success' ? (
-                  <Check size={14} />
-                ) : (
-                  <AlertCircle size={14} />
-                )}
-                <span>{passwordMessage.text}</span>
-              </div>
-            )}
-
-            <div className="space-y-4 text-xs">
+            <div className="space-y-3.5">
               <div>
-                <label className="block uppercase tracking-wider text-gray-400 font-medium mb-1">
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
                   Current Password
                 </label>
-                <input
-                  type="password"
+                <Input.Password
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
-                  required
-                  placeholder="••••••••"
-                  className="w-full px-3.5 py-2.5 bg-[#171720] border border-white/10 rounded-xl text-white text-xs focus:outline-none focus:border-[#dfba73]"
+                  placeholder="Enter current password"
+                  size="large"
                 />
               </div>
 
               <div>
-                <label className="block uppercase tracking-wider text-gray-400 font-medium mb-1">
-                  New Password (min 6 chars)
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
+                  New Password
                 </label>
-                <input
-                  type="password"
+                <Input.Password
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
-                  required
-                  placeholder="••••••••"
-                  className="w-full px-3.5 py-2.5 bg-[#171720] border border-white/10 rounded-xl text-white text-xs focus:outline-none focus:border-[#dfba73]"
+                  placeholder="Min 6 characters"
+                  size="large"
                 />
               </div>
 
               <div>
-                <label className="block uppercase tracking-wider text-gray-400 font-medium mb-1">
+                <label className="block text-xs font-semibold text-gray-700 mb-1">
                   Confirm New Password
                 </label>
-                <input
-                  type="password"
+                <Input.Password
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
-                  required
-                  placeholder="••••••••"
-                  className="w-full px-3.5 py-2.5 bg-[#171720] border border-white/10 rounded-xl text-white text-xs focus:outline-none focus:border-[#dfba73]"
+                  placeholder="Re-type new password"
+                  size="large"
                 />
               </div>
             </div>
 
-            <div className="pt-2">
-              <button
-                type="submit"
-                disabled={passwordSaving}
-                className="px-6 py-2.5 rounded-xl bg-[#dfba73] hover:bg-[#caa055] text-black font-semibold text-xs flex items-center gap-2 transition-all disabled:opacity-50"
+            <div className="pt-2 flex justify-end">
+              <Button
+                type="primary"
+                htmlType="submit"
+                loading={passwordSaving}
+                className="bg-[#dfba73] hover:bg-[#cfa557] text-black font-semibold border-0 shadow-sm"
               >
-                <Save size={14} />
-                <span>{passwordSaving ? 'Updating...' : 'Update Password'}</span>
-              </button>
+                Update Password
+              </Button>
             </div>
           </div>
         </form>
       )}
     </div>
   );
-};
-
-export default InfluencerProfilePage;
+}

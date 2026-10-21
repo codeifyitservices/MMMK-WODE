@@ -174,43 +174,37 @@ const InfluencerPortalLayout = () => {
         {/* Top Header with Favicon Logo & Collapsible Chevron */}
         <div
           className={cn(
-            'logo flex h-[50px] border-b border-white/10 items-center px-3',
+            'logo flex h-[50px] border-b border-white/10 items-center px-2',
             isSidebarCollapsed ? 'justify-center' : 'justify-between'
           )}
         >
-          <Link
-            to="/influencer/dashboard"
-            className={cn(
-              'flex items-center gap-2.5 overflow-hidden',
-              isSidebarCollapsed ? 'justify-center' : ''
-            )}
-          >
-            <img
-              src="/favicon.png"
-              alt="MMMK WODE"
-              className="w-6 h-6 object-contain rounded shrink-0"
-            />
-            {!isSidebarCollapsed && (
-              <motion.h2
-                animate={{
-                  width: isSidebarCollapsed ? 0 : 'auto',
-                  opacity: isSidebarCollapsed ? 0 : 1,
-                }}
-                className="text-sm text-white font-semibold flex-1 origin-left whitespace-nowrap overflow-hidden"
-              >
+          {!isSidebarCollapsed && (
+            <Link
+              to="/influencer/dashboard"
+              className="flex items-center gap-2.5 overflow-hidden pl-1"
+            >
+              <img
+                src="/favicon.png"
+                alt="MMMK WODE"
+                className="w-6 h-6 object-contain rounded shrink-0"
+              />
+              <span className="text-sm text-white font-semibold flex-1 origin-left whitespace-nowrap overflow-hidden">
                 Influencer Panel
-              </motion.h2>
-            )}
-          </Link>
+              </span>
+            </Link>
+          )}
 
           {/* Sider Collapse / Mobile Close Button */}
-          <div className="flex items-center">
+          <div className={cn('flex items-center', isSidebarCollapsed ? 'w-full justify-center' : '')}>
             <Button
               ghost
               size="small"
-              className="border-0 text-white/80 hover:text-white hidden lg:flex items-center justify-center p-1"
+              className={cn(
+                'border-0 text-white/80 hover:text-white hidden lg:flex items-center justify-center p-1',
+                isSidebarCollapsed ? 'mx-auto' : ''
+              )}
               onClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
-              icon={isSidebarCollapsed ? <LuMenu size={16} /> : <LuChevronLeft size={16} />}
+              icon={isSidebarCollapsed ? <LuMenu size={18} /> : <LuChevronLeft size={18} />}
               title={isSidebarCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
             />
             <Button

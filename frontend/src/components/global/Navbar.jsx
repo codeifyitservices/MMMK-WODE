@@ -28,10 +28,35 @@ export default function Navbar() {
     isSearchOpen: false,
   });
 
-  const showTopStrip = !!(
-    (topStrip?.enabled && topStrip?.messages?.some((msg) => msg && msg.trim() !== '')) ||
-    (hasActiveDiscount && activeReferralCode)
-  );
+  const [bannerDismissed, setBannerDismissed] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return sessionStorage.getItem(`mmmk_banner_dismissed_${activeReferralCode}`) === 'true';
+  });
+
+  useEffect(() => {
+    if (!activeReferralCode) return;
+    setBannerDismissed(
+      sessionStorage.getItem(`mmmk_banner_dismissed_${activeReferralCode}`) === 'true'
+    );
+  }, [activeReferralCode]);
+
+  useEffect(() => {
+    const onDismiss = () => setBannerDismissed(true);
+    window.addEventListener('mmmk_influencer_banner_dismissed', onDismiss);
+    return () => window.removeEventListener('mmmk_influencer_banner_dismissed', onDismiss);
+  }, []);
+
+  const showTopStrip = !!(topStrip?.enabled && topStrip?.messages?.some((msg) => msg && msg.trim() !== ''));
+  const showInfluencerStrip = !!(hasActiveDiscount && activeReferralCode && !bannerDismissed);
+
+  const topPositionClass =
+    showTopStrip && showInfluencerStrip
+      ? 'top-10 md:top-[88px]'
+      : showTopStrip
+        ? 'top-0 md:top-12'
+        : showInfluencerStrip
+          ? 'top-10 md:top-10'
+          : 'top-0';
 
   const updateUtils = (newUtils) =>
     setUtils((prev) => ({ ...prev, ...newUtils }));
@@ -58,7 +83,7 @@ export default function Navbar() {
         onClose={() => updateUtils({ isSearchOpen: false })}
       />
 
-      <nav className={`absolute left-0 w-full z-50 transition-all duration-300 ${showTopStrip ? 'top-0 md:top-12' : 'top-0'}`}>
+      <nav className={`absolute left-0 w-full z-50 transition-all duration-300 ${topPositionClass}`}>
         <Container>
 
           {/* ── Mobile (< md) ── */}

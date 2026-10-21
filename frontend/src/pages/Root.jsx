@@ -5,6 +5,7 @@ import Footer from '../layout/Footer';
 import ScrollToTop from '../hook/ScrollTop';
 import Navbar from '../components/global/Navbar';
 import TopStrip from '../components/global/TopStrip';
+import InfluencerBanner from '../components/global/InfluencerBanner';
 import EmailPopup from '../components/global/EmailPopup';
 
 const Root = () => {
@@ -22,6 +23,7 @@ const Root = () => {
   return (
     <div className="w-full relative">
       {!isAdminRoute && !isInfluencerRoute && <TopStrip />}
+      {!isAdminRoute && !isInfluencerRoute && <InfluencerBanner />}
       {!isAdminRoute && !isInfluencerRoute && <Navbar />}
       <Header />
       <ScrollToTop>

@@ -12,6 +12,7 @@ import {
   Space,
   Popconfirm,
   Tooltip,
+  Checkbox,
 } from 'antd';
 import {
   Edit,
@@ -23,6 +24,10 @@ import {
   ShoppingBag,
   MousePointerClick,
   Trash2,
+  UserPlus,
+  KeyRound,
+  ExternalLink,
+  Sparkles,
 } from 'lucide-react';
 import PageTitle from '../../UI/PageTitle';
 import {
@@ -30,6 +35,7 @@ import {
   getInfluencerDetailAdmin,
   updateInfluencerAdmin,
   deleteInfluencerApplicationAdmin,
+  createInfluencerAdmin,
 } from '../../../apis/admin/influencerAdmin';
 
 const InfluencerListPage = () => {
@@ -54,6 +60,105 @@ const InfluencerListPage = () => {
   });
   const [submitting, setSubmitting] = useState(false);
   const [copiedCode, setCopiedCode] = useState(null);
+
+  // Direct Onboarding Modal State
+  const [createModalVisible, setCreateModalVisible] = useState(false);
+  const [createSubmitting, setCreateSubmitting] = useState(false);
+  const initialCreateForm = {
+    fullName: '',
+    email: '',
+    phoneNumber: '',
+    customUsername: '',
+    customReferralCode: '',
+    customPassword: '',
+    commissionRate: 10,
+    discountRate: 20,
+    instagram: '',
+    tiktok: '',
+    niche: '',
+    bio: '',
+    sendEmail: true,
+  };
+  const [createForm, setCreateForm] = useState(initialCreateForm);
+
+  // Success Credentials Modal State
+  const [successModalVisible, setSuccessModalVisible] = useState(false);
+  const [createdInfluencerData, setCreatedInfluencerData] = useState(null);
+  const [copiedSuccessPassword, setCopiedSuccessPassword] = useState(false);
+  const [copiedSuccessAll, setCopiedSuccessAll] = useState(false);
+
+  const handleCreateSubmit = async () => {
+    if (!createForm.fullName.trim()) {
+      message.error('Full Name is required.');
+      return;
+    }
+    if (!createForm.email.trim()) {
+      message.error('Email address is required.');
+      return;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(createForm.email.trim())) {
+      message.error('Please enter a valid email address.');
+      return;
+    }
+
+    try {
+      setCreateSubmitting(true);
+      const payload = {
+        fullName: createForm.fullName.trim(),
+        email: createForm.email.trim().toLowerCase(),
+        phoneNumber: createForm.phoneNumber.trim() || undefined,
+        customUsername: createForm.customUsername.trim() || undefined,
+        customReferralCode:
+          createForm.customReferralCode.trim().toUpperCase() || undefined,
+        customPassword: createForm.customPassword.trim() || undefined,
+        commissionRate: createForm.commissionRate,
+        discountRate: createForm.discountRate,
+        socialMedia: {
+          instagram: createForm.instagram.trim() || undefined,
+          tiktok: createForm.tiktok.trim() || undefined,
+        },
+        niche: createForm.niche.trim() || undefined,
+        bio: createForm.bio.trim() || undefined,
+        sendEmail: createForm.sendEmail,
+      };
+
+      const res = await createInfluencerAdmin(payload);
+      if (res.success && res.data) {
+        message.success(res.message || 'Influencer onboarded successfully!');
+        setCreateModalVisible(false);
+        setCreateForm(initialCreateForm);
+        setCreatedInfluencerData(res.data);
+        setSuccessModalVisible(true);
+        fetchInfluencers(1);
+      }
+    } catch (err) {
+      message.error(
+        err?.response?.data?.message || 'Failed to create influencer.'
+      );
+    } finally {
+      setCreateSubmitting(false);
+    }
+  };
+
+  const handleCopyAllCredentials = () => {
+    if (!createdInfluencerData) return;
+    const text = `MMMK WODE Influencer Account Details:
+Name: ${createdInfluencerData.fullName}
+Email: ${createdInfluencerData.email}
+Username: ${createdInfluencerData.username}
+Temporary Password: ${createdInfluencerData.rawPassword}
+Unique Referral Code: ${createdInfluencerData.referralCode}
+Customer Discount: ${createdInfluencerData.discountRate}% OFF
+Commission Rate: ${createdInfluencerData.commissionRate}%
+Portal Login: https://mmmk-wode.com/influencer/login
+Referral Link: ${createdInfluencerData.referralLink}`;
+
+    navigator.clipboard.writeText(text);
+    setCopiedSuccessAll(true);
+    message.success('All credentials copied to clipboard!');
+    setTimeout(() => setCopiedSuccessAll(false), 2500);
+  };
 
   const fetchInfluencers = useCallback(async (page = 1) => {
     try {
@@ -300,6 +405,16 @@ const InfluencerListPage = () => {
       <PageTitle
         title="Active Influencers Directory"
         subtitle="Manage approved influencers, commission rates, financial balances, and statuses."
+        extra={
+          <Button
+            type="primary"
+            icon={<UserPlus size={15} />}
+            onClick={() => setCreateModalVisible(true)}
+            className="!bg-black hover:!bg-neutral-800 !text-[#dfba73] font-medium h-9 px-4 rounded-lg flex items-center gap-2 border border-[#dfba73]/40 shadow-sm transition-all"
+          >
+            + Add Influencer
+          </Button>
+        }
       />
 
       {/* Filter and Search Bar */}
@@ -550,6 +665,387 @@ const InfluencerListPage = () => {
           </div>
         ) : null}
       </Drawer>
+
+      {/* CREATE NEW INFLUENCER MODAL */}
+      <Modal
+        title={
+          <div className="flex items-center gap-2 text-gray-900 font-semibold text-base border-b border-gray-100 pb-3">
+            <div className="w-8 h-8 rounded-lg bg-black text-[#dfba73] flex items-center justify-center font-bold">
+              <UserPlus size={16} />
+            </div>
+            <div>
+              <span>Onboard New Influencer</span>
+              <p className="text-xs text-gray-400 font-normal mt-0.5">
+                Directly add an active influencer with custom credentials and rates
+              </p>
+            </div>
+          </div>
+        }
+        open={createModalVisible}
+        onCancel={() => setCreateModalVisible(false)}
+        onOk={handleCreateSubmit}
+        confirmLoading={createSubmitting}
+        okText="Create & Activate Influencer"
+        width={680}
+        okButtonProps={{
+          className:
+            '!bg-black hover:!bg-neutral-800 !text-[#dfba73] font-semibold border border-[#dfba73]/50 h-9',
+        }}
+      >
+        <div className="py-3 space-y-4 text-xs max-h-[70vh] overflow-y-auto pr-1">
+          {/* Section 1: Personal Details */}
+          <div>
+            <h4 className="text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-2">
+              1. Basic Information
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-gray-700 font-medium mb-1">
+                  Full Name <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  placeholder="e.g. Sarah Jenkins"
+                  value={createForm.fullName}
+                  onChange={(e) =>
+                    setCreateForm({ ...createForm, fullName: e.target.value })
+                  }
+                />
+              </div>
+
+              <div>
+                <label className="block text-gray-700 font-medium mb-1">
+                  Email Address <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  type="email"
+                  placeholder="e.g. sarah@example.com"
+                  value={createForm.email}
+                  onChange={(e) =>
+                    setCreateForm({ ...createForm, email: e.target.value })
+                  }
+                />
+              </div>
+
+              <div>
+                <label className="block text-gray-700 font-medium mb-1">
+                  Phone Number (Optional)
+                </label>
+                <Input
+                  placeholder="e.g. +971 50 123 4567"
+                  value={createForm.phoneNumber}
+                  onChange={(e) =>
+                    setCreateForm({ ...createForm, phoneNumber: e.target.value })
+                  }
+                />
+              </div>
+
+              <div>
+                <label className="block text-gray-700 font-medium mb-1">
+                  Niche / Industry
+                </label>
+                <Input
+                  placeholder="e.g. Luxury, Fragrance, Fashion"
+                  value={createForm.niche}
+                  onChange={(e) =>
+                    setCreateForm({ ...createForm, niche: e.target.value })
+                  }
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Section 2: Financial Rates & Referral */}
+          <div className="pt-2 border-t border-gray-100">
+            <h4 className="text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-2">
+              2. Referral Code & Financial Rates
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="block text-gray-700 font-medium mb-1">
+                  Custom Referral Code
+                </label>
+                <Input
+                  placeholder="Leave blank for auto-generate"
+                  value={createForm.customReferralCode}
+                  onChange={(e) =>
+                    setCreateForm({
+                      ...createForm,
+                      customReferralCode: e.target.value.toUpperCase(),
+                    })
+                  }
+                />
+                <span className="text-[10px] text-gray-400">
+                  e.g. SARAH20
+                </span>
+              </div>
+
+              <div>
+                <label className="block text-gray-700 font-medium mb-1">
+                  Customer Discount (%)
+                </label>
+                <InputNumber
+                  min={0}
+                  max={100}
+                  className="w-full"
+                  value={createForm.discountRate}
+                  onChange={(val) =>
+                    setCreateForm({ ...createForm, discountRate: val ?? 20 })
+                  }
+                />
+                <span className="text-[10px] text-gray-400">Default 20%</span>
+              </div>
+
+              <div>
+                <label className="block text-gray-700 font-medium mb-1">
+                  Influencer Commission (%)
+                </label>
+                <InputNumber
+                  min={1}
+                  max={100}
+                  className="w-full"
+                  value={createForm.commissionRate}
+                  onChange={(val) =>
+                    setCreateForm({ ...createForm, commissionRate: val ?? 10 })
+                  }
+                />
+                <span className="text-[10px] text-gray-400">Default 10%</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Section 3: Portal Credentials */}
+          <div className="pt-2 border-t border-gray-100">
+            <h4 className="text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-2">
+              3. Portal Login Credentials
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-gray-700 font-medium mb-1">
+                  Portal Username
+                </label>
+                <Input
+                  placeholder="Leave blank to auto-generate from name"
+                  value={createForm.customUsername}
+                  onChange={(e) =>
+                    setCreateForm({
+                      ...createForm,
+                      customUsername: e.target.value.toLowerCase(),
+                    })
+                  }
+                />
+              </div>
+
+              <div>
+                <label className="block text-gray-700 font-medium mb-1">
+                  Password
+                </label>
+                <Input.Password
+                  placeholder="Leave blank to auto-generate temporary password"
+                  value={createForm.customPassword}
+                  onChange={(e) =>
+                    setCreateForm({
+                      ...createForm,
+                      customPassword: e.target.value,
+                    })
+                  }
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Section 4: Social Media */}
+          <div className="pt-2 border-t border-gray-100">
+            <h4 className="text-[11px] font-bold uppercase tracking-wider text-gray-400 mb-2">
+              4. Social Media Accounts (Optional)
+            </h4>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-gray-700 font-medium mb-1">
+                  Instagram Handle
+                </label>
+                <Input
+                  prefix={<span className="text-gray-400">@</span>}
+                  placeholder="username"
+                  value={createForm.instagram}
+                  onChange={(e) =>
+                    setCreateForm({ ...createForm, instagram: e.target.value })
+                  }
+                />
+              </div>
+
+              <div>
+                <label className="block text-gray-700 font-medium mb-1">
+                  TikTok Handle
+                </label>
+                <Input
+                  prefix={<span className="text-gray-400">@</span>}
+                  placeholder="username"
+                  value={createForm.tiktok}
+                  onChange={(e) =>
+                    setCreateForm({ ...createForm, tiktok: e.target.value })
+                  }
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Section 5: Email Notification Toggle */}
+          <div className="pt-3 border-t border-gray-100 bg-[#dfba73]/10 p-3 rounded-lg border border-[#dfba73]/30">
+            <Checkbox
+              checked={createForm.sendEmail}
+              onChange={(e) =>
+                setCreateForm({ ...createForm, sendEmail: e.target.checked })
+              }
+              className="text-xs text-gray-800 font-medium"
+            >
+              Send welcome email with login credentials and referral link via Brevo
+            </Checkbox>
+            <p className="text-[11px] text-gray-500 mt-1 ml-6">
+              The influencer will receive their temporary password, dashboard URL, and storefront link directly.
+            </p>
+          </div>
+        </div>
+      </Modal>
+
+      {/* CREDENTIALS SUCCESS MODAL */}
+      <Modal
+        title={
+          <div className="flex items-center gap-2 text-emerald-800 font-semibold text-base">
+            <Sparkles size={18} className="text-[#dfba73]" />
+            <span>Influencer Successfully Onboarded!</span>
+          </div>
+        }
+        open={successModalVisible}
+        onCancel={() => setSuccessModalVisible(false)}
+        footer={[
+          <Button
+            key="copy"
+            onClick={handleCopyAllCredentials}
+            className="flex items-center gap-1.5 font-medium"
+          >
+            {copiedSuccessAll ? (
+              <>
+                <Check size={14} className="text-emerald-600" /> Copied All!
+              </>
+            ) : (
+              <>
+                <Copy size={14} /> Copy All Credentials
+              </>
+            )}
+          </Button>,
+          <Button
+            key="close"
+            type="primary"
+            onClick={() => setSuccessModalVisible(false)}
+            className="!bg-black hover:!bg-neutral-800 !text-[#dfba73] border-none font-semibold"
+          >
+            Done
+          </Button>,
+        ]}
+        width={560}
+      >
+        {createdInfluencerData && (
+          <div className="py-2 space-y-3 text-xs">
+            <p className="text-gray-600">
+              The influencer profile has been created and marked as{' '}
+              <strong className="text-emerald-700">Approved & Active</strong>.
+            </p>
+
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-3.5 space-y-2">
+              <div className="flex justify-between items-center py-1 border-b border-gray-200/60">
+                <span className="text-gray-500 font-medium">Full Name:</span>
+                <span className="font-semibold text-gray-900">
+                  {createdInfluencerData.fullName}
+                </span>
+              </div>
+
+              <div className="flex justify-between items-center py-1 border-b border-gray-200/60">
+                <span className="text-gray-500 font-medium">Email:</span>
+                <span className="font-semibold text-gray-900">
+                  {createdInfluencerData.email}
+                </span>
+              </div>
+
+              <div className="flex justify-between items-center py-1 border-b border-gray-200/60">
+                <span className="text-gray-500 font-medium">Portal Username:</span>
+                <span className="font-mono font-bold text-gray-900">
+                  {createdInfluencerData.username}
+                </span>
+              </div>
+
+              <div className="flex justify-between items-center py-1 border-b border-gray-200/60">
+                <span className="text-gray-500 font-medium">Temporary Password:</span>
+                <div className="flex items-center gap-2">
+                  <span className="font-mono bg-white px-2 py-0.5 rounded border border-gray-300 font-bold text-gray-900">
+                    {createdInfluencerData.rawPassword}
+                  </span>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(
+                        createdInfluencerData.rawPassword
+                      );
+                      setCopiedSuccessPassword(true);
+                      message.success('Password copied!');
+                      setTimeout(() => setCopiedSuccessPassword(false), 2000);
+                    }}
+                    className="text-gray-400 hover:text-black p-1"
+                    title="Copy Password"
+                  >
+                    {copiedSuccessPassword ? (
+                      <Check size={14} className="text-emerald-600" />
+                    ) : (
+                      <Copy size={14} />
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex justify-between items-center py-1 border-b border-gray-200/60">
+                <span className="text-gray-500 font-medium">Referral Code:</span>
+                <span className="font-bold text-[#b8860b] text-sm">
+                  {createdInfluencerData.referralCode}
+                </span>
+              </div>
+
+              <div className="flex justify-between items-center py-1 border-b border-gray-200/60">
+                <span className="text-gray-500 font-medium">Discount / Commission:</span>
+                <span className="font-semibold text-gray-800">
+                  {createdInfluencerData.discountRate}% Off /{' '}
+                  {createdInfluencerData.commissionRate}% Commission
+                </span>
+              </div>
+
+              <div className="pt-1">
+                <span className="text-gray-500 font-medium block mb-1">
+                  Storefront Referral Link:
+                </span>
+                <div className="bg-white p-2 rounded border border-gray-200 font-mono text-[11px] text-gray-700 break-all select-all flex items-center justify-between">
+                  <span>{createdInfluencerData.referralLink}</span>
+                  <button
+                    onClick={() => {
+                      navigator.clipboard.writeText(
+                        createdInfluencerData.referralLink
+                      );
+                      message.success('Referral link copied!');
+                    }}
+                    className="ml-2 text-gray-400 hover:text-black flex-shrink-0"
+                    title="Copy Link"
+                  >
+                    <Copy size={13} />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div className="text-[11px] text-gray-500 flex items-center gap-1.5 mt-2">
+              <KeyRound size={13} className="text-gray-400" />
+              <span>
+                Influencer Portal Login URL: <strong>https://mmmk-wode.com/influencer/login</strong>
+              </span>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 };

@@ -6,40 +6,50 @@ const jwt = require("jsonwebtoken");
 const sku = require("../../Models/sku");
 const { searchCatalog } = require("../../services/searchService");
 
-const ensureProductOrder = async () => {
-  const unorderedProducts = await Product.find({
-    $or: [{ order: { $exists: false } }, { order: null }],
-  })
-    .sort({ createdAt: 1, _id: 1 })
-    .select("_id")
-    .lean();
+let hasEnsuredProductOrder = false;
+const ensureProductOrderOnce = async () => {
+  if (hasEnsuredProductOrder) return;
+  try {
+    const unorderedProducts = await Product.find({
+      $or: [{ order: { $exists: false } }, { order: null }],
+    })
+      .sort({ createdAt: 1, _id: 1 })
+      .select("_id")
+      .lean();
 
-  if (!unorderedProducts.length) return;
+    if (!unorderedProducts.length) {
+      hasEnsuredProductOrder = true;
+      return;
+    }
 
-  const lastOrderedProduct = await Product.findOne({
-    order: { $ne: null },
-  })
-    .sort({ order: -1 })
-    .select("order")
-    .lean();
+    const lastOrderedProduct = await Product.findOne({
+      order: { $ne: null },
+    })
+      .sort({ order: -1 })
+      .select("order")
+      .lean();
 
-  const startOrder = Number.isFinite(lastOrderedProduct?.order)
-    ? lastOrderedProduct.order + 1
-    : 0;
+    const startOrder = Number.isFinite(lastOrderedProduct?.order)
+      ? lastOrderedProduct.order + 1
+      : 0;
 
-  await Product.bulkWrite(
-    unorderedProducts.map((product, index) => ({
-      updateOne: {
-        filter: { _id: product._id },
-        update: { $set: { order: startOrder + index } },
-      },
-    }))
-  );
+    await Product.bulkWrite(
+      unorderedProducts.map((product, index) => ({
+        updateOne: {
+          filter: { _id: product._id },
+          update: { $set: { order: startOrder + index } },
+        },
+      }))
+    );
+    hasEnsuredProductOrder = true;
+  } catch (err) {
+    // Non-fatal
+  }
 };
 
 const getAllProducts = async (req, res) => {
   try {
-    await ensureProductOrder();
+    await ensureProductOrderOnce();
     const {
       page = 1,
       limit = 12,
@@ -221,7 +231,7 @@ const getRelatedProducts = async (req, res) => {
   try {
     const { productId } = req.params;
 
-    const product = await Product.findById(productId).select("category");
+    const product = await Product.findById(productId).select("category").lean();
     if (!product) {
       return res.status(404).json({
         success: false,
@@ -232,7 +242,9 @@ const getRelatedProducts = async (req, res) => {
     const relatedProducts = await Product.find({
       _id: { $ne: productId },
       category: product.category,
-    }).limit(4);
+    })
+      .limit(4)
+      .lean();
 
     res.status(200).json({
       success: true,
@@ -357,7 +369,7 @@ const getBrands = async (req, res) => {
 const getSingleProduct = async (req, res) => {
   try {
     const id = req.params.id;
-    const product = await Product.findById(id).populate("category");
+    const product = await Product.findById(id).populate("category").lean();
     res.status(200).json({
       success: true,
       message: "Products Fetched Successfully!",
@@ -374,7 +386,7 @@ const getProductSkus = async (req, res) => {
   try {
     const id = req.params.id;
     
-    const skus = await sku.find({ product: id });
+    const skus = await sku.find({ product: id }).lean();
     
     res.status(200).json({
       success: true,
@@ -410,7 +422,7 @@ const getRandomProducts = async (req, res) => {
 
 const getHomePageBottomSectionList = async (req, res) => {
   try {
-    await ensureProductOrder();
+    await ensureProductOrderOnce();
     const products = await Product.find({ homePageBottomSection: true })
       .sort({ order: 1, createdAt: 1 })
       .lean()

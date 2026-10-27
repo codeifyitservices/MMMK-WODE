@@ -18,15 +18,16 @@ const CinematicVideoPlayer = ({ videoSrc, isActive }) => {
     const video = videoRef.current;
     if (!video) return;
 
-    if (isActive) {
-      video.play().catch(() => {});
+    // Ensure all visible videos play smoothly
+    video.play().catch(() => {});
+
+    // Side videos are always muted; center active video respects user's mute state
+    if (!isActive) {
+      video.muted = true;
     } else {
-      video.pause();
-      try {
-        video.currentTime = 0;
-      } catch (e) {}
+      video.muted = isMuted;
     }
-  }, [isActive]);
+  }, [isActive, isMuted]);
 
   const toggleMute = (e) => {
     e.stopPropagation();
@@ -41,30 +42,26 @@ const CinematicVideoPlayer = ({ videoSrc, isActive }) => {
     <div 
       className={`relative w-full aspect-[9/16] rounded-2xl overflow-hidden bg-black transition-all duration-500 ease-out ${
         isActive 
-          ? 'shadow-2xl shadow-black/50 scale-100 z-10 opacity-100' 
-          : 'scale-90 opacity-80 z-0'
+          ? 'shadow-2xl shadow-black/40 scale-100 z-10 opacity-100' 
+          : 'scale-90 opacity-95 hover:opacity-100 z-0'
       }`}
     >
       <video
         ref={videoRef}
         src={videoSrc}
         className="w-full h-full object-cover rounded-2xl select-none"
-        muted={isMuted}
+        autoPlay
+        muted={isActive ? isMuted : true}
         loop
         playsInline
         preload="auto"
       />
 
-      {/* Subtle overlay for side cards */}
-      {!isActive && (
-        <div className="absolute inset-0 bg-black/15 transition-opacity duration-300 pointer-events-none" />
-      )}
-
       {/* Mute button (only active on center card) */}
       {isActive && (
         <button
           onClick={toggleMute}
-          className="absolute top-4 right-4 z-20 p-2 bg-black/40 hover:bg-black/60 text-white rounded-full transition-colors backdrop-blur-sm border border-white/10 flex items-center justify-center"
+          className="absolute top-4 right-4 z-20 p-2 bg-black/40 hover:bg-black/60 text-white rounded-full transition-colors backdrop-blur-sm border border-white/10 flex items-center justify-center cursor-pointer"
           aria-label={isMuted ? "Unmute video" : "Mute video"}
         >
           {isMuted ? <VolumeX size={16} /> : <Volume2 size={16} />}

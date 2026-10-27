@@ -18,25 +18,14 @@ const ProductImageCarousel = ({
   const [touchStartX, setTouchStartX] = useState(null);
   const hasMultipleImages = validImages.length > 1;
 
-  const preloadAdjacentImages = (index = currentIndex) => {
-    if (!hasMultipleImages) return;
-
-    const previousIndex = (index - 1 + validImages.length) % validImages.length;
-    const nextIndex = (index + 1) % validImages.length;
-
-    setLoadedIndexes((current) => {
-      const next = new Set(current);
-      next.add(previousIndex);
-      next.add(index);
-      next.add(nextIndex);
-      return next;
-    });
-  };
-
   const goToImage = (nextIndex) => {
     if (!validImages.length) return;
     const normalizedIndex = (nextIndex + validImages.length) % validImages.length;
-    preloadAdjacentImages(normalizedIndex);
+    setLoadedIndexes((current) => {
+      const next = new Set(current);
+      next.add(normalizedIndex);
+      return next;
+    });
     setCurrentIndex(normalizedIndex);
   };
 
@@ -58,12 +47,25 @@ const ProductImageCarousel = ({
     return null;
   }
 
+  // Fast path for single image products - no carousel wrappers, no buttons, no dots
+  if (!hasMultipleImages) {
+    return (
+      <div className={cn('relative h-full w-full overflow-hidden bg-gray-800', className)}>
+        <OptimizedProductImage
+          src={validImages[0]}
+          alt={alt}
+          className={imageClassName}
+          loading={loading}
+          fetchPriority={fetchPriority}
+        />
+      </div>
+    );
+  }
+
   return (
     <div
-      className={cn('relative h-full w-full overflow-hidden', className)}
-      onMouseEnter={() => preloadAdjacentImages()}
+      className={cn('relative h-full w-full overflow-hidden bg-gray-800', className)}
       onTouchStart={(event) => {
-        preloadAdjacentImages();
         setTouchStartX(event.touches?.[0]?.clientX ?? null);
       }}
       onTouchEnd={handleTouchEnd}
@@ -87,34 +89,30 @@ const ProductImageCarousel = ({
         ))}
       </div>
 
-      {hasMultipleImages && (
-        <>
-          <button
-            type="button"
-            aria-label="Previous product image"
-            onClick={(event) => {
-              event.stopPropagation();
-              goToImage(currentIndex - 1);
-            }}
-            className="absolute left-1.5 top-1/2 z-10 -translate-y-1/2 p-1 text-white/90 transition-transform duration-200 hover:scale-125 hover:text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)] focus:outline-none"
-          >
-            <ChevronLeft size={22} aria-hidden="true" />
-          </button>
-          <button
-            type="button"
-            aria-label="Next product image"
-            onClick={(event) => {
-              event.stopPropagation();
-              goToImage(currentIndex + 1);
-            }}
-            className="absolute right-1.5 top-1/2 z-10 -translate-y-1/2 p-1 text-white/90 transition-transform duration-200 hover:scale-125 hover:text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)] focus:outline-none"
-          >
-            <ChevronRight size={22} aria-hidden="true" />
-          </button>
-        </>
-      )}
+      <button
+        type="button"
+        aria-label="Previous product image"
+        onClick={(event) => {
+          event.stopPropagation();
+          goToImage(currentIndex - 1);
+        }}
+        className="absolute left-1.5 top-1/2 z-10 -translate-y-1/2 p-1 text-white/90 transition-transform duration-200 hover:scale-125 hover:text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)] focus:outline-none"
+      >
+        <ChevronLeft size={22} aria-hidden="true" />
+      </button>
+      <button
+        type="button"
+        aria-label="Next product image"
+        onClick={(event) => {
+          event.stopPropagation();
+          goToImage(currentIndex + 1);
+        }}
+        className="absolute right-1.5 top-1/2 z-10 -translate-y-1/2 p-1 text-white/90 transition-transform duration-200 hover:scale-125 hover:text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)] focus:outline-none"
+      >
+        <ChevronRight size={22} aria-hidden="true" />
+      </button>
 
-      <div className="absolute bottom-2 left-0 right-0 z-10 flex justify-center gap-1.5">
+      <div className="absolute bottom-2 left-0 right-0 z-10 flex justify-center gap-1.5 pointer-events-none">
         {validImages.map((image, index) => (
           <button
             key={`dot-${image}-${index}`}
@@ -126,7 +124,7 @@ const ProductImageCarousel = ({
               goToImage(index);
             }}
             className={cn(
-              'h-2 w-2 rounded-full border border-white transition',
+              'h-2 w-2 rounded-full border border-white transition pointer-events-auto',
               currentIndex === index ? 'bg-white' : 'bg-black/40 hover:bg-white/70'
             )}
           />

@@ -51,4 +51,7 @@ const categorySchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+categorySchema.index({ order: 1, createdAt: 1 });
+categorySchema.index({ "name.en": 1 });
+
 module.exports = mongoose.model("Category", categorySchema);

@@ -106,5 +106,10 @@ const productSchema = new mongoose.Schema(
 
 productSchema.index({ showOnHomepage: 1, order: 1 });
 productSchema.index({ homePageBottomSection: 1, order: 1 });
+productSchema.index({ status: 1, order: 1, createdAt: 1 });
+productSchema.index({ category: 1, status: 1 });
+productSchema.index({ status: 1, createdAt: -1 });
+productSchema.index({ brand: 1, status: 1 });
+productSchema.index({ gender: 1, status: 1 });
 
 module.exports = mongoose.model("Product", productSchema);

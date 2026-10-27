@@ -11,6 +11,44 @@ const product = axios.create({
   withCredentials: true,
 });
 
+// Helper to fast-path server-side localized text and bypass translation waterfalls
+const attachLocalizedProducts = async (items, translateLanguage) => {
+  if (!items || !Array.isArray(items)) return items;
+
+  // If language is English or not specified, use English server text directly with zero async overhead
+  if (!translateLanguage || translateLanguage === 'en') {
+    return items.map((item) => ({
+      ...item,
+      translated: {
+        productName:
+          (typeof item?.productName === 'object'
+            ? item?.productName?.en
+            : item?.productName) || '',
+      },
+    }));
+  }
+
+  // Check if all items already have the requested language localized on the server
+  const needsTranslation = items.some(
+    (item) =>
+      typeof item?.productName === 'string' ||
+      !item?.productName?.[translateLanguage]
+  );
+
+  // If server already provided localized text for every item, bypass translation waterfall completely!
+  if (!needsTranslation) {
+    return items.map((item) => ({
+      ...item,
+      translated: {
+        productName: item?.productName?.[translateLanguage],
+      },
+    }));
+  }
+
+  // Otherwise, fallback to getTranslateProducts for missing translations
+  return await getTranslateProducts(items, translateLanguage);
+};
+
 export const getAllProducts = async (
   { currentPage, categories, gender, brand, price, discount, sort, q, ...customFilters },
   { translateLanguage } = {}
@@ -29,9 +67,9 @@ export const getAllProducts = async (
     },
   });
 
-  if (translateLanguage) {
-    const translatedData = await getTranslateProducts(
-      response.data?.data,
+  if (response.data?.data) {
+    const translatedData = await attachLocalizedProducts(
+      response.data.data,
       translateLanguage
     );
     return { ...response.data, data: translatedData };
@@ -42,9 +80,9 @@ export const getAllProducts = async (
 export const getRelatedProducts = async (productId, translateLanguage) => {
   const response = await product.get(`/related-products/${productId}`);
 
-  if (translateLanguage) {
-    const translatedData = await getTranslateProducts(
-      response.data?.data,
+  if (response.data?.data) {
+    const translatedData = await attachLocalizedProducts(
+      response.data.data,
       translateLanguage
     );
     return translatedData;

@@ -40,7 +40,7 @@ const BikiniSection = () => {
             muted
             loop
             playsInline
-            preload="none"
+            preload="auto"
             src="/Bikni-left-section-(1).mp4"
             poster="/comingsoon3.jpg"
           ></video>
@@ -85,10 +85,12 @@ const BikiniSection = () => {
             muted
             loop
             playsInline
-            preload="none"
-            src="/rightside-(1).mp4"
+            preload="auto"
             poster="/comingsoon3.jpg"
-          ></video>
+          >
+            <source src="/rightside-_1_.hevc.mp4" type="video/mp4; codecs=hevc" />
+            <source src="/rightside-(1).mp4" type="video/mp4" />
+          </video>
         )}
       </div>
     </div>

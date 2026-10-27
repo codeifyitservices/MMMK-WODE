@@ -5,7 +5,7 @@ import Banner from '../components/global/Banner';
 import ProductGrid from '../components/listing/ProductGrid';
 import bg from '../assets/bg.png';
 import Pagination from '../components/global/Pagination';
-import { useQuery } from '@tanstack/react-query';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { getAllProducts } from '../apis/nonAuth/products';
 import { useSearchParams } from 'react-router-dom';
 import { useGlobalContext } from '../context/GlobalProvider';
@@ -63,7 +63,7 @@ const ProductListing = () => {
   } = useTranslationContext();
 
   const [isFilterSidebarOpen, setIsFilterSidebarOpen] = useState(false);
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [utils, setUtils] = useState(() =>
     getListingUtilsFromSearchParams(searchParams)
   );
@@ -93,19 +93,9 @@ const ProductListing = () => {
   const query = useQuery({
     queryKey: ['products', utils, translateLanguage],
     queryFn: () => getAllProducts(utils, { translateLanguage }),
+    placeholderData: keepPreviousData,
     refetchOnWindowFocus: false,
   });
-
-  useEffect(() => {
-    if (!query.data) return;
-    if (!didLoadProductsRef.current) {
-      didLoadProductsRef.current = true;
-      return;
-    }
-
-    const element = document.getElementById('categories-navbar');
-    element?.scrollIntoView({ top: 0, behavior: 'smooth' });
-  }, [query.data]);
 
   const getResultText = async (length, total, language) => {
     if (!total) return null;
@@ -143,6 +133,13 @@ const ProductListing = () => {
   const handleSelectCategory = (item) => {
     const categoryName = item?.name?.en;
     if (!categoryName) return;
+
+    setSearchParams((prevParams) => {
+      const next = new URLSearchParams(prevParams);
+      next.set('categories', categoryName);
+      next.delete('page');
+      return next;
+    });
 
     setUtils((prevData) => ({
       ...prevData,
@@ -250,7 +247,7 @@ const ProductListing = () => {
 
             {/* Right (ProductGrid component) */}
             <div className="w-full xl:col-span-10 min-h-[80vh]">
-              {query.isLoading || query.isFetching ? (
+              {query.isLoading && !query.data ? (
                 <div className="grid grid-cols-2 md:grid-cols-2 xl:grid-cols-4">
                   {[...Array(12)].map((_, i) => (
                     <SkeletonCard key={`skeleton-${i}`} />

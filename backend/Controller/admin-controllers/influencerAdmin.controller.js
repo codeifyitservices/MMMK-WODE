@@ -360,6 +360,205 @@ exports.deleteApplication = async (req, res) => {
 };
 
 /**
+ * POST: Directly create and onboard a new influencer from the Admin Panel
+ */
+exports.createInfluencerAdmin = async (req, res) => {
+  try {
+    const {
+      fullName,
+      email,
+      phoneNumber,
+      customUsername,
+      customReferralCode,
+      customPassword,
+      commissionRate,
+      discountRate,
+      socialMedia,
+      niche,
+      bio,
+      sendEmail = true,
+    } = req.body;
+
+    // 1. Validate mandatory fields
+    if (!fullName || !String(fullName).trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Full name is required.",
+      });
+    }
+
+    if (!email || !String(email).trim()) {
+      return res.status(400).json({
+        success: false,
+        message: "Email address is required.",
+      });
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const normalizedEmail = String(email).trim().toLowerCase();
+    if (!emailRegex.test(normalizedEmail)) {
+      return res.status(400).json({
+        success: false,
+        message: "Please provide a valid email address.",
+      });
+    }
+
+    // Check if email already in use
+    const existingEmail = await Influencer.findOne({ email: normalizedEmail });
+    if (existingEmail) {
+      return res.status(400).json({
+        success: false,
+        message: `An influencer account with email "${normalizedEmail}" already exists.`,
+      });
+    }
+
+    // 2. Resolve Username
+    let username = customUsername ? String(customUsername).trim().toLowerCase() : "";
+    if (username) {
+      if (!/^[a-z0-9_]{3,30}$/.test(username)) {
+        return res.status(400).json({
+          success: false,
+          message:
+            "Username must be 3-30 characters long and can contain letters, numbers, and underscores.",
+        });
+      }
+      const existingUser = await Influencer.findOne({ username });
+      if (existingUser) {
+        return res.status(400).json({
+          success: false,
+          message: `The username "${username}" is already in use. Please choose another.`,
+        });
+      }
+    } else {
+      username = await generateUniqueUsername(fullName, normalizedEmail);
+    }
+
+    // 3. Resolve Referral Code
+    let referralCode = customReferralCode
+      ? String(customReferralCode).trim().toUpperCase()
+      : "";
+    if (referralCode) {
+      if (!/^[A-Z0-9_-]{3,20}$/.test(referralCode)) {
+        return res.status(400).json({
+          success: false,
+          message: "Referral code must be 3-20 alphanumeric characters.",
+        });
+      }
+      const existingCode = await Influencer.findOne({ referralCode });
+      if (existingCode) {
+        return res.status(400).json({
+          success: false,
+          message: `The referral code "${referralCode}" is already in use.`,
+        });
+      }
+    } else {
+      referralCode = await generateUniqueReferralCode(fullName);
+    }
+
+    // 4. Resolve Password
+    let rawPassword =
+      customPassword && String(customPassword).trim().length >= 6
+        ? String(customPassword).trim()
+        : generateTemporaryPassword();
+
+    // 5. Rates
+    const finalCommission =
+      commissionRate !== undefined && !isNaN(commissionRate)
+        ? Math.min(100, Math.max(0, Number(commissionRate)))
+        : 10;
+    const finalDiscount =
+      discountRate !== undefined && !isNaN(discountRate)
+        ? Math.min(100, Math.max(0, Number(discountRate)))
+        : 20;
+
+    // 6. Create Influencer
+    const newInfluencer = new Influencer({
+      fullName: String(fullName).trim(),
+      email: normalizedEmail,
+      phoneNumber: phoneNumber ? String(phoneNumber).trim() : "",
+      username,
+      referralCode,
+      password: rawPassword, // Pre-save hook hashes with bcrypt
+      commissionRate: finalCommission,
+      discountRate: finalDiscount,
+      socialMedia: {
+        instagram: socialMedia?.instagram?.trim() || "",
+        tiktok: socialMedia?.tiktok?.trim() || "",
+        youtube: socialMedia?.youtube?.trim() || "",
+        facebook: socialMedia?.facebook?.trim() || "",
+        other: socialMedia?.other?.trim() || "",
+      },
+      niche: niche ? String(niche).trim() : "",
+      bio: bio ? String(bio).trim() : "",
+      status: "Approved",
+      approvedAt: new Date(),
+      approvedBy: req.admin?._id,
+    });
+
+    await newInfluencer.save();
+
+    // 7. Dispatch welcome credentials email if requested
+    const baseStoreUrl = FRONTEND_URL.replace(/\/$/, "");
+    let isEmailSent = false;
+    let emailErrorMsg = null;
+
+    if (sendEmail) {
+      try {
+        const emailResult = await sendInfluencerWelcomeEmail({
+          email: newInfluencer.email,
+          fullName: newInfluencer.fullName,
+          username,
+          rawPassword,
+          referralCode,
+          commissionRate: newInfluencer.commissionRate,
+          discountRate: newInfluencer.discountRate,
+          portalUrl: `${baseStoreUrl}/influencer/login`,
+          referralLink: `${baseStoreUrl}?ref=${referralCode}`,
+        });
+        isEmailSent = emailResult?.success === true;
+        if (!isEmailSent) {
+          emailErrorMsg = emailResult?.error || "Brevo email dispatch failed";
+        }
+      } catch (emailErr) {
+        console.warn(
+          "[InfluencerAdmin] Email dispatch non-fatal error:",
+          emailErr?.message
+        );
+        emailErrorMsg = emailErr?.message || "Email dispatch failed";
+      }
+    }
+
+    return res.status(201).json({
+      success: true,
+      emailSent: isEmailSent,
+      emailError: emailErrorMsg,
+      message: isEmailSent
+        ? `Influencer ${newInfluencer.fullName} created successfully! Welcome credentials dispatched to ${newInfluencer.email}.`
+        : `Influencer ${newInfluencer.fullName} created successfully.`,
+      data: {
+        id: newInfluencer._id,
+        fullName: newInfluencer.fullName,
+        email: newInfluencer.email,
+        username,
+        referralCode,
+        commissionRate: newInfluencer.commissionRate,
+        discountRate: newInfluencer.discountRate,
+        rawPassword, // returned to the admin on screen so they can copy/paste it immediately
+        referralLink: `${baseStoreUrl}?ref=${referralCode}`,
+        status: newInfluencer.status,
+      },
+    });
+  } catch (error) {
+    console.error("[InfluencerAdmin] Create influencer error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to create influencer.",
+      error: error.message,
+    });
+  }
+};
+
+/**
  * GET: Retrieve list of all approved / active influencers with lifetime stats
  */
 exports.getAllInfluencers = async (req, res) => {

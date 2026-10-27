@@ -1,8 +1,14 @@
 const TopStrip = require("../../../Models/TopStrip");
+const cache = require("../../../utils/cache");
 
 const getTopStrip = async (req, res) => {
   try {
-    let topStrip = await TopStrip.findOne({});
+    const cached = cache.get("top_strip");
+    if (cached) {
+      return res.status(200).json(cached);
+    }
+
+    let topStrip = await TopStrip.findOne({}).lean();
     if (!topStrip) {
       topStrip = await TopStrip.create({
         enabled: false,
@@ -10,11 +16,15 @@ const getTopStrip = async (req, res) => {
         backgroundColor: "#28120b",
       });
     }
-    return res.status(200).json({
+
+    const payload = {
       success: true,
       message: "Top strip fetched successfully",
       data: topStrip,
-    });
+    };
+
+    cache.set("top_strip", payload, 600);
+    return res.status(200).json(payload);
   } catch (error) {
     return res.status(500).json({
       success: false,

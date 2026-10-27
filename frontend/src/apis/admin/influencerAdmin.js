@@ -45,6 +45,16 @@ export const deleteInfluencerApplicationAdmin = async (id) => {
   }
 };
 
+export const createInfluencerAdmin = async (data = {}) => {
+  try {
+    const response = await influencerAdmin.post('/create', data);
+    return response.data;
+  } catch (error) {
+    console.error('Error creating influencer:', error);
+    throw error;
+  }
+};
+
 export const getInfluencersListAdmin = async (params = {}) => {
   try {
     const response = await influencerAdmin.get('/list', { params });

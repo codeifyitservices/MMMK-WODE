@@ -5,6 +5,7 @@ const {
   approveApplication,
   rejectApplication,
   deleteApplication,
+  createInfluencerAdmin,
   getAllInfluencers,
   getInfluencerDetail,
   updateInfluencer,
@@ -22,6 +23,7 @@ router.post("/applications/:id/approve", approveApplication);
 router.post("/applications/:id/reject", rejectApplication);
 router.delete("/applications/:id", deleteApplication);
 
+router.post("/create", createInfluencerAdmin);
 router.get("/list", getAllInfluencers);
 router.get("/orders", getAttributedOrdersAdmin);
 router.get("/analytics", getAggregatedAffiliateStats);

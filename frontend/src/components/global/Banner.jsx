@@ -92,6 +92,7 @@ const Banner = ({
         backgroundPosition: 'center',
         backgroundRepeat: 'no-repeat',
         backgroundSize: 'cover',
+        backgroundAttachment: 'fixed',
       }}
     >
       <style>

@@ -150,6 +150,8 @@ export const TEXT = {
     removeBag: 'Remove Bag',
     bagFeeLabel: 'Bag Fee',
     stockWarning: 'Only {qty} item(s) available for selected option',
+    emptyCartTitle: 'Your cart is empty!',
+    emptyCartSubtitle: "Looks like you haven't added anything to your cart yet.",
   },
   thankYou: {
     orderReceived:

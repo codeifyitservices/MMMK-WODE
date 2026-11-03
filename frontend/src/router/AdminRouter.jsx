@@ -373,6 +373,7 @@ export default function AdminRouter() {
               }
             />
           </Route>
+          <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
         </Routes>
       </AdminProvider>
 

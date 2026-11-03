@@ -34,7 +34,7 @@ const Section2 = () => {
             {query?.data?.data?.subtitle[i18n.language]}
           </p>
           <button className="px-6 py-2 mt-6 font-semibold border-2 md:text-lg text-xs border-[#7a5b48] rounded-sm text-[#7a5b48] hover:bg-[#7a5b48] hover:text-white transition duration-300 sm:px-10 sm:py-3 md:px-12 md:py-3 lg:px-16 lg:py-4 ">
-            <a href="/product-page"> {t('allProducts')}</a>
+            <a href="/product-listings"> {t('allProducts')}</a>
           </button>
         </div>
 

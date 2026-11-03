@@ -408,6 +408,24 @@ const ProductDetails = () => {
           {/* navbar */}
           <CategoryNavBar />
 
+          {query.isLoading ? (
+            <div className="min-h-[500px] flex flex-col items-center justify-center text-center p-8">
+              <div className="inline-block h-10 w-10 animate-spin rounded-full border-4 border-solid border-[#dfba73] border-r-transparent" />
+              <p className="mt-4 text-sm text-gray-300">{common.loading || 'Loading product...'}</p>
+            </div>
+          ) : !productData?._id ? (
+            <div className="min-h-[500px] flex flex-col items-center justify-center text-center p-8 bg-black/40 backdrop-blur-md mx-4 my-8 rounded-lg">
+              <h2 className="text-3xl font-bold text-white mb-3">Product Not Found</h2>
+              <p className="text-gray-300 mb-8 max-w-md">The product you are looking for does not exist or may have been removed.</p>
+              <Link
+                to="/product-listings"
+                className="inline-flex items-center justify-center px-8 py-3.5 text-sm font-semibold uppercase tracking-wider text-black bg-[#dfba73] hover:bg-white rounded transition-colors shadow-lg"
+              >
+                {common.continueShopping || 'Continue Shopping'}
+              </Link>
+            </div>
+          ) : (
+            <>
           {/* sort and bread crumbs tab - hidden on mobile/tablet */}
           <div className="hidden lg:flex flex-wrap items-center justify-between w-full gap-3 px-4 py-3 border-t border-b text-2nd md:px-10 lg:px-20 md:py-4">
             <div className="w-full md:w-auto">
@@ -660,6 +678,8 @@ const ProductDetails = () => {
               </div>
             </div>
           </main>
+            </>
+          )}
 
           <div className="w-full text-black bg-white">
             <Section10></Section10>

@@ -7,6 +7,10 @@ const InfluencerWalletTransaction = require("../Models/InfluencerWalletTransacti
 const Order = require("../Models/Order");
 const Product = require("../Models/Product");
 const Category = require("../Models/Category");
+const {
+  getActivePayoutSchedule,
+  computePayoutCycleStatus,
+} = require("../utils/influencerPayoutCycle");
 
 const JWT_SECRET = process.env.SECRET_KEY || process.env.JWT_SECRET;
 
@@ -497,6 +501,10 @@ exports.getInfluencerDashboardStats = async (req, res) => {
     // 5. Recent Orders (last 5)
     const recentOrders = attributedOrders.slice(0, 5);
 
+    // 6. Active Payout Schedule & Live Lock State
+    const schedule = await getActivePayoutSchedule();
+    const payoutCycle = computePayoutCycleStatus(schedule);
+
     return res.status(200).json({
       success: true,
       data: {
@@ -513,6 +521,7 @@ exports.getInfluencerDashboardStats = async (req, res) => {
           commissionRate: influencer.commissionRate || 10,
           discountRate: influencer.discountRate || 20,
           referralCode: influencer.referralCode,
+          payoutCycle,
         },
         recentOrders,
         recentTransactions,
@@ -712,7 +721,21 @@ exports.requestPayout = async (req, res) => {
       });
     }
 
-    const MIN_PAYOUT_THRESHOLD = 200; // AED 200 per specification
+    // Check if withdrawals are unlocked based on admin-configured payout cycle
+    const schedule = await getActivePayoutSchedule();
+    const cycleStatus = computePayoutCycleStatus(schedule);
+
+    if (!cycleStatus.isUnlocked) {
+      return res.status(403).json({
+        success: false,
+        message:
+          cycleStatus.statusMessage ||
+          "Withdrawals are currently locked for this earning cycle. Please wait until the payout window opens.",
+        data: { payoutCycle: cycleStatus },
+      });
+    }
+
+    const MIN_PAYOUT_THRESHOLD = cycleStatus.minWithdrawalAmount || 200; // Configurable min threshold
     if (requestedAmount < MIN_PAYOUT_THRESHOLD) {
       return res.status(400).json({
         success: false,
@@ -821,6 +844,9 @@ exports.getPayoutHistory = async (req, res) => {
       .sort({ createdAt: -1 })
       .limit(20);
 
+    const schedule = await getActivePayoutSchedule();
+    const payoutCycle = computePayoutCycleStatus(schedule);
+
     return res.status(200).json({
       success: true,
       data: {
@@ -828,6 +854,7 @@ exports.getPayoutHistory = async (req, res) => {
         transactions,
         walletBalance: req.influencer.walletBalance,
         pendingPayoutAmount: req.influencer.pendingPayoutAmount,
+        payoutCycle,
       },
     });
   } catch (error) {
@@ -835,6 +862,28 @@ exports.getPayoutHistory = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Failed to retrieve payout history.",
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * Protected: Get current live payout schedule and lock status
+ */
+exports.getInfluencerPayoutSchedule = async (req, res) => {
+  try {
+    const schedule = await getActivePayoutSchedule();
+    const payoutCycle = computePayoutCycleStatus(schedule);
+
+    return res.status(200).json({
+      success: true,
+      data: payoutCycle,
+    });
+  } catch (error) {
+    console.error("[InfluencerController] Get schedule status error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to retrieve payout schedule status.",
       error: error.message,
     });
   }

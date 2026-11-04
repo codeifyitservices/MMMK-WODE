@@ -14,6 +14,7 @@ const {
   getInfluencerProducts,
   requestPayout,
   getPayoutHistory,
+  getInfluencerPayoutSchedule,
 } = require("../Controller/influencer.controller");
 
 // ==========================================
@@ -35,5 +36,6 @@ router.get("/orders", isInfluencer, getInfluencerOrders);
 router.get("/products", isInfluencer, getInfluencerProducts);
 router.post("/payout/request", isInfluencer, requestPayout);
 router.get("/payout/history", isInfluencer, getPayoutHistory);
+router.get("/payout-schedule", isInfluencer, getInfluencerPayoutSchedule);
 
 module.exports = router;

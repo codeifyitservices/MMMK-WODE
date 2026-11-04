@@ -11,6 +11,9 @@ import {
   Building,
   ArrowUpRight,
   ArrowDownLeft,
+  Lock,
+  Unlock,
+  Calendar,
 } from 'lucide-react';
 import {
   LuBox,
@@ -19,11 +22,12 @@ import {
   LuUser,
   LuWallet,
 } from 'react-icons/lu';
-import { Table, Tag, Modal, Input, Select, Button, message, Space } from 'antd';
+import { Table, Tag, Modal, Input, Select, Button, message, Space, Tooltip } from 'antd';
 import { RefreshButton } from '../../Admin/UI/Buttons';
 import {
   getPayoutHistoryApi,
   requestPayoutApi,
+  getInfluencerPayoutScheduleApi,
 } from '../../apis/influencer/client';
 import { useInfluencerAuth } from '../../context/InfluencerAuthProvider';
 
@@ -33,6 +37,7 @@ export default function InfluencerWalletPage() {
   const { influencer, refreshProfile } = useInfluencerAuth();
   const [requests, setRequests] = useState([]);
   const [transactions, setTransactions] = useState([]);
+  const [payoutCycle, setPayoutCycle] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
 
@@ -48,13 +53,29 @@ export default function InfluencerWalletPage() {
   const totalCommissionEarned = Number(influencer?.totalCommissionEarned || 0);
   const payoutDetails = influencer?.payoutDetails || {};
 
+  const isWithdrawalUnlocked = payoutCycle ? Boolean(payoutCycle.isUnlocked) : true;
+  const effectiveMinPayout = Number(payoutCycle?.minWithdrawalAmount || MIN_PAYOUT);
+
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
       const res = await getPayoutHistoryApi();
       if (res.success && res.data) {
-        setRequests(res.data.requests || []);
+        setRequests(res.data.payoutRequests || res.data.requests || []);
         setTransactions(res.data.transactions || []);
+        if (res.data.payoutCycle) {
+          setPayoutCycle(res.data.payoutCycle);
+        }
+      }
+
+      // Also ensure payout schedule is refreshed
+      try {
+        const schedRes = await getInfluencerPayoutScheduleApi();
+        if (schedRes.success && schedRes.data) {
+          setPayoutCycle(schedRes.data);
+        }
+      } catch (e) {
+        // Non-critical fallback
       }
     } catch (err) {
       console.error('Failed to load wallet data:', err);
@@ -69,6 +90,13 @@ export default function InfluencerWalletPage() {
   }, [fetchData]);
 
   const handleOpenModal = () => {
+    if (!isWithdrawalUnlocked) {
+      message.warning(
+        payoutCycle?.statusMessage ||
+          'Withdrawals are currently locked for the active earning cycle. Please wait for the payout window to open.'
+      );
+      return;
+    }
     setAmount('');
     setNotes('');
     setShowModal(true);
@@ -79,14 +107,22 @@ export default function InfluencerWalletPage() {
   };
 
   const handleSubmitPayout = async () => {
+    if (!isWithdrawalUnlocked) {
+      message.error(
+        payoutCycle?.statusMessage ||
+          'Withdrawals are currently locked for this earning cycle.'
+      );
+      return;
+    }
+
     const reqAmt = parseFloat(amount);
     if (!reqAmt || reqAmt <= 0) {
       message.error('Please enter a valid withdrawal amount.');
       return;
     }
 
-    if (reqAmt < MIN_PAYOUT) {
-      message.error(`Minimum withdrawal amount is AED ${MIN_PAYOUT}.`);
+    if (reqAmt < effectiveMinPayout) {
+      message.error(`Minimum withdrawal amount is AED ${effectiveMinPayout}.`);
       return;
     }
 
@@ -279,16 +315,99 @@ export default function InfluencerWalletPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          <Button
-            type="primary"
-            onClick={handleOpenModal}
-            className="bg-[#dfba73] hover:bg-[#cfa557] text-black font-semibold border-0 shadow-sm"
+          <Tooltip
+            title={
+              !isWithdrawalUnlocked
+                ? payoutCycle?.statusMessage || 'Withdrawals are locked for the current earning cycle.'
+                : 'Submit a withdrawal request'
+            }
           >
-            Request Payout
-          </Button>
+            <span>
+              <Button
+                type="primary"
+                onClick={handleOpenModal}
+                disabled={!isWithdrawalUnlocked}
+                className={`${
+                  isWithdrawalUnlocked
+                    ? 'bg-[#dfba73] hover:bg-[#cfa557] text-black font-semibold'
+                    : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                } border-0 shadow-sm flex items-center gap-1.5`}
+              >
+                {isWithdrawalUnlocked ? <Unlock size={14} /> : <Lock size={14} />}
+                <span>{isWithdrawalUnlocked ? 'Request Payout' : 'Payouts Locked'}</span>
+              </Button>
+            </span>
+          </Tooltip>
           <RefreshButton onClick={fetchData} isLoading={loading} />
         </div>
       </div>
+
+      {/* Payout Earning Cycle & Lock Status Banner */}
+      {payoutCycle && (
+        <div
+          className={`border rounded-xl p-4 shadow-sm transition-all duration-300 ${
+            isWithdrawalUnlocked
+              ? 'bg-gradient-to-r from-emerald-50/90 via-teal-50/40 to-emerald-50/70 border-emerald-200/90'
+              : 'bg-gradient-to-r from-amber-50/90 via-orange-50/40 to-amber-50/70 border-amber-200/90'
+          }`}
+        >
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div className="flex items-start sm:items-center gap-3">
+              <div
+                className={`p-2.5 rounded-lg border ${
+                  isWithdrawalUnlocked
+                    ? 'bg-emerald-500/10 text-emerald-700 border-emerald-300/40'
+                    : 'bg-amber-500/10 text-amber-700 border-amber-300/40'
+                }`}
+              >
+                {isWithdrawalUnlocked ? <Unlock size={18} /> : <Lock size={18} />}
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <span className="text-gray-900 font-bold text-sm">
+                    {isWithdrawalUnlocked
+                      ? 'Withdrawal Window is Open!'
+                      : `${payoutCycle.cycleType || 'Monthly'} Earning Cycle in Progress`}
+                  </span>
+                  <span
+                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${
+                      isWithdrawalUnlocked
+                        ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                        : 'bg-amber-100 text-amber-800 border-amber-300'
+                    }`}
+                  >
+                    {isWithdrawalUnlocked ? 'Unlocked' : 'Withdrawals Locked'}
+                  </span>
+                </div>
+                <p className="text-gray-600 text-xs mt-0.5 leading-relaxed">
+                  {payoutCycle.statusMessage}
+                </p>
+              </div>
+            </div>
+
+            {isWithdrawalUnlocked ? (
+              <Button
+                type="primary"
+                onClick={handleOpenModal}
+                size="small"
+                className="bg-[#dfba73] hover:bg-[#cfa557] text-black font-semibold border-0 shrink-0 shadow-xs"
+              >
+                Withdraw Now &rarr;
+              </Button>
+            ) : payoutCycle.daysRemaining > 0 ? (
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/80 border border-amber-200 text-xs font-semibold text-amber-900 shrink-0 shadow-xs">
+                <Calendar size={14} className="text-amber-600" />
+                <span>
+                  Unlocks in{' '}
+                  <strong className="text-amber-800">
+                    {payoutCycle.daysRemaining} day{payoutCycle.daysRemaining > 1 ? 's' : ''}
+                  </strong>
+                </span>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      )}
 
       {/* 4 Diagonal Pastel Metric Cards (Matching Admin Screenshot 4) */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -310,12 +429,20 @@ export default function InfluencerWalletPage() {
               <span className="text-xs font-semibold text-gray-500">AED</span>
             </p>
             <div className="flex items-center justify-between mt-3 pt-2.5 border-t border-gray-100">
-              <span className="text-[11px] text-gray-500">Ready for withdrawal</span>
+              <span className="text-[11px] text-gray-500">
+                {isWithdrawalUnlocked ? 'Ready for withdrawal' : 'Accumulating commissions'}
+              </span>
               <button
                 onClick={handleOpenModal}
-                className="text-xs text-[#8d6f30] hover:underline font-bold"
+                disabled={!isWithdrawalUnlocked}
+                className={`text-xs font-bold flex items-center gap-1 ${
+                  isWithdrawalUnlocked
+                    ? 'text-[#8d6f30] hover:underline cursor-pointer'
+                    : 'text-gray-400 cursor-not-allowed'
+                }`}
               >
-                Withdraw &rarr;
+                {!isWithdrawalUnlocked && <Lock size={11} />}
+                <span>{isWithdrawalUnlocked ? 'Withdraw \u2192' : 'Locked'}</span>
               </button>
             </div>
           </div>

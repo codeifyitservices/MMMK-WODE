@@ -124,3 +124,23 @@ export const getAffiliateAnalyticsAdmin = async () => {
     throw error;
   }
 };
+
+export const getPayoutScheduleSettingsAdmin = async () => {
+  try {
+    const response = await influencerAdmin.get('/payout-schedule');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching payout schedule settings:', error);
+    throw error;
+  }
+};
+
+export const updatePayoutScheduleSettingsAdmin = async (payload) => {
+  try {
+    const response = await influencerAdmin.put('/payout-schedule', payload);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating payout schedule settings:', error);
+    throw error;
+  }
+};

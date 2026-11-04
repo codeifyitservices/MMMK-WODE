@@ -1,5 +1,4 @@
-/* eslint-disable react/prop-types */
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslationContext } from '../../context/TranslationContext';
 import { FiHeart, FiPlus } from 'react-icons/fi';
@@ -26,6 +25,8 @@ const ProductGrid = ({ list = [], textColor = 'white' }) => {
   const [variantModalLoading, setVariantModalLoading] = useState(false);
   const [addingProductId, setAddingProductId] = useState(null);
 
+  const hoverTimeoutRef = useRef(null);
+
   const prefetchProductDetails = (productId) => {
     queryClient.prefetchQuery({
       queryKey: ['product-details', productId],
@@ -37,6 +38,20 @@ const ProductGrid = ({ list = [], textColor = 'white' }) => {
       queryFn: () => getProductSkus(productId),
       staleTime: 60000,
     });
+  };
+
+  const handleCardMouseEnter = (productId) => {
+    if (hoverTimeoutRef.current) clearTimeout(hoverTimeoutRef.current);
+    hoverTimeoutRef.current = setTimeout(() => {
+      prefetchProductDetails(productId);
+    }, 200);
+  };
+
+  const handleCardMouseLeave = () => {
+    if (hoverTimeoutRef.current) {
+      clearTimeout(hoverTimeoutRef.current);
+      hoverTimeoutRef.current = null;
+    }
   };
 
   const formatConvertedPrice = (amount) =>
@@ -62,7 +77,8 @@ const ProductGrid = ({ list = [], textColor = 'white' }) => {
         : []),
     ].filter(Boolean);
 
-    return [...new Set(images)];
+    // Limit to 3 images per product card in the listing grid to prevent excessive memory & network stalls
+    return [...new Set(images)].slice(0, 3);
   };
 
   const productHasVariants = (product) =>
@@ -199,8 +215,10 @@ const ProductGrid = ({ list = [], textColor = 'white' }) => {
         {list.map((product, index) => (
           <div
             key={product._id}
-            onMouseEnter={() => prefetchProductDetails(product._id)}
+            onMouseEnter={() => handleCardMouseEnter(product._id)}
+            onMouseLeave={handleCardMouseLeave}
             onClick={() => navigate(`/product-details/${product._id}`)}
+            style={{ contentVisibility: 'auto', containIntrinsicSize: '300px 450px' }}
             className="group relative border border-white p-2 text-white sm:p-4 cursor-pointer transition-all duration-300 hover:border-white/80 hover:bg-white/[0.04]"
           >
             <button

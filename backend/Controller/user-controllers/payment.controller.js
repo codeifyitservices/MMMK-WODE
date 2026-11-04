@@ -8,6 +8,7 @@ const stripeSecretKey =
     : process.env.STRIPE_SECRET_KEY;
 const stripe = stripeSecretKey ? require("stripe")(stripeSecretKey) : null;
 const Order = require("../../Models/Order");
+const Payment = require("../../Models/payment");
 const GiftCard = require("../../Models/GiftCard");
 const Coupon = require("../../Models/coupon");
 const User = require("../../Models/User");
@@ -235,6 +236,28 @@ const markOrderAmountMismatch = async (order, session, source) =>
     },
     { new: true },
   );
+
+const syncPaymentRecord = async (order, paymentId) => {
+  try {
+    if (!order) return;
+    const finalPaymentId = paymentId || order.paymentIntentId || order.stripeSessionId || order.orderId;
+    if (!finalPaymentId) return;
+    await Payment.findOneAndUpdate(
+      { paymentId: finalPaymentId },
+      {
+        $set: {
+          paymentId: finalPaymentId,
+          amount: Number(order.amountPaidOnline || order.price?.payableTotal || order.amount || 0),
+          user: order.userId,
+          payType: order.mode === "apple_pay" ? "Apple Pay" : order.mode === "tabby" ? "Tabby" : "Card",
+        },
+      },
+      { upsert: true, new: true }
+    );
+  } catch (err) {
+    console.error("[PAYMENT_SYNC_ERROR]", err.message);
+  }
+};
 
 const createPaymentIntent = async (req, res) => {
   try {
@@ -698,7 +721,9 @@ const orderCreation = async (req, res) => {
 
       if (!order) return res.status(404).json({ error: "Order not found" });
 
-      if (session.payment_status !== "paid") {
+      if (session.payment_status === "paid") {
+        await syncPaymentRecord(order, session.payment_intent);
+      } else {
         await restoreCreditsForOrderIfNeeded(
           order,
           `Stripe checkout completed with payment status ${session.payment_status}`,
@@ -1067,6 +1092,8 @@ const refreshPaymentStatusPublic = async (req, res) => {
         },
         { new: true },
       );
+
+      await syncPaymentRecord(updatedOrder, session.payment_intent);
 
       if (giftCardOrder) {
         try {

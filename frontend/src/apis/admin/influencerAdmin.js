@@ -45,6 +45,16 @@ export const deleteInfluencerApplicationAdmin = async (id) => {
   }
 };
 
+export const createInfluencerAdmin = async (data = {}) => {
+  try {
+    const response = await influencerAdmin.post('/create', data);
+    return response.data;
+  } catch (error) {
+    console.error('Error creating influencer:', error);
+    throw error;
+  }
+};
+
 export const getInfluencersListAdmin = async (params = {}) => {
   try {
     const response = await influencerAdmin.get('/list', { params });
@@ -111,6 +121,26 @@ export const getAffiliateAnalyticsAdmin = async () => {
     return response.data;
   } catch (error) {
     console.error('Error fetching affiliate analytics:', error);
+    throw error;
+  }
+};
+
+export const getPayoutScheduleSettingsAdmin = async () => {
+  try {
+    const response = await influencerAdmin.get('/payout-schedule');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching payout schedule settings:', error);
+    throw error;
+  }
+};
+
+export const updatePayoutScheduleSettingsAdmin = async (payload) => {
+  try {
+    const response = await influencerAdmin.put('/payout-schedule', payload);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating payout schedule settings:', error);
     throw error;
   }
 };

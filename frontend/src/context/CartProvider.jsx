@@ -107,7 +107,11 @@ const calculateCartSummary = ({
   }
 
   const shipping = convertPrice(shippingCharges || 0, currency, rates);
-  const bagFee = convertPrice(isBagAdded ? 1.79 : 0, currency, rates);
+  const bagFee = convertPrice(
+    isBagAdded && Array.isArray(items) && items.length > 0 ? 1.79 : 0,
+    currency,
+    rates
+  );
   const convertedCredit = convertPrice(appliedCreditAmount || 0, currency, rates);
   const totalBeforeCredits = subtotal - productCouponDiscount - deliveryCouponDiscount + shipping + bagFee;
   const creditApplied = Math.min(
@@ -155,6 +159,13 @@ const CartProvider = ({ children }) => {
   const [isBagAdded, setIsBagAdded] = useState(() => 
     localStorage.getItem('isBagAdded') === 'true'
   );
+  const [cart, setCart] = useState(() => {
+    try {
+      return JSON.parse(localStorage.getItem('cartItems')) || [];
+    } catch {
+      return [];
+    }
+  });
   const query = useQuery({
     queryKey: ['cart'],
     queryFn: () => getCartItems(),
@@ -193,8 +204,19 @@ const CartProvider = ({ children }) => {
   }, [isCouponApply]);
 
   useEffect(() => {
-    localStorage.setItem('isBagAdded', String(Boolean(isBagAdded)));
+    if (isBagAdded) {
+      localStorage.setItem('isBagAdded', 'true');
+    } else {
+      localStorage.removeItem('isBagAdded');
+    }
   }, [isBagAdded]);
+
+  useEffect(() => {
+    if (!query.isLoading && (!cart || cart.length === 0) && isBagAdded) {
+      setIsBagAdded(false);
+      localStorage.removeItem('isBagAdded');
+    }
+  }, [cart, isBagAdded, query.isLoading]);
 
   useEffect(() => {
     if (couponData && Object.keys(couponData).length > 0) {
@@ -212,8 +234,6 @@ const CartProvider = ({ children }) => {
     }
     localStorage.removeItem(APPLIED_CREDIT_KEY);
   }, [appliedCreditAmount]);
-
-  const [cart, setCart] = useState([]);
 
   const showNotfication = ({ type, productName, quantity }) =>
     notification.open({
@@ -480,6 +500,7 @@ const CartProvider = ({ children }) => {
         setCouponData,
         setCouponCode,
         data: cart,
+        isLoading: isUserSignedIn() ? query.isLoading : false,
         refetch: query.refetch,
         isCouponApply,
         setIsCouponApply,

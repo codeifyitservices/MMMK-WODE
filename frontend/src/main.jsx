@@ -7,7 +7,16 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import AdminAuthProvider from './context/AdminAuthProvider.jsx';
 import UserAuthProvider from './context/userAuthProvider.jsx';
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes cache validity
+      gcTime: 15 * 60 * 1000, // Keep inactive queries in memory for 15 minutes
+      refetchOnWindowFocus: false, // Prevent aggressive network requests on tab switch
+      retry: 1,
+    },
+  },
+});
 
 if (typeof window !== 'undefined' && window.trustedTypes) {
   const existingPolicy = window.trustedTypes.getPolicy?.('mmmk-default');

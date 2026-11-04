@@ -50,6 +50,8 @@ const GlobalProvider = ({ children }) => {
   const Categories = useQuery({
     queryKey: ['getAllCategory'],
     queryFn: getAllCategory,
+    staleTime: 10 * 60 * 1000, // 10 minutes
+    gcTime: 15 * 60 * 1000,
   });
 
   const TopStripQuery = useQuery({

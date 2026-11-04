@@ -21,4 +21,6 @@ const productSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+productSchema.index({ product: 1 });
+
 module.exports = mongoose.model("SKU", productSchema);

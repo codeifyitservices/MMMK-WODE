@@ -253,12 +253,13 @@ async function sendInfluencerWelcomeEmail({
       </html>
     `;
 
-    const text = `Congratulations ${fullName || "Partner"}! Your MMMK WODE Influencer application is approved. Username: ${username}, Password: ${rawPassword}, Referral Code: ${referralCode}. Log in at: ${appPortalUrl}`;
-
-    await sendMail(email, subject, text, html);
+    const mailResult = await sendMail(email, subject, text, html);
     console.log(`[MailService] Influencer credentials sent to ${email}`);
+    return { success: true, messageId: mailResult?.messageId };
   } catch (err) {
-    console.error("[MailService] Failed to send influencer welcome email:", err?.message || err);
+    const errorMsg = err?.response?.data?.message || err?.message || String(err);
+    console.error("[MailService] Failed to send influencer welcome email:", errorMsg);
+    return { success: false, error: errorMsg };
   }
 }
 

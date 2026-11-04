@@ -157,7 +157,7 @@ const FooterForm = ({ data, query }) => {
                       ]}
                     >
                       <Select placeholder="Select a link">
-                        <Option value="/product-page">Product Page</Option>
+                        <Option value="/product-listings">Product Listings</Option>
                         <Option value="/forget-password">
                           Forget Password
                         </Option>

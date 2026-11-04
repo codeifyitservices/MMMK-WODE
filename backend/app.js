@@ -5,6 +5,7 @@ dotenv.config({ path: path.join(__dirname, ".env") });
 
 const connectDB = require("./Config/db");
 const cors = require("cors");
+const compression = require("compression");
 const routes = require("./routes");
 const cookieParser = require("cookie-parser");
 const errorHandler = require("./Middleware/errorHandler");
@@ -14,6 +15,7 @@ connectDB();
 
 const app = express();
 app.enable("trust proxy");
+app.use(compression());
 
 const allowedOrigins = [
   process.env.FRONTEND_URL,

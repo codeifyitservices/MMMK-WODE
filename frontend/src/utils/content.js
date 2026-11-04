@@ -88,6 +88,7 @@ export const TEXT = {
     giftCards: 'Gift Cards',
     signInToContinue: 'Please sign in to continue',
     addToWishlist: 'Add to wishlist',
+    moveToWishlist: 'Move to Wishlist',
     wishlistAdded: 'Added to wishlist successfully',
     wishlistAddFailed:
       'Failed to add to wishlist. Please refresh the page and try again.',
@@ -150,6 +151,8 @@ export const TEXT = {
     removeBag: 'Remove Bag',
     bagFeeLabel: 'Bag Fee',
     stockWarning: 'Only {qty} item(s) available for selected option',
+    emptyCartTitle: 'Your cart is empty!',
+    emptyCartSubtitle: "Looks like you haven't added anything to your cart yet.",
   },
   thankYou: {
     orderReceived:

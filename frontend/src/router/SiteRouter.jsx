@@ -314,6 +314,13 @@ export default function SiteRouter() {
               }
             />
           </Route>
+          <Route path="/products" element={<Navigate to="/product-listings" replace />} />
+          <Route path="/product-page" element={<Navigate to="/product-listings" replace />} />
+          <Route path="/shop" element={<Navigate to="/product-listings" replace />} />
+          <Route path="/cart" element={<Navigate to="/shopping-cart" replace />} />
+          <Route path="/shopping cart" element={<Navigate to="/shopping-cart" replace />} />
+          <Route path="/shopping%20cart" element={<Navigate to="/shopping-cart" replace />} />
+          <Route path="/shopping_cart" element={<Navigate to="/shopping-cart" replace />} />
           <Route path="/gift-cards">
             <Route
               index
@@ -426,6 +433,10 @@ export default function SiteRouter() {
             }
           />
         </Route>
+          <Route path="/login" element={<Navigate to="/auth" replace />} />
+          <Route path="/signin" element={<Navigate to="/auth" replace />} />
+          <Route path="/signup" element={<Navigate to="/auth" replace />} />
+          <Route path="/register" element={<Navigate to="/auth" replace />} />
       </Routes>
     </CartProvider>
   </InfluencerAuthProvider>

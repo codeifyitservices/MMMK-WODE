@@ -576,6 +576,25 @@ const confirmApplePayPayment = async (req, res) => {
     const order = new Order(orderData);
     await order.save();
 
+    // Sync to payments collection for admin payments management
+    try {
+      const Payment = require("../../Models/payment");
+      await Payment.findOneAndUpdate(
+        { paymentId: paymentIntent.id },
+        {
+          $set: {
+            paymentId: paymentIntent.id,
+            amount: Number(order.amountPaidOnline || order.amount || 0),
+            user: order.userId,
+            payType: "Apple Pay",
+          },
+        },
+        { upsert: true, new: true }
+      );
+    } catch (paymentSyncErr) {
+      console.error("[PAYMENT_SYNC_ERROR]", paymentSyncErr.message);
+    }
+
     // 5. Post Checkout success actions
     const { deductStockForOrder } = require("../../utils/stockService");
     const { recordCouponUsageForOrder } = require("../../utils/couponUsage");

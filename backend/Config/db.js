@@ -15,6 +15,10 @@ const connectDB = async () => {
   try {
     await mongoose.connect(process.env.MONGO_URI);
     console.log("MongoDB connected successfully");
+
+    // Automatically sync admin credentials and ensure account is unlocked on boot
+    const { ensureAdminAccount } = require("../utils/initAdmin");
+    await ensureAdminAccount();
   } catch (error) {
     console.error("Error connecting to MongoDB:", error);
     process.exit(1);

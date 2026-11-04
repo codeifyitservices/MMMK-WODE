@@ -596,7 +596,7 @@ exports.getInfluencerProducts = async (req, res) => {
     }
     if (category && category !== "all") {
       if (mongoose.Types.ObjectId.isValid(category) && String(new mongoose.Types.ObjectId(category)) === category) {
-        filter.category = category;
+        filter.category = new mongoose.Types.ObjectId(category);
       } else {
         const safeCat = escapeRegex(category);
         const matchedCategories = await Category.find({
@@ -608,7 +608,7 @@ exports.getInfluencerProducts = async (req, res) => {
         }).select("_id").lean();
 
         if (matchedCategories.length > 0) {
-          filter.category = { $in: matchedCategories.map((c) => c._id) };
+          filter.category = { $in: matchedCategories.map((c) => new mongoose.Types.ObjectId(c._id)) };
         } else {
           filter.category = new mongoose.Types.ObjectId();
         }
@@ -616,12 +616,54 @@ exports.getInfluencerProducts = async (req, res) => {
     }
 
     const total = await Product.countDocuments(filter);
-    const products = await Product.find(filter)
-      .populate("category", "categoryName title name")
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .lean();
+
+    // Prioritize In-Stock products with active pricing first across all categories;
+    // Once in-stock items are exhausted, display Out of Stock / Coming Soon products afterwards.
+    // If all products are out of stock or coming soon, they will naturally be shown on page 1.
+    const pipeline = [
+      { $match: filter },
+      {
+        $addFields: {
+          isInStock: {
+            $cond: {
+              if: {
+                $and: [
+                  { $gt: ["$quantity", 0] },
+                  { $ne: ["$status", "Out of stock"] },
+                  {
+                    $or: [
+                      { $gt: ["$websitePrice", 0] },
+                      { $gt: ["$price", 0] },
+                    ],
+                  },
+                ],
+              },
+              then: 1,
+              else: 0,
+            },
+          },
+        },
+      },
+      { $sort: { isInStock: -1, createdAt: -1 } },
+      { $skip: skip },
+      { $limit: limit },
+      {
+        $lookup: {
+          from: "categories",
+          localField: "category",
+          foreignField: "_id",
+          as: "category",
+        },
+      },
+      {
+        $unwind: {
+          path: "$category",
+          preserveNullAndEmptyArrays: true,
+        },
+      },
+    ];
+
+    const products = await Product.aggregate(pipeline);
 
     const productsWithLinks = products.map((prod) => {
       return {

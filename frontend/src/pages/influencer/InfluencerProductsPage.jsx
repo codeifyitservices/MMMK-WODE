@@ -175,6 +175,21 @@ const InfluencerProductsPage = () => {
       : [{ label: 'Fragrance', value: DEFAULT_FRAGRANCE_ID }]),
   ];
 
+  const isProductInStock = (prod) => {
+    return (
+      Number(prod?.quantity || 0) > 0 &&
+      prod?.status !== 'Out of stock' &&
+      Number(prod?.websitePrice || prod?.price || 0) > 0
+    );
+  };
+
+  const isProductComingSoon = (prod) => {
+    return (
+      prod?.status === 'Coming Soon' ||
+      Number(prod?.websitePrice || prod?.price || 0) <= 0
+    );
+  };
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -288,9 +303,19 @@ const InfluencerProductsPage = () => {
                       }
                     }}
                   />
-                  <div className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full bg-white/95 backdrop-blur-md border border-amber-200 shadow-sm text-[#8d6f30] text-[10px] font-bold">
-                    20% OFF Code Ready
-                  </div>
+                  {isProductInStock(product) ? (
+                    <div className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full bg-white/95 backdrop-blur-md border border-amber-200 shadow-sm text-[#8d6f30] text-[10px] font-bold">
+                      20% OFF Code Ready
+                    </div>
+                  ) : isProductComingSoon(product) ? (
+                    <div className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full bg-amber-950/80 backdrop-blur-md border border-amber-300/40 shadow-sm text-amber-200 text-[10px] font-bold">
+                      Coming Soon
+                    </div>
+                  ) : (
+                    <div className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full bg-black/80 backdrop-blur-md border border-gray-400/40 shadow-sm text-gray-200 text-[10px] font-bold">
+                      Out of Stock
+                    </div>
+                  )}
                   {categoryName && (
                     <div className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-md bg-black/75 backdrop-blur-md text-white text-[10px] font-medium tracking-wide">
                       {categoryName}
@@ -305,10 +330,18 @@ const InfluencerProductsPage = () => {
                       <span className="uppercase tracking-wider font-semibold text-[#8d6f30]">
                         {product.brand || 'MMMK WODE'}
                       </span>
-                      {product.quantity > 0 ? (
-                        <span className="text-emerald-600 font-medium">In Stock</span>
+                      {isProductInStock(product) ? (
+                        <span className="text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-full font-semibold text-[10px]">
+                          In Stock
+                        </span>
+                      ) : isProductComingSoon(product) ? (
+                        <span className="text-amber-800 bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded-full font-semibold text-[10px]">
+                          Coming Soon
+                        </span>
                       ) : (
-                        <span className="text-amber-600 font-medium">Limited</span>
+                        <span className="text-rose-700 bg-rose-50 border border-rose-200/80 px-2 py-0.5 rounded-full font-semibold text-[10px]">
+                          Out of Stock
+                        </span>
                       )}
                     </div>
 
@@ -324,14 +357,22 @@ const InfluencerProductsPage = () => {
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-gray-500 text-[11px]">Follower Price:</span>
                         <div className="flex items-center gap-1.5">
-                          {retailPrice > storePrice ? (
-                            <span className="line-through text-gray-400 text-[11px]">
-                              AED {retailPrice}
+                          {storePrice > 0 ? (
+                            <>
+                              {retailPrice > storePrice ? (
+                                <span className="line-through text-gray-400 text-[11px]">
+                                  AED {retailPrice}
+                                </span>
+                              ) : null}
+                              <span className="text-gray-900 font-bold">
+                                AED {followerPrice}
+                              </span>
+                            </>
+                          ) : (
+                            <span className="text-amber-800 font-semibold text-[11px]">
+                              Price on Launch
                             </span>
-                          ) : null}
-                          <span className="text-gray-900 font-bold">
-                            AED {followerPrice}
-                          </span>
+                          )}
                         </div>
                       </div>
 
@@ -340,7 +381,7 @@ const InfluencerProductsPage = () => {
                           Your Commission:
                         </span>
                         <span className="text-emerald-700 font-bold">
-                          +AED {estCommission}
+                          {storePrice > 0 ? `+AED ${estCommission}` : '10% on Sales'}
                         </span>
                       </div>
                     </div>
@@ -357,7 +398,13 @@ const InfluencerProductsPage = () => {
                       }`}
                     >
                       {isCopied ? <Check size={13} /> : <Copy size={13} />}
-                      <span>{isCopied ? 'Link Copied!' : 'Copy Referral Link'}</span>
+                      <span>
+                        {isCopied
+                          ? 'Link Copied!'
+                          : isProductComingSoon(product)
+                          ? 'Share Preview Link'
+                          : 'Copy Referral Link'}
+                      </span>
                     </button>
 
                     <a

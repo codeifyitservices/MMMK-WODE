@@ -5,9 +5,14 @@ import {
   Tag,
   Modal,
   Input,
+  InputNumber,
+  Select,
+  Radio,
+  Divider,
   message,
   Space,
   Tabs,
+  Tooltip,
 } from 'antd';
 import {
   CheckCircle,
@@ -15,12 +20,20 @@ import {
   Coins,
   Clock,
   CheckCircle2,
+  Calendar,
+  Lock,
+  Unlock,
+  Settings,
+  ShieldCheck,
+  Sparkles,
 } from 'lucide-react';
 import PageTitle from '../../UI/PageTitle';
 import {
   getPayoutRequestsAdmin,
   updatePayoutStatusAdmin,
   getAffiliateAnalyticsAdmin,
+  getPayoutScheduleSettingsAdmin,
+  updatePayoutScheduleSettingsAdmin,
 } from '../../../apis/admin/influencerAdmin';
 
 const InfluencerPayoutsAdminPage = () => {
@@ -29,6 +42,18 @@ const InfluencerPayoutsAdminPage = () => {
   const [loading, setLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState('Pending');
   const [pagination, setPagination] = useState({ page: 1, limit: 10, total: 0 });
+
+  // Payout Schedule Settings State
+  const [scheduleData, setScheduleData] = useState(null);
+  const [scheduleModalVisible, setScheduleModalVisible] = useState(false);
+  const [scheduleSaving, setScheduleSaving] = useState(false);
+  const [scheduleForm, setScheduleForm] = useState({
+    cycleType: 'Monthly',
+    cycleDays: 30,
+    payoutWindowDurationDays: 5,
+    manualOverride: 'Auto',
+    minWithdrawalAmount: 200,
+  });
 
   // Processing Modal State
   const [modalVisible, setModalVisible] = useState(false);
@@ -75,10 +100,47 @@ const InfluencerPayoutsAdminPage = () => {
     }
   }, []);
 
+  const fetchSchedule = useCallback(async () => {
+    try {
+      const res = await getPayoutScheduleSettingsAdmin();
+      if (res.success && res.data) {
+        setScheduleData(res.data);
+        if (res.data.schedule) {
+          setScheduleForm({
+            cycleType: res.data.schedule.cycleType || 'Monthly',
+            cycleDays: res.data.schedule.cycleDays || 30,
+            payoutWindowDurationDays: res.data.schedule.payoutWindowDurationDays || 5,
+            manualOverride: res.data.schedule.manualOverride || 'Auto',
+            minWithdrawalAmount: res.data.schedule.minWithdrawalAmount || 200,
+          });
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to load payout schedule settings:', err);
+    }
+  }, []);
+
   useEffect(() => {
     fetchPayouts(1);
     fetchAnalytics();
-  }, [fetchPayouts, fetchAnalytics]);
+    fetchSchedule();
+  }, [fetchPayouts, fetchAnalytics, fetchSchedule]);
+
+  const handleSaveSchedule = async () => {
+    try {
+      setScheduleSaving(true);
+      const res = await updatePayoutScheduleSettingsAdmin(scheduleForm);
+      if (res.success) {
+        message.success('Payout schedule settings updated successfully!');
+        setScheduleData(res.data);
+        setScheduleModalVisible(false);
+      }
+    } catch (err) {
+      message.error(err?.response?.data?.message || 'Failed to update schedule settings.');
+    } finally {
+      setScheduleSaving(false);
+    }
+  };
 
   const handleOpenProcessModal = (record, type = 'Paid') => {
     setSelectedRequest(record);
@@ -277,10 +339,34 @@ const InfluencerPayoutsAdminPage = () => {
 
   return (
     <div className="p-6 space-y-6">
-      <PageTitle
-        title="Influencer Payout Requests"
-        subtitle="Review, approve bank transfers, enter transaction UTR reference codes, and finalize commission payouts."
-      />
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <PageTitle
+          title="Influencer Payout Requests"
+          subtitle="Review, approve bank transfers, enter transaction UTR reference codes, and finalize commission payouts."
+        />
+        <div className="flex items-center gap-2 shrink-0">
+          {scheduleData?.liveStatus && (
+            <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white border border-gray-200 text-xs shadow-xs">
+              <span className="text-gray-500 font-medium">Cycle:</span>
+              <strong className="text-gray-900">{scheduleData.liveStatus.cycleType}</strong>
+              <Tag
+                color={scheduleData.liveStatus.isUnlocked ? 'success' : 'warning'}
+                className="m-0 text-[11px] font-semibold flex items-center gap-1"
+              >
+                {scheduleData.liveStatus.isUnlocked ? <Unlock size={11} /> : <Lock size={11} />}
+                <span>{scheduleData.liveStatus.isUnlocked ? 'Unlocked' : 'Locked'}</span>
+              </Tag>
+            </div>
+          )}
+          <Button
+            onClick={() => setScheduleModalVisible(true)}
+            className="flex items-center gap-1.5 font-medium border-gray-300 hover:border-[#dfba73] hover:text-[#8d6f30] shadow-xs"
+          >
+            <Settings size={15} />
+            <span>Payout Schedule & Lock Rules</span>
+          </Button>
+        </div>
+      </div>
 
       {/* Top Analytics Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
@@ -468,6 +554,183 @@ const InfluencerPayoutsAdminPage = () => {
               />
             </div>
           )}
+        </div>
+      </Modal>
+
+      {/* Payout Schedule Settings & Lock Engine Modal */}
+      <Modal
+        title={
+          <div className="flex items-center gap-2 text-base font-bold text-gray-900 pb-1">
+            <Settings className="text-[#8d6f30]" size={18} />
+            <span>Influencer Payout Schedule & Withdrawal Lock Engine</span>
+          </div>
+        }
+        open={scheduleModalVisible}
+        onCancel={() => setScheduleModalVisible(false)}
+        footer={[
+          <Button key="cancel" onClick={() => setScheduleModalVisible(false)}>
+            Cancel
+          </Button>,
+          <Button
+            key="save"
+            type="primary"
+            loading={scheduleSaving}
+            onClick={handleSaveSchedule}
+            className="bg-[#dfba73] hover:bg-[#cfa557] text-black font-semibold border-0"
+          >
+            Save Schedule Rules
+          </Button>,
+        ]}
+        width={620}
+      >
+        <div className="space-y-5 py-2">
+          {/* Live System Status Banner */}
+          {scheduleData?.liveStatus && (
+            <div
+              className={`p-3.5 rounded-xl border ${
+                scheduleData.liveStatus.isUnlocked
+                  ? 'bg-emerald-50/80 border-emerald-200 text-emerald-900'
+                  : 'bg-amber-50/80 border-amber-200 text-amber-900'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-semibold uppercase tracking-wider">
+                  Current System State
+                </span>
+                <Tag
+                  color={scheduleData.liveStatus.isUnlocked ? 'success' : 'warning'}
+                  className="font-bold flex items-center gap-1 m-0 text-xs px-2 py-0.5"
+                >
+                  {scheduleData.liveStatus.isUnlocked ? <Unlock size={12} /> : <Lock size={12} />}
+                  <span>
+                    {scheduleData.liveStatus.isUnlocked ? 'Withdrawals Unlocked' : 'Withdrawals Locked'}
+                  </span>
+                </Tag>
+              </div>
+              <p className="text-xs mt-1.5 leading-relaxed">
+                {scheduleData.liveStatus.statusMessage}
+              </p>
+            </div>
+          )}
+
+          {/* Schedule Cycle Selector */}
+          <div>
+            <label className="block text-xs font-bold text-gray-800 uppercase tracking-wider mb-1.5">
+              Automated Payout Cycle
+            </label>
+            <Select
+              className="w-full"
+              value={scheduleForm.cycleType}
+              onChange={(val) => setScheduleForm((prev) => ({ ...prev, cycleType: val }))}
+              options={[
+                {
+                  value: 'Monthly',
+                  label: 'Monthly Cycle (1st to Month-End: 1st – 30th/31st) [Default]',
+                },
+                {
+                  value: 'BiWeekly',
+                  label: 'Bi-Weekly Cycle (Every 15 Days: 1st–15th & 16th–End of Month)',
+                },
+                {
+                  value: 'Weekly',
+                  label: 'Weekly Cycle (Unlocks on Weekends)',
+                },
+                {
+                  value: 'Custom',
+                  label: 'Custom Day Interval',
+                },
+              ]}
+            />
+            <p className="text-[11px] text-gray-500 mt-1">
+              Commissions accumulate in influencer wallets throughout this timeline. Withdrawals are locked until the cycle concludes.
+            </p>
+          </div>
+
+          {/* Custom Days Input (if Custom) */}
+          {scheduleForm.cycleType === 'Custom' && (
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">
+                Custom Interval Length
+              </label>
+              <InputNumber
+                min={1}
+                max={365}
+                className="w-full"
+                value={scheduleForm.cycleDays}
+                onChange={(val) => setScheduleForm((prev) => ({ ...prev, cycleDays: val }))}
+                addonAfter="Days"
+              />
+            </div>
+          )}
+
+          {/* Payout Window Duration */}
+          <div>
+            <label className="block text-xs font-bold text-gray-800 uppercase tracking-wider mb-1.5">
+              Payout Window Open Duration
+            </label>
+            <InputNumber
+              min={1}
+              max={31}
+              className="w-full"
+              value={scheduleForm.payoutWindowDurationDays}
+              onChange={(val) =>
+                setScheduleForm((prev) => ({ ...prev, payoutWindowDurationDays: val }))
+              }
+              addonAfter="Days open after cycle ends"
+            />
+            <p className="text-[11px] text-gray-500 mt-1">
+              How many days the withdrawal button remains active for influencers before locking for the next cycle.
+            </p>
+          </div>
+
+          {/* Minimum Withdrawal Threshold */}
+          <div>
+            <label className="block text-xs font-bold text-gray-800 uppercase tracking-wider mb-1.5">
+              Minimum Withdrawal Threshold
+            </label>
+            <InputNumber
+              min={1}
+              max={10000}
+              className="w-full"
+              value={scheduleForm.minWithdrawalAmount}
+              onChange={(val) =>
+                setScheduleForm((prev) => ({ ...prev, minWithdrawalAmount: val }))
+              }
+              addonAfter="AED"
+            />
+            <p className="text-[11px] text-gray-500 mt-1">
+              Influencers must have at least this wallet balance to submit a withdrawal request (Default: AED 200).
+            </p>
+          </div>
+
+          <Divider className="my-3" />
+
+          {/* Manual Override Controls */}
+          <div>
+            <label className="block text-xs font-bold text-gray-800 uppercase tracking-wider mb-1.5">
+              Emergency Manual Override
+            </label>
+            <Radio.Group
+              value={scheduleForm.manualOverride}
+              onChange={(e) =>
+                setScheduleForm((prev) => ({ ...prev, manualOverride: e.target.value }))
+              }
+              className="w-full flex flex-col gap-2"
+            >
+              <Radio value="Auto" className="text-xs">
+                <span className="font-semibold text-gray-900">Auto Schedule</span>{' '}
+                <span className="text-gray-500">— Follows the automated cycle timeline configured above.</span>
+              </Radio>
+              <Radio value="ForceUnlocked" className="text-xs">
+                <span className="font-semibold text-emerald-700">Force Unlock Immediately</span>{' '}
+                <span className="text-gray-500">— Unlocks withdrawal buttons for all influencers right now.</span>
+              </Radio>
+              <Radio value="ForceLocked" className="text-xs">
+                <span className="font-semibold text-rose-700">Force Lock Immediately</span>{' '}
+                <span className="text-gray-500">— Temporarily locks all influencer withdrawals regardless of date.</span>
+              </Radio>
+            </Radio.Group>
+          </div>
         </div>
       </Modal>
     </div>

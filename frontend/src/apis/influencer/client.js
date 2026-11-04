@@ -96,3 +96,8 @@ export const getPayoutHistoryApi = async () => {
   const response = await influencerClient.get('/payout/history');
   return response.data;
 };
+
+export const getInfluencerPayoutScheduleApi = async () => {
+  const response = await influencerClient.get('/payout-schedule');
+  return response.data;
+};

@@ -11,14 +11,19 @@ import {
   Tag,
   Share2,
 } from 'lucide-react';
-import { Input, Button, message } from 'antd';
+import { Input, Button, Select, message } from 'antd';
 import { getInfluencerProductsApi } from '../../apis/influencer/client';
+import { getAllCategory } from '../../apis/nonAuth/category';
 import { useInfluencerAuth } from '../../context/InfluencerAuthProvider';
 import { resolveAssetUrl } from '../../utils/assetUrl';
+
+const DEFAULT_FRAGRANCE_ID = '690b4024b9a79dc584c332fa';
 
 const InfluencerProductsPage = () => {
   const { influencer } = useInfluencerAuth();
   const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState(DEFAULT_FRAGRANCE_ID);
   const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0, limit: 12 });
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -26,6 +31,33 @@ const InfluencerProductsPage = () => {
   const [copiedId, setCopiedId] = useState(null);
 
   const referralCode = influencer?.referralCode || 'PARTNER';
+
+  // Load store categories for filtering
+  useEffect(() => {
+    let isMounted = true;
+    const loadCategories = async () => {
+      try {
+        const res = await getAllCategory();
+        if (res?.data && isMounted) {
+          setCategories(res.data);
+          // If a category named "Fragrance" exists, make sure selectedCategory aligns with its _id
+          const fragranceCat = res.data.find(
+            (c) =>
+              (c.name?.en || c.categoryName || c.title || '').trim().toLowerCase() === 'fragrance'
+          );
+          if (fragranceCat) {
+            setSelectedCategory((prev) => (prev === 'all' ? 'all' : fragranceCat._id));
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load categories:', err);
+      }
+    };
+    loadCategories();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Handle debounce on search input
   useEffect(() => {
@@ -43,6 +75,7 @@ const InfluencerProductsPage = () => {
           page,
           limit: 12,
           search: debouncedSearch,
+          category: selectedCategory,
         });
 
         if (res.success && res.data) {
@@ -57,12 +90,16 @@ const InfluencerProductsPage = () => {
         setLoading(false);
       }
     },
-    [debouncedSearch]
+    [debouncedSearch, selectedCategory]
   );
 
   useEffect(() => {
     fetchProducts(1);
   }, [fetchProducts]);
+
+  const handleCategoryChange = (val) => {
+    setSelectedCategory(val);
+  };
 
   const handleCopyProductLink = (product) => {
     const link =
@@ -118,6 +155,41 @@ const InfluencerProductsPage = () => {
     );
   };
 
+  const getSelectedCategoryLabel = () => {
+    if (!selectedCategory || selectedCategory === 'all') return 'All Categories';
+    const found = categories.find((c) => String(c._id) === String(selectedCategory));
+    if (found) {
+      return found.name?.en || found.categoryName || found.title || 'Fragrance';
+    }
+    if (selectedCategory === DEFAULT_FRAGRANCE_ID) return 'Fragrance';
+    return 'Fragrance';
+  };
+
+  const categoryOptions = [
+    { label: 'All Categories', value: 'all' },
+    ...(categories.length > 0
+      ? categories.map((cat) => ({
+          label: cat.name?.en || cat.categoryName || cat.title || 'Category',
+          value: cat._id,
+        }))
+      : [{ label: 'Fragrance', value: DEFAULT_FRAGRANCE_ID }]),
+  ];
+
+  const isProductInStock = (prod) => {
+    return (
+      Number(prod?.quantity || 0) > 0 &&
+      prod?.status !== 'Out of stock' &&
+      Number(prod?.websitePrice || prod?.price || 0) > 0
+    );
+  };
+
+  const isProductComingSoon = (prod) => {
+    return (
+      prod?.status === 'Coming Soon' ||
+      Number(prod?.websitePrice || prod?.price || 0) <= 0
+    );
+  };
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -132,21 +204,36 @@ const InfluencerProductsPage = () => {
             </span>
           </div>
           <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
-            Browse the active store catalog ({pagination.total} products), generate 1-click referral links, and earn 10% commission on every order.
+            Browse the active store catalog ({pagination.total} products{selectedCategory && selectedCategory !== 'all' ? ` in ${getSelectedCategoryLabel()}` : ''}), generate 1-click referral links, and earn 10% commission on every order.
           </p>
         </div>
 
-        {/* Search bar */}
-        <div className="w-full md:w-80">
-          <Input
-            prefix={<Search size={15} className="text-gray-400 mr-1" />}
-            placeholder="Search products by title or brand..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            allowClear
-            size="large"
-            className="rounded-lg shadow-sm"
-          />
+        {/* Filter Bar: Category Dropdown & Search bar */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
+          {/* Category Dropdown */}
+          <div className="w-full sm:w-56">
+            <Select
+              value={selectedCategory}
+              onChange={handleCategoryChange}
+              size="large"
+              className="w-full rounded-lg shadow-sm"
+              placeholder="Filter by Category"
+              options={categoryOptions}
+            />
+          </div>
+
+          {/* Search bar */}
+          <div className="w-full sm:w-72">
+            <Input
+              prefix={<Search size={15} className="text-gray-400 mr-1" />}
+              placeholder="Search products by title or brand..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              allowClear
+              size="large"
+              className="rounded-lg shadow-sm"
+            />
+          </div>
         </div>
       </div>
 
@@ -216,9 +303,19 @@ const InfluencerProductsPage = () => {
                       }
                     }}
                   />
-                  <div className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full bg-white/95 backdrop-blur-md border border-amber-200 shadow-sm text-[#8d6f30] text-[10px] font-bold">
-                    20% OFF Code Ready
-                  </div>
+                  {isProductInStock(product) ? (
+                    <div className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full bg-white/95 backdrop-blur-md border border-amber-200 shadow-sm text-[#8d6f30] text-[10px] font-bold">
+                      20% OFF Code Ready
+                    </div>
+                  ) : isProductComingSoon(product) ? (
+                    <div className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full bg-amber-950/80 backdrop-blur-md border border-amber-300/40 shadow-sm text-amber-200 text-[10px] font-bold">
+                      Coming Soon
+                    </div>
+                  ) : (
+                    <div className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-full bg-black/80 backdrop-blur-md border border-gray-400/40 shadow-sm text-gray-200 text-[10px] font-bold">
+                      Out of Stock
+                    </div>
+                  )}
                   {categoryName && (
                     <div className="absolute top-2.5 right-2.5 px-2 py-0.5 rounded-md bg-black/75 backdrop-blur-md text-white text-[10px] font-medium tracking-wide">
                       {categoryName}
@@ -233,10 +330,18 @@ const InfluencerProductsPage = () => {
                       <span className="uppercase tracking-wider font-semibold text-[#8d6f30]">
                         {product.brand || 'MMMK WODE'}
                       </span>
-                      {product.quantity > 0 ? (
-                        <span className="text-emerald-600 font-medium">In Stock</span>
+                      {isProductInStock(product) ? (
+                        <span className="text-emerald-700 bg-emerald-50 border border-emerald-200/80 px-2 py-0.5 rounded-full font-semibold text-[10px]">
+                          In Stock
+                        </span>
+                      ) : isProductComingSoon(product) ? (
+                        <span className="text-amber-800 bg-amber-50 border border-amber-200/80 px-2 py-0.5 rounded-full font-semibold text-[10px]">
+                          Coming Soon
+                        </span>
                       ) : (
-                        <span className="text-amber-600 font-medium">Limited</span>
+                        <span className="text-rose-700 bg-rose-50 border border-rose-200/80 px-2 py-0.5 rounded-full font-semibold text-[10px]">
+                          Out of Stock
+                        </span>
                       )}
                     </div>
 
@@ -252,14 +357,22 @@ const InfluencerProductsPage = () => {
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-gray-500 text-[11px]">Follower Price:</span>
                         <div className="flex items-center gap-1.5">
-                          {retailPrice > storePrice ? (
-                            <span className="line-through text-gray-400 text-[11px]">
-                              AED {retailPrice}
+                          {storePrice > 0 ? (
+                            <>
+                              {retailPrice > storePrice ? (
+                                <span className="line-through text-gray-400 text-[11px]">
+                                  AED {retailPrice}
+                                </span>
+                              ) : null}
+                              <span className="text-gray-900 font-bold">
+                                AED {followerPrice}
+                              </span>
+                            </>
+                          ) : (
+                            <span className="text-amber-800 font-semibold text-[11px]">
+                              Price on Launch
                             </span>
-                          ) : null}
-                          <span className="text-gray-900 font-bold">
-                            AED {followerPrice}
-                          </span>
+                          )}
                         </div>
                       </div>
 
@@ -268,7 +381,7 @@ const InfluencerProductsPage = () => {
                           Your Commission:
                         </span>
                         <span className="text-emerald-700 font-bold">
-                          +AED {estCommission}
+                          {storePrice > 0 ? `+AED ${estCommission}` : '10% on Sales'}
                         </span>
                       </div>
                     </div>
@@ -285,7 +398,13 @@ const InfluencerProductsPage = () => {
                       }`}
                     >
                       {isCopied ? <Check size={13} /> : <Copy size={13} />}
-                      <span>{isCopied ? 'Link Copied!' : 'Copy Referral Link'}</span>
+                      <span>
+                        {isCopied
+                          ? 'Link Copied!'
+                          : isProductComingSoon(product)
+                          ? 'Share Preview Link'
+                          : 'Copy Referral Link'}
+                      </span>
                     </button>
 
                     <a

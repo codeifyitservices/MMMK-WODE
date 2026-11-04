@@ -270,13 +270,33 @@ export default function InfluencerDashboardPage() {
           actionButton={
             <Link
               to="/influencer/wallet"
-              className="text-xs px-2.5 py-1 rounded bg-[#dfba73] hover:bg-[#cfa557] text-black font-semibold shadow-sm transition-all active:scale-95"
+              className={`text-xs px-2.5 py-1 rounded font-semibold shadow-sm transition-all active:scale-95 ${
+                summary.payoutCycle?.isUnlocked !== false
+                  ? 'bg-[#dfba73] hover:bg-[#cfa557] text-black'
+                  : 'bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300'
+              }`}
             >
-              Request Payout
+              {summary.payoutCycle?.isUnlocked !== false ? 'Request Payout' : 'Cycle Locked'}
             </Link>
           }
         />
       </div>
+
+      {/* Compact Earning Cycle Notice on Dashboard */}
+      {summary.payoutCycle && !summary.payoutCycle.isUnlocked && (
+        <div className="bg-amber-50/70 border border-amber-200/80 rounded-xl px-4 py-2.5 flex items-center justify-between text-xs text-amber-900">
+          <div className="flex items-center gap-2">
+            <span className="p-1 rounded bg-amber-200/60 text-amber-800 font-bold">🔒</span>
+            <span>{summary.payoutCycle.statusMessage}</span>
+          </div>
+          <Link
+            to="/influencer/wallet"
+            className="text-amber-800 font-bold hover:underline shrink-0 ml-3"
+          >
+            View Wallet Schedule &rarr;
+          </Link>
+        </div>
+      )}
 
       {/* Hero Referral Link Card with Viral 1-Click Sharing */}
       <div className="bg-gradient-to-r from-amber-50/70 via-white to-amber-50/30 border border-[#dfba73]/40 rounded-xl p-6 shadow-sm relative overflow-hidden">

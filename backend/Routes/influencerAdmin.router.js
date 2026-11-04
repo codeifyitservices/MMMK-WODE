@@ -13,6 +13,8 @@ const {
   updatePayoutStatus,
   getAggregatedAffiliateStats,
   getAttributedOrdersAdmin,
+  getPayoutScheduleSettingsAdmin,
+  updatePayoutScheduleSettingsAdmin,
 } = require("../Controller/admin-controllers/influencerAdmin.controller");
 
 // ==========================================
@@ -29,6 +31,10 @@ router.get("/orders", getAttributedOrdersAdmin);
 router.get("/analytics", getAggregatedAffiliateStats);
 router.get("/payouts", getPayoutRequests);
 router.put("/payouts/:id/status", updatePayoutStatus);
+
+// Payout Schedule & Automatic Lock Rules
+router.get("/payout-schedule", getPayoutScheduleSettingsAdmin);
+router.put("/payout-schedule", updatePayoutScheduleSettingsAdmin);
 
 router.get("/:id", getInfluencerDetail);
 router.put("/:id", updateInfluencer);

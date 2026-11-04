@@ -99,7 +99,7 @@ const PaymentTable = ({ data, tableQuery }) => {
           <Popconfirm
             title="Are you sure you want to delete this record?"
             onConfirm={() => handleDelete(record)}
-            onCancel={() => }
+            onCancel={() => {}}
             okText="Yes"
             cancelText="No"
             placement="topRight"

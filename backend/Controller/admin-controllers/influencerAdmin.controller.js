@@ -6,6 +6,10 @@ const InfluencerPayoutRequest = require("../../Models/InfluencerPayoutRequest");
 const InfluencerWalletTransaction = require("../../Models/InfluencerWalletTransaction");
 const Order = require("../../Models/Order");
 const {
+  getActivePayoutSchedule,
+  computePayoutCycleStatus,
+} = require("../../utils/influencerPayoutCycle");
+const {
   sendInfluencerWelcomeEmail,
   sendInfluencerPayoutStatusEmail,
 } = require("../../services/mailService");
@@ -1038,6 +1042,87 @@ exports.getAttributedOrdersAdmin = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Failed to load attributed orders.",
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * GET: Retrieve active influencer payout schedule settings and live lock status
+ */
+exports.getPayoutScheduleSettingsAdmin = async (req, res) => {
+  try {
+    const schedule = await getActivePayoutSchedule();
+    const liveStatus = computePayoutCycleStatus(schedule);
+
+    return res.status(200).json({
+      success: true,
+      data: {
+        schedule,
+        liveStatus,
+      },
+    });
+  } catch (error) {
+    console.error("[InfluencerAdmin] Get payout schedule error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to retrieve payout schedule settings.",
+      error: error.message,
+    });
+  }
+};
+
+/**
+ * PUT: Update influencer payout schedule rules and manual lock override
+ */
+exports.updatePayoutScheduleSettingsAdmin = async (req, res) => {
+  try {
+    const {
+      cycleType,
+      cycleDays,
+      payoutWindowDurationDays,
+      manualOverride,
+      minWithdrawalAmount,
+    } = req.body;
+
+    let schedule = await getActivePayoutSchedule();
+
+    if (cycleType && ["Monthly", "BiWeekly", "Weekly", "Custom"].includes(cycleType)) {
+      schedule.cycleType = cycleType;
+    }
+    if (cycleDays !== undefined) {
+      schedule.cycleDays = Math.max(1, Number(cycleDays) || 30);
+    }
+    if (payoutWindowDurationDays !== undefined) {
+      schedule.payoutWindowDurationDays = Math.max(1, Math.min(31, Number(payoutWindowDurationDays) || 5));
+    }
+    if (manualOverride && ["Auto", "ForceUnlocked", "ForceLocked"].includes(manualOverride)) {
+      schedule.manualOverride = manualOverride;
+    }
+    if (minWithdrawalAmount !== undefined) {
+      schedule.minWithdrawalAmount = Math.max(1, Number(minWithdrawalAmount) || 200);
+    }
+    if (req.admin?._id) {
+      schedule.updatedBy = req.admin._id;
+    }
+
+    await schedule.save();
+
+    const liveStatus = computePayoutCycleStatus(schedule);
+
+    return res.status(200).json({
+      success: true,
+      message: "Payout schedule settings updated successfully.",
+      data: {
+        schedule,
+        liveStatus,
+      },
+    });
+  } catch (error) {
+    console.error("[InfluencerAdmin] Update payout schedule error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to update payout schedule settings.",
       error: error.message,
     });
   }

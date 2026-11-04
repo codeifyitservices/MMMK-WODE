@@ -4,6 +4,13 @@ const addWishList = async (req, res) => {
   try {
     const { productId, userId } = req.body;
 
+    if (!productId || !userId) {
+      return res.status(400).json({
+        success: false,
+        message: "Product ID and User ID are required",
+      });
+    }
+
     const wishList = await WishList.findOneAndUpdate(
       { userId },
       { $addToSet: { products: productId } },

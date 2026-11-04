@@ -27,7 +27,7 @@ const Section9 = () => {
             {query.data?.data?.subtitle[i18n.language]}
           </p>
 
-          <Link to="/product-page">
+          <Link to="/product-listings">
             {' '}
             <button className="px-4 py-2 mt-8 text-sm font-bold text-black transition duration-300 bg-transparent border-2 border-black md:text-lg md:px-16 hover:bg-black hover:text-white">
               {t('shopNow')}

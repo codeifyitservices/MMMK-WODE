@@ -17,11 +17,13 @@ import { getAllCategory } from '../../apis/nonAuth/category';
 import { useInfluencerAuth } from '../../context/InfluencerAuthProvider';
 import { resolveAssetUrl } from '../../utils/assetUrl';
 
+const DEFAULT_FRAGRANCE_ID = '690b4024b9a79dc584c332fa';
+
 const InfluencerProductsPage = () => {
   const { influencer } = useInfluencerAuth();
   const [products, setProducts] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [selectedCategory, setSelectedCategory] = useState('Fragrance');
+  const [selectedCategory, setSelectedCategory] = useState(DEFAULT_FRAGRANCE_ID);
   const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0, limit: 12 });
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -38,6 +40,14 @@ const InfluencerProductsPage = () => {
         const res = await getAllCategory();
         if (res?.data && isMounted) {
           setCategories(res.data);
+          // If a category named "Fragrance" exists, make sure selectedCategory aligns with its _id
+          const fragranceCat = res.data.find(
+            (c) =>
+              (c.name?.en || c.categoryName || c.title || '').trim().toLowerCase() === 'fragrance'
+          );
+          if (fragranceCat) {
+            setSelectedCategory((prev) => (prev === 'all' ? 'all' : fragranceCat._id));
+          }
         }
       } catch (err) {
         console.error('Failed to load categories:', err);
@@ -145,6 +155,26 @@ const InfluencerProductsPage = () => {
     );
   };
 
+  const getSelectedCategoryLabel = () => {
+    if (!selectedCategory || selectedCategory === 'all') return 'All Categories';
+    const found = categories.find((c) => String(c._id) === String(selectedCategory));
+    if (found) {
+      return found.name?.en || found.categoryName || found.title || 'Fragrance';
+    }
+    if (selectedCategory === DEFAULT_FRAGRANCE_ID) return 'Fragrance';
+    return 'Fragrance';
+  };
+
+  const categoryOptions = [
+    { label: 'All Categories', value: 'all' },
+    ...(categories.length > 0
+      ? categories.map((cat) => ({
+          label: cat.name?.en || cat.categoryName || cat.title || 'Category',
+          value: cat._id,
+        }))
+      : [{ label: 'Fragrance', value: DEFAULT_FRAGRANCE_ID }]),
+  ];
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -159,7 +189,7 @@ const InfluencerProductsPage = () => {
             </span>
           </div>
           <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
-            Browse the active store catalog ({pagination.total} products{selectedCategory && selectedCategory !== 'all' ? ` in ${selectedCategory}` : ''}), generate 1-click referral links, and earn 10% commission on every order.
+            Browse the active store catalog ({pagination.total} products{selectedCategory && selectedCategory !== 'all' ? ` in ${getSelectedCategoryLabel()}` : ''}), generate 1-click referral links, and earn 10% commission on every order.
           </p>
         </div>
 
@@ -173,13 +203,7 @@ const InfluencerProductsPage = () => {
               size="large"
               className="w-full rounded-lg shadow-sm"
               placeholder="Filter by Category"
-              options={[
-                { label: 'All Categories', value: 'all' },
-                ...categories.map((cat) => ({
-                  label: cat.name?.en || cat.categoryName || cat.title || 'Category',
-                  value: cat.name?.en || cat._id,
-                })),
-              ]}
+              options={categoryOptions}
             />
           </div>
 

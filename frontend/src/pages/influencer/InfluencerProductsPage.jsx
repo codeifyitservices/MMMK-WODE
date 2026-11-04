@@ -11,14 +11,17 @@ import {
   Tag,
   Share2,
 } from 'lucide-react';
-import { Input, Button, message } from 'antd';
+import { Input, Button, Select, message } from 'antd';
 import { getInfluencerProductsApi } from '../../apis/influencer/client';
+import { getAllCategory } from '../../apis/nonAuth/category';
 import { useInfluencerAuth } from '../../context/InfluencerAuthProvider';
 import { resolveAssetUrl } from '../../utils/assetUrl';
 
 const InfluencerProductsPage = () => {
   const { influencer } = useInfluencerAuth();
   const [products, setProducts] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState('Fragrance');
   const [pagination, setPagination] = useState({ page: 1, pages: 1, total: 0, limit: 12 });
   const [search, setSearch] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
@@ -26,6 +29,25 @@ const InfluencerProductsPage = () => {
   const [copiedId, setCopiedId] = useState(null);
 
   const referralCode = influencer?.referralCode || 'PARTNER';
+
+  // Load store categories for filtering
+  useEffect(() => {
+    let isMounted = true;
+    const loadCategories = async () => {
+      try {
+        const res = await getAllCategory();
+        if (res?.data && isMounted) {
+          setCategories(res.data);
+        }
+      } catch (err) {
+        console.error('Failed to load categories:', err);
+      }
+    };
+    loadCategories();
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   // Handle debounce on search input
   useEffect(() => {
@@ -43,6 +65,7 @@ const InfluencerProductsPage = () => {
           page,
           limit: 12,
           search: debouncedSearch,
+          category: selectedCategory,
         });
 
         if (res.success && res.data) {
@@ -57,12 +80,16 @@ const InfluencerProductsPage = () => {
         setLoading(false);
       }
     },
-    [debouncedSearch]
+    [debouncedSearch, selectedCategory]
   );
 
   useEffect(() => {
     fetchProducts(1);
   }, [fetchProducts]);
+
+  const handleCategoryChange = (val) => {
+    setSelectedCategory(val);
+  };
 
   const handleCopyProductLink = (product) => {
     const link =
@@ -132,21 +159,42 @@ const InfluencerProductsPage = () => {
             </span>
           </div>
           <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
-            Browse the active store catalog ({pagination.total} products), generate 1-click referral links, and earn 10% commission on every order.
+            Browse the active store catalog ({pagination.total} products{selectedCategory && selectedCategory !== 'all' ? ` in ${selectedCategory}` : ''}), generate 1-click referral links, and earn 10% commission on every order.
           </p>
         </div>
 
-        {/* Search bar */}
-        <div className="w-full md:w-80">
-          <Input
-            prefix={<Search size={15} className="text-gray-400 mr-1" />}
-            placeholder="Search products by title or brand..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            allowClear
-            size="large"
-            className="rounded-lg shadow-sm"
-          />
+        {/* Filter Bar: Category Dropdown & Search bar */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
+          {/* Category Dropdown */}
+          <div className="w-full sm:w-56">
+            <Select
+              value={selectedCategory}
+              onChange={handleCategoryChange}
+              size="large"
+              className="w-full rounded-lg shadow-sm"
+              placeholder="Filter by Category"
+              options={[
+                { label: 'All Categories', value: 'all' },
+                ...categories.map((cat) => ({
+                  label: cat.name?.en || cat.categoryName || cat.title || 'Category',
+                  value: cat.name?.en || cat._id,
+                })),
+              ]}
+            />
+          </div>
+
+          {/* Search bar */}
+          <div className="w-full sm:w-72">
+            <Input
+              prefix={<Search size={15} className="text-gray-400 mr-1" />}
+              placeholder="Search products by title or brand..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              allowClear
+              size="large"
+              className="rounded-lg shadow-sm"
+            />
+          </div>
         </div>
       </div>
 

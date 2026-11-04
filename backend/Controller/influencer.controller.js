@@ -595,7 +595,24 @@ exports.getInfluencerProducts = async (req, res) => {
       ];
     }
     if (category && category !== "all") {
-      filter.category = category;
+      if (mongoose.Types.ObjectId.isValid(category) && String(new mongoose.Types.ObjectId(category)) === category) {
+        filter.category = category;
+      } else {
+        const safeCat = escapeRegex(category);
+        const matchedCategories = await Category.find({
+          $or: [
+            { "name.en": { $regex: `^${safeCat}$`, $options: "i" } },
+            { categoryName: { $regex: `^${safeCat}$`, $options: "i" } },
+            { title: { $regex: `^${safeCat}$`, $options: "i" } },
+          ],
+        }).select("_id").lean();
+
+        if (matchedCategories.length > 0) {
+          filter.category = { $in: matchedCategories.map((c) => c._id) };
+        } else {
+          filter.category = new mongoose.Types.ObjectId();
+        }
+      }
     }
 
     const total = await Product.countDocuments(filter);

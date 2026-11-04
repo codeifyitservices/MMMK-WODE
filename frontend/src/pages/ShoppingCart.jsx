@@ -647,7 +647,7 @@ const ShoppingCart = () => {
                               size="sm"
                               onClick={() => handleMoveToWishlist(list, i)}
                               disabled={loadings.includes(i) || wishlistLoadings.includes(i)}
-                              className="flex items-center gap-1.5 border border-[#dfba73] text-[#dfba73] hover:bg-[#dfba73] hover:text-black transition-colors"
+                              className="flex items-center gap-1.5 border border-[rgb(101,72,18)] text-[rgb(113,77,10)] hover:bg-[#dfba73] hover:text-black transition-colors"
                             >
                               <FaRegHeart size={13} className="inline mr-1" />
                               {common.moveToWishlist || 'Move to Wishlist'}

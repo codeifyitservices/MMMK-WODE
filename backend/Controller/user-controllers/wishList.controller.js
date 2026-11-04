@@ -2,7 +2,8 @@ const WishList = require("../../Models/WishList.js");
 
 const addWishList = async (req, res) => {
   try {
-    const { productId, userId } = req.body;
+    const userId = req.body.userId || req.user?._id;
+    const { productId } = req.body;
 
     if (!productId || !userId) {
       return res.status(400).json({
@@ -29,7 +30,15 @@ const addWishList = async (req, res) => {
 
 const removeWishList = async (req, res) => {
   try {
-    const { productId, userId } = req.body;
+    const userId = req.body.userId || req.user?._id;
+    const { productId } = req.body;
+
+    if (!productId || !userId) {
+      return res.status(400).json({
+        success: false,
+        message: "Product ID and User ID are required",
+      });
+    }
 
     const wishList = await WishList.findOneAndUpdate(
       { userId: userId },

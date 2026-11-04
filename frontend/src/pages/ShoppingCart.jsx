@@ -17,8 +17,11 @@ import {
 } from '../utils/globalMethods';
 import { convertPrice, formatPrice } from '../utils/currency';
 import { applyCoupon, getValidTokens } from '../apis/user/coupon';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { LuX, LuShoppingBag } from 'react-icons/lu';
+import { FaRegHeart } from 'react-icons/fa';
+import { addItemToWishList } from '../apis/user/wishList';
+import { getStoredUserId } from '../utils/authStorage';
 import {
   translate,
   useTranslationContext,
@@ -54,9 +57,11 @@ const ShoppingCart = () => {
     setIsBagAdded,
   } = useCart();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [couponInput, setCouponInput] = useState(null);
   const [cartItems, setCartItems] = useState([]);
   const [loadings, setLoadings] = useState([]);
+  const [wishlistLoadings, setWishlistLoadings] = useState([]);
   const [isCouponModalOpen, setIsCouponModalOpen] = useState(false);
   const [availableStockByItem, setAvailableStockByItem] = useState({});
   const [isApplyingCoupon, setIsApplyingCoupon] = useState(false);
@@ -77,6 +82,12 @@ const ShoppingCart = () => {
   };
   const removeLoading = (index) => {
     setLoadings((prev) => prev.filter((item) => item !== index));
+  };
+  const addWishlistLoading = (index) => {
+    setWishlistLoadings((prev) => [...prev, index]);
+  };
+  const removeWishlistLoading = (index) => {
+    setWishlistLoadings((prev) => prev.filter((item) => item !== index));
   };
 
   const couponsQuery = useQuery({
@@ -158,6 +169,61 @@ const ShoppingCart = () => {
       // message.error(err.response?.data?.message || "Failed to apply coupon");
     } finally {
       setIsApplyingCoupon(false);
+    }
+  };
+
+  const handleMoveToWishlist = async (item, i) => {
+    const productId = item.product?._id;
+    const sku = item.sku;
+    if (!productId) {
+      message.error('Invalid product');
+      return;
+    }
+
+    try {
+      addWishlistLoading(i);
+
+      if (isUserSignedIn()) {
+        const userId = getStoredUserId();
+        if (!userId) {
+          message.warning(
+            common.signInToContinue || 'Please sign in to save items to your wishlist'
+          );
+          return;
+        }
+
+        await addItemToWishList({ productId, userId });
+        queryClient.invalidateQueries({ queryKey: ['wish-list'] });
+        await removeFromCart({ productId, sku, showMessage: false });
+        message.success(
+          common.wishlistAdded || 'Item moved to wishlist successfully'
+        );
+      } else {
+        try {
+          const guestWishlist = JSON.parse(
+            localStorage.getItem('guestWishlist') || '[]'
+          );
+          if (!guestWishlist.includes(productId)) {
+            guestWishlist.push(productId);
+            localStorage.setItem('guestWishlist', JSON.stringify(guestWishlist));
+          }
+        } catch {
+          // ignore storage error
+        }
+        await removeFromCart({ productId, sku, showMessage: false });
+        message.success('Item saved to your wishlist! Sign in to view across devices.');
+      }
+    } catch (err) {
+      showTranslatedMessage({
+        msg:
+          err?.response?.data?.message ||
+          err?.message ||
+          'Failed to move item to wishlist',
+        language: translateLanguage,
+        type: 'error',
+      });
+    } finally {
+      removeWishlistLoading(i);
     }
   };
 
@@ -531,7 +597,7 @@ const ShoppingCart = () => {
 
                           {/* Pricing Section */}
                         </div>
-                          <div className="flex items-center justify-end gap-4 mt-4">
+                          <div className="flex items-center justify-end flex-wrap gap-3 sm:gap-4 mt-4">
                             <div className="flex items-center gap-2">
                             <CommonButton
                               onClick={() =>
@@ -544,7 +610,7 @@ const ShoppingCart = () => {
                               }
                               size="xs"
                               variant="primary1"
-                              disabled={loadings.includes(i)}
+                              disabled={loadings.includes(i) || wishlistLoadings.includes(i)}
                               className="w-[40px] text-center"
                             >
                               -
@@ -567,13 +633,25 @@ const ShoppingCart = () => {
                                 }
                                 size="xs"
                                 variant="primary1"
-                                disabled={loadings.includes(i) || atMaxStock}
+                                disabled={loadings.includes(i) || wishlistLoadings.includes(i) || atMaxStock}
                                 className="w-[40px] text-center"
                               >
                                 +
                               </CommonButton>
                             </div>
                             </div>
+
+                            {/* Move to Wishlist Button */}
+                            <CommonButton
+                              variant="primary1"
+                              size="sm"
+                              onClick={() => handleMoveToWishlist(list, i)}
+                              disabled={loadings.includes(i) || wishlistLoadings.includes(i)}
+                              className="flex items-center gap-1.5 border border-[#dfba73] text-[#dfba73] hover:bg-[#dfba73] hover:text-black transition-colors"
+                            >
+                              <FaRegHeart size={13} className="inline mr-1" />
+                              {common.moveToWishlist || 'Move to Wishlist'}
+                            </CommonButton>
 
                             {/* Remove Button */}
                             <CommonButton
@@ -582,7 +660,7 @@ const ShoppingCart = () => {
                                 handleRemoveCart(list.product?._id, list.sku, i)
                               }
                               size="sm"
-                              disabled={loadings.includes(i)}
+                              disabled={loadings.includes(i) || wishlistLoadings.includes(i)}
                             >
                               {common.remove}
                             </CommonButton>

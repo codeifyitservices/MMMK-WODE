@@ -88,6 +88,7 @@ export const TEXT = {
     giftCards: 'Gift Cards',
     signInToContinue: 'Please sign in to continue',
     addToWishlist: 'Add to wishlist',
+    moveToWishlist: 'Move to Wishlist',
     wishlistAdded: 'Added to wishlist successfully',
     wishlistAddFailed:
       'Failed to add to wishlist. Please refresh the page and try again.',

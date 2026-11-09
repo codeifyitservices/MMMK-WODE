@@ -20,6 +20,7 @@ app.use(compression());
 const allowedOrigins = [
   process.env.FRONTEND_URL,
   process.env.CLIENT_URL,
+  "https://mmmk-by-jatin.vercel.app",
   "https://mmmk-frontend.vercel.app",
   "https://mmmk-frontend-git-local-devyansh-grovers-projects.vercel.app",
   "https://mmmk-wood-org.onrender.com",
@@ -92,6 +93,7 @@ app.use(
       const normalizedOrigin = origin.replace(/\/$/, "");
       if (
         allowedOrigins.includes(normalizedOrigin) ||
+        normalizedOrigin.endsWith(".vercel.app") ||
         (process.env.NODE_ENV !== "production" &&
           (normalizedOrigin.startsWith("http://localhost:") ||
             normalizedOrigin.startsWith("http://127.0.0.1:")))

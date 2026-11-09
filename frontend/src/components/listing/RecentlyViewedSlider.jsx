@@ -7,12 +7,11 @@ import {
   FiHeart,
   FiClock,
 } from 'react-icons/fi';
-import { notification } from 'antd';
+import { FaHeart } from 'react-icons/fa';
 import { useTranslationContext } from '../../context/TranslationContext';
 import { useCurrency } from '../../context/CurrencyContext';
 import { convertPrice, formatPrice } from '../../utils/currency';
-import { addItemToWishList } from '../../apis/user/wishList';
-import { getStoredUserId } from '../../utils/authStorage';
+import { useWishlist } from '../../context/WishlistContext';
 import bgImg from '../../assets/bg.png';
 import { resolveAssetUrl } from '../../utils/assetUrl';
 
@@ -26,8 +25,8 @@ const RecentlyViewedSlider = () => {
   const [products, setProducts] = useState([]);
   const [offset, setOffset] = useState(0);
   const [maxOffset, setMaxOffset] = useState(0);
-  const [wishlistedIds, setWishlistedIds] = useState(new Set());
   const [colsPerView, setColsPerView] = useState(4);
+  const { isWishlisted, toggleWishlist } = useWishlist();
 
   const {
     content: { common },
@@ -130,31 +129,6 @@ const RecentlyViewedSlider = () => {
 
   const getProductImage = (p) => p?.thumbnail || p?.image || p?.images?.[0] || '';
 
-  const handleWishlist = async (id) => {
-    const userId = getStoredUserId();
-    if (!userId) {
-      notification.error({
-        message: common?.signInToContinue || 'Sign in to continue',
-        placement: 'topRight',
-      });
-      navigate('/auth', { state: { from: window.location.pathname } });
-      return;
-    }
-    try {
-      await addItemToWishList({ productId: id, userId });
-      setWishlistedIds((prev) => new Set([...prev, id]));
-      notification.success({
-        message: common?.wishlistAdded || 'Added to wishlist',
-        placement: 'topRight',
-      });
-    } catch {
-      notification.error({
-        message: common?.wishlistAddFailed || 'Could not add to wishlist',
-        placement: 'topRight',
-      });
-    }
-  };
-
   if (!products.length) return null;
 
   const canLeft = offset > 0;
@@ -239,21 +213,23 @@ const RecentlyViewedSlider = () => {
                 >
                   {/* wishlist btn */}
                   <button
-                    title={common?.addToWishlist || 'Add to wishlist'}
+                    title={
+                      isWishlisted(product._id)
+                        ? common?.removeFromWishlist || 'Remove from Wishlist'
+                        : common?.addToWishlist || 'Add to Wishlist'
+                    }
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleWishlist(product._id);
+                      toggleWishlist(product._id, name);
                     }}
+                    aria-label={`${isWishlisted(product._id) ? 'Remove from Wishlist' : common?.addToWishlist || 'Add to Wishlist'} ${name}`}
                     className="absolute top-2.5 right-2.5 sm:top-3 sm:right-3 z-10 p-1 transition-transform hover:scale-110"
                   >
-                    <FiHeart
-                      size={18}
-                      className={`transition-colors ${
-                        isWishlisted
-                          ? 'fill-red-500 text-red-500'
-                          : 'text-red-400'
-                      }`}
-                    />
+                    {isWishlisted(product._id) ? (
+                      <FaHeart size={18} className="fill-red-500 text-red-500 drop-shadow" />
+                    ) : (
+                      <FiHeart size={18} className="text-red-400" />
+                    )}
                   </button>
 
                   {/* discount badge */}

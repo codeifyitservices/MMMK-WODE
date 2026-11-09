@@ -15,11 +15,18 @@
 
 function resolveImageUrl(img) {
   if (!img) return null;
-  if (/^https?:\/\//i.test(img)) return img;
   const baseUrl =
     process.env.PUBLIC_UPLOAD_BASE_URL ||
     (process.env.BACKEND_URL ? `${process.env.BACKEND_URL.replace(/\/$/, "")}/uploads` : null) ||
-    "https://node.projects.codenap.in/mmk/uploads";
+    "https://mmmk-wode.com/uploads";
+
+  if (/^https?:\/\//i.test(img)) {
+    if (img.includes("codenap.in") || img.includes("localhost") || img.includes("127.0.0.1")) {
+      const filename = img.split("/uploads/").pop()?.split("/").pop() || "";
+      return filename ? `${baseUrl.replace(/\/$/, "")}/${filename}` : img;
+    }
+    return img;
+  }
   return `${baseUrl.replace(/\/$/, "")}/${img.replace(/^\/+/, "")}`;
 }
 

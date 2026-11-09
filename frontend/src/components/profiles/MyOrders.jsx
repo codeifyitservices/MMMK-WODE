@@ -1,10 +1,10 @@
 /* eslint-disable react/prop-types */
 /* eslint-disable no-unused-vars */
-import { Table, Button, Empty } from 'antd';
+import { Table, Button, Empty, Popconfirm, message } from 'antd';
 import { FaEye, FaExchangeAlt } from 'react-icons/fa';
 import { TbGiftCard } from 'react-icons/tb';
 import { useQuery } from '@tanstack/react-query';
-import { getOrders } from '../../apis/user/order';
+import { getOrders, cancelOrder } from '../../apis/user/order';
 import { useState } from 'react';
 import ParticularOrder from './ParticularOrder';
 import { LuSearch } from 'react-icons/lu';
@@ -42,6 +42,16 @@ const MyOrders = () => {
       current: newPagination.current,
       pageSize: newPagination.pageSize,
     });
+  };
+
+  const handleCancelOrder = async (orderId) => {
+    try {
+      await cancelOrder(orderId);
+      message.success(profile.orderCancelledSuccess || 'Order cancelled successfully');
+      Orders.refetch();
+    } catch (err) {
+      message.error(err?.response?.data?.message || 'Failed to cancel order');
+    }
   };
 
   const columns = [
@@ -155,21 +165,54 @@ const MyOrders = () => {
       key: 'action',
       align: 'center',
       fixed: 'right',
-      width: 80,
-      render: (_, record) => (
-        <Button
-          type="link"
-          onClick={() => setActiveOrder(record)}
-          icon={<FaEye />}
-          title="View Order"
-        />
-      ),
+      width: 170,
+      render: (_, record) => {
+        const isCancellable =
+          ['Pending', 'Processing'].includes(record?.status) &&
+          !['In Transit', 'Out for Delivery', 'Delivered'].includes(record?.deliveryStatus);
+
+        return (
+          <div className="flex items-center justify-center gap-2">
+            <button
+              type="button"
+              onClick={() => setActiveOrder(record)}
+              className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-black bg-gray-100 border border-gray-300 rounded-full hover:bg-black hover:text-white hover:border-black transition-all duration-200 cursor-pointer shadow-sm"
+              title="View Order Details"
+            >
+              <FaEye size={12} />
+              <span>{profile.view || 'View'}</span>
+            </button>
+            {isCancellable && (
+              <Popconfirm
+                title="Cancel Order"
+                description="Are you sure you want to cancel this order?"
+                okText="Yes, Cancel"
+                cancelText="No"
+                okButtonProps={{ danger: true, style: { background: '#dc2626' } }}
+                onConfirm={() => handleCancelOrder(record._id)}
+              >
+                <button
+                  type="button"
+                  className="inline-flex items-center px-3 py-1 text-xs font-semibold uppercase tracking-wider text-red-700 bg-red-50 border border-red-200 rounded-full hover:bg-red-600 hover:text-white hover:border-red-600 transition-all duration-200 cursor-pointer shadow-sm"
+                  title="Cancel Order"
+                >
+                  {profile.cancel || 'Cancel'}
+                </button>
+              </Popconfirm>
+            )}
+          </div>
+        );
+      },
     },
   ];
 
-  return activeOrder ? (
+  const currentActiveOrder = activeOrder
+    ? Orders.data?.data?.find((o) => o._id === activeOrder._id) || activeOrder
+    : null;
+
+  return currentActiveOrder ? (
     <ParticularOrder
-      activeOrder={activeOrder}
+      activeOrder={currentActiveOrder}
       setActiveOrder={setActiveOrder}
     />
   ) : (

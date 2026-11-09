@@ -7,10 +7,12 @@ import {
   useTranslationContext,
 } from '../../context/TranslationContext';
 import { useEffect } from 'react';
+import { Button, Popconfirm, message } from 'antd';
 import { formatPrice } from '../../utils/currency';
 import { useCurrency } from '../../context/CurrencyContext';
 import { resolveAssetUrl } from '../../utils/assetUrl';
 import { TbGiftCard } from 'react-icons/tb';
+import { cancelOrder } from '../../apis/user/order';
 
 const ParticularOrder = ({ activeOrder, setActiveOrder }) => {
   const {
@@ -20,6 +22,25 @@ const ParticularOrder = ({ activeOrder, setActiveOrder }) => {
   const { currency } = useCurrency();
   const orderCurrency = activeOrder?.currency || currency;
   const isGiftCard = activeOrder?.temp?.purchaseType === 'gift-card' || activeOrder?.products?.[0]?.sku === 'gift-card';
+
+  const isCancellable =
+    !isGiftCard &&
+    ['Pending', 'Processing'].includes(activeOrder?.status) &&
+    !['In Transit', 'Out for Delivery', 'Delivered'].includes(activeOrder?.deliveryStatus);
+
+  const handleCancelOrder = async () => {
+    try {
+      const res = await cancelOrder(activeOrder._id);
+      message.success(profile.orderCancelledSuccess || 'Order cancelled successfully');
+      if (res?.data) {
+        setActiveOrder(res.data);
+      } else {
+        setActiveOrder((prev) => ({ ...prev, status: 'Cancelled' }));
+      }
+    } catch (err) {
+      message.error(err?.response?.data?.message || 'Failed to cancel order');
+    }
+  };
 
   const formatOrderPrice = (amount) =>
     formatPrice(Number(amount || 0), orderCurrency);
@@ -122,10 +143,37 @@ const ParticularOrder = ({ activeOrder, setActiveOrder }) => {
           </div>
         </div>
         <div className="flex items-center">
-          <span className="px-4 py-2 text-white bg-yellow-400 rounded-full uppercase">
+          <span
+            className={`px-4 py-2 text-white rounded-full uppercase font-medium text-sm ${
+              activeOrder?.status === 'Cancelled'
+                ? 'bg-red-500'
+                : activeOrder?.status === 'Complete'
+                ? 'bg-green-600'
+                : activeOrder?.status === 'Processing'
+                ? 'bg-blue-500'
+                : 'bg-yellow-400'
+            }`}
+          >
             {isGiftCard ? '-' : activeOrder?.status}
           </span>
           <div className="flex ml-4 space-x-4">
+            {isCancellable && (
+              <Popconfirm
+                title="Cancel Order"
+                description="Are you sure you want to cancel this order?"
+                okText="Yes, Cancel"
+                cancelText="No"
+                okButtonProps={{ danger: true, style: { background: '#dc2626' } }}
+                onConfirm={handleCancelOrder}
+              >
+                <button
+                  type="button"
+                  className="px-5 py-2 text-xs font-semibold uppercase tracking-wider text-red-700 bg-red-50 border border-red-300 rounded-full hover:bg-red-600 hover:text-white hover:border-red-600 transition-all duration-200 cursor-pointer shadow-sm"
+                >
+                  {profile.cancelOrder || 'Cancel Order'}
+                </button>
+              </Popconfirm>
+            )}
           </div>
         </div>
       </div>
@@ -194,7 +242,9 @@ const ParticularOrder = ({ activeOrder, setActiveOrder }) => {
                   />
                   <div className="flex-1">
                     <h3 className="text-lg font-semibold">
-                      {product.sku === 'MMMK-BAG' ? 'MMMK Exclusive Bag' : (activeOrder.translated?.[`productName_${index}`] || product?.name)}
+                      {product.sku === 'MMMK-BAG'
+                        ? 'MMMK Exclusive Bag'
+                        : (activeOrder.translated?.[`productName_${index}`] || product?.name || product?.id?.productName?.en || 'Product')}
                     </h3>
                     <div className="flex items-center justify-between mt-2">
                       <div className="flex items-center gap-4">
@@ -305,9 +355,9 @@ const ParticularOrder = ({ activeOrder, setActiveOrder }) => {
             <h4 className="font-semibold">{profile.contactInformation}</h4>
             <p className="text-gray-600">
               <span className="font-semibold">{profile.phone}: </span>
-              {activeOrder?.userId?.contactNumber || 'N/A'} <br />
+              {activeOrder?.userId?.contactNumber || activeOrder?.shippingAddress?.phoneNumber || activeOrder?.shippingAddress?.phone || 'N/A'} <br />
               <span className="font-semibold">{profile.email}: </span>
-              {activeOrder?.userId?.email}
+              {activeOrder?.userId?.email || activeOrder?.shippingAddress?.email || 'N/A'}
             </p>
           </div>
 

@@ -3,6 +3,108 @@ const Product = require("../Models/Product");
 
 const MIN_QUERY_LENGTH = 2;
 
+const CATEGORY_SYNONYMS = {
+  fragrance: [
+    "perfume",
+    "perfumes",
+    "perf",
+    "scent",
+    "scents",
+    "oud",
+    "attar",
+    "cologne",
+    "fragrance",
+    "fragrances",
+  ],
+  "design bikni swimwear": [
+    "bikini",
+    "bikinis",
+    "bikni",
+    "swimwear",
+    "swimsuit",
+    "swimsuits",
+    "bathing suit",
+    "beachwear",
+    "monokini",
+  ],
+  "jewellery & accessories": [
+    "jewellery",
+    "jewelry",
+    "jewel",
+    "ring",
+    "rings",
+    "necklace",
+    "necklaces",
+    "earring",
+    "earrings",
+    "bracelet",
+    "bracelets",
+    "accessories",
+    "pendant",
+  ],
+  "customize sandals": [
+    "sandals",
+    "sandal",
+    "slippers",
+    "slipper",
+    "slides",
+    "footwear",
+    "shoes",
+  ],
+  "ponytail hair": [
+    "ponytail",
+    "hair",
+    "bundles",
+    "bundle",
+    "comb",
+    "wigs",
+    "wig",
+    "extensions",
+  ],
+  abayas: ["abaya", "abayas", "kaftan", "cloak"],
+  dress: ["dress", "dresses", "gown", "gowns"],
+  "fitness/ yoga/ pilate": [
+    "fitness",
+    "yoga",
+    "pilate",
+    "pilates",
+    "gym",
+    "activewear",
+    "workout",
+  ],
+  "vase & natural sand candle": [
+    "candle",
+    "candles",
+    "vase",
+    "sand candle",
+  ],
+};
+
+const STOP_WORDS = new Set([
+  "in",
+  "on",
+  "an",
+  "the",
+  "is",
+  "it",
+  "to",
+  "at",
+  "of",
+  "for",
+  "and",
+  "or",
+  "a",
+  "with",
+  "by",
+]);
+
+const cleanHtml = (text = "") =>
+  String(text)
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/\s+/g, " ");
+
 const normalizeText = (value = "") =>
   String(value)
     .toLowerCase()
@@ -12,83 +114,115 @@ const normalizeText = (value = "") =>
     .replace(/\s+/g, " ")
     .trim();
 
-const createNgrams = (value, size = 3) => {
-  const normalized = normalizeText(value).replace(/\s+/g, " ");
-  if (!normalized) return new Set();
-  if (normalized.length <= size) return new Set([normalized]);
-
-  const grams = new Set();
-  for (let index = 0; index <= normalized.length - size; index += 1) {
-    grams.add(normalized.slice(index, index + size));
+const getCategoryKeywords = (categoryName = "") => {
+  const norm = normalizeText(categoryName);
+  if (!norm) return [];
+  const keywords = new Set([norm]);
+  for (const [catKey, syns] of Object.entries(CATEGORY_SYNONYMS)) {
+    const normCatKey = normalizeText(catKey);
+    if (norm.includes(normCatKey) || normCatKey.includes(norm)) {
+      syns.forEach((s) => keywords.add(normalizeText(s)));
+    }
   }
-  return grams;
+  return Array.from(keywords);
 };
 
-const getNgramSimilarity = (source, target, size = 3) => {
-  const sourceNgrams = createNgrams(source, size);
-  const targetNgrams = createNgrams(target, size);
-
-  if (!sourceNgrams.size || !targetNgrams.size) return 0;
-
-  let intersection = 0;
-  sourceNgrams.forEach((gram) => {
-    if (targetNgrams.has(gram)) intersection += 1;
-  });
-
-  return (2 * intersection) / (sourceNgrams.size + targetNgrams.size);
+const isPluralMatch = (a, b) => {
+  if (a === b) return true;
+  if (a.endsWith("s") && a.slice(0, -1) === b) return true;
+  if (a.endsWith("es") && a.slice(0, -2) === b) return true;
+  if (b.endsWith("s") && b.slice(0, -1) === a) return true;
+  if (b.endsWith("es") && b.slice(0, -2) === a) return true;
+  return false;
 };
 
-const getTokenOverlapScore = (query, candidate) => {
-  const queryTokens = normalizeText(query).split(" ").filter(Boolean);
-  const candidateTokens = normalizeText(candidate).split(" ").filter(Boolean);
+const scoreTokens = (queryTokens, targetTokens) => {
+  if (!queryTokens.length || !targetTokens.length) return 0;
 
-  if (!queryTokens.length || !candidateTokens.length) return 0;
+  const effectiveQueryTokens = queryTokens.filter((t) => !STOP_WORDS.has(t));
+  if (!effectiveQueryTokens.length) return 0;
 
-  let matches = 0;
-  queryTokens.forEach((queryToken) => {
-    const hasMatch = candidateTokens.some(
-      (candidateToken) =>
-        candidateToken.includes(queryToken) ||
-        queryToken.includes(candidateToken) ||
-        getNgramSimilarity(queryToken, candidateToken) >= 0.45
-    );
+  let totalMatchScore = 0;
+  for (const qToken of effectiveQueryTokens) {
+    let bestTokenScore = 0;
+    for (const tToken of targetTokens) {
+      if (tToken === qToken || isPluralMatch(qToken, tToken)) {
+        bestTokenScore = Math.max(bestTokenScore, 1.0);
+      } else if (tToken.startsWith(qToken) && qToken.length >= 2) {
+        // Prefix match: e.g. "perf" -> "perfume", "biki" -> "bikini"
+        bestTokenScore = Math.max(bestTokenScore, 0.85);
+      } else if (tToken.includes(qToken) && qToken.length >= 3) {
+        // Substring match: e.g. "wear" in "swimwear"
+        bestTokenScore = Math.max(bestTokenScore, 0.65);
+      }
+    }
+    totalMatchScore += bestTokenScore;
+  }
 
-    if (hasMatch) matches += 1;
-  });
-
-  return matches / queryTokens.length;
+  return totalMatchScore / effectiveQueryTokens.length;
 };
 
-const scoreCandidate = (query, searchableText) => {
-  const normalizedQuery = normalizeText(query);
-  const normalizedCandidate = normalizeText(searchableText);
+const scoreProduct = (query, product) => {
+  const normQuery = normalizeText(query);
+  const queryTokens = normQuery.split(" ").filter(Boolean);
+  if (!queryTokens.length) return 0;
 
-  if (!normalizedQuery || !normalizedCandidate) return 0;
-  if (normalizedCandidate === normalizedQuery) return 1;
+  const catName = product.category?.name?.en || "";
+  const catKeywords = getCategoryKeywords(catName);
 
-  let score = 0;
+  const titleTokens = normalizeText(product.productName?.en || "")
+    .split(" ")
+    .filter(Boolean);
+  const catTokens = catKeywords
+    .flatMap((k) => normalizeText(k).split(" "))
+    .filter(Boolean);
+  const subCatTokens = normalizeText(product.subCategory || "")
+    .split(" ")
+    .filter(Boolean);
+  const brandTokens = normalizeText(product.brand || "")
+    .split(" ")
+    .filter(Boolean);
+  const descTokens = normalizeText(cleanHtml(product.productDescription?.en || ""))
+    .split(" ")
+    .filter(Boolean);
 
-  if (normalizedCandidate.startsWith(normalizedQuery)) score += 0.35;
-  if (normalizedCandidate.includes(normalizedQuery)) score += 0.25;
+  const titleScore = scoreTokens(queryTokens, titleTokens);
+  const catScore = scoreTokens(queryTokens, catTokens);
+  const subCatScore = scoreTokens(queryTokens, subCatTokens);
+  const brandScore = scoreTokens(queryTokens, brandTokens);
+  const descScore = scoreTokens(queryTokens, descTokens);
 
-  score += getTokenOverlapScore(normalizedQuery, normalizedCandidate) * 0.25;
-  score += getNgramSimilarity(normalizedQuery, normalizedCandidate) * 0.4;
+  let finalScore = 0;
+  if (titleScore > 0) finalScore = Math.max(finalScore, titleScore * 1.0);
+  if (catScore > 0) finalScore = Math.max(finalScore, catScore * 0.95);
+  if (subCatScore > 0) finalScore = Math.max(finalScore, subCatScore * 0.85);
+  if (brandScore > 0) finalScore = Math.max(finalScore, brandScore * 0.75);
+  if (descScore > 0) finalScore = Math.max(finalScore, descScore * 0.4);
 
-  return Math.min(score, 1);
+  return finalScore;
 };
 
-const getProductSearchText = (product) =>
-  [
-    product?.productName?.en,
-    product?.productDescription?.en,
-    product?.brand,
-    product?.subCategory,
-  ]
-    .filter(Boolean)
-    .join(" ");
+const scoreCategory = (query, category) => {
+  const normQuery = normalizeText(query);
+  const queryTokens = normQuery.split(" ").filter(Boolean);
+  if (!queryTokens.length) return 0;
 
-const getCategorySearchText = (category) =>
-  [category?.name?.en, ...(category?.subCategory || [])].filter(Boolean).join(" ");
+  const catName = category.name?.en || "";
+  const catKeywords = getCategoryKeywords(catName);
+  const subCategories = [
+    ...(Array.isArray(category.subcategories)
+      ? category.subcategories.map((s) => (typeof s === "string" ? s : s?.en))
+      : []),
+    ...(Array.isArray(category.subCategory) ? category.subCategory : []),
+  ].filter(Boolean);
+
+  const allTargetTokens = [
+    ...catKeywords.flatMap((k) => normalizeText(k).split(" ")),
+    ...subCategories.flatMap((s) => normalizeText(s).split(" ")),
+  ].filter(Boolean);
+
+  return scoreTokens(queryTokens, allTargetTokens);
+};
 
 const mapCategoryResult = (category, score) => ({
   value: category.name.en,
@@ -120,7 +254,7 @@ const searchCatalog = async (query, options = {}) => {
   const [categories, products] = await Promise.all([
     includeCategories
       ? Category.find({})
-          .select("name subCategory createdAt")
+          .select("name subCategory subcategories createdAt")
           .lean()
       : Promise.resolve([]),
     includeProducts
@@ -136,18 +270,18 @@ const searchCatalog = async (query, options = {}) => {
   const scoredCategories = categories
     .map((category) => ({
       category,
-      score: scoreCandidate(normalizedQuery, getCategorySearchText(category)),
+      score: scoreCategory(normalizedQuery, category),
     }))
-    .filter((item) => item.score >= 0.2)
+    .filter((item) => item.score >= 0.5)
     .sort((left, right) => right.score - left.score)
     .map(({ category, score }) => mapCategoryResult(category, score));
 
   const scoredProducts = products
     .map((product) => ({
       product,
-      score: scoreCandidate(normalizedQuery, getProductSearchText(product)),
+      score: scoreProduct(normalizedQuery, product),
     }))
-    .filter((item) => item.score >= 0.18)
+    .filter((item) => item.score >= 0.4)
     .sort((left, right) => {
       if (right.score !== left.score) return right.score - left.score;
       return new Date(right.product.createdAt) - new Date(left.product.createdAt);

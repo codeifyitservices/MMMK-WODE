@@ -1,4 +1,12 @@
-const DEFAULT_PUBLIC_UPLOAD_BASE_URL = "https://node.projects.codenap.in/mmk";
+const DEFAULT_PUBLIC_UPLOAD_BASE_URL =
+  process.env.BACKEND_URL || "https://mmmk-wode.com";
+
+const sanitizeImageFilename = (val) => {
+  if (!val || typeof val !== "string") return val;
+  if (val.includes("/uploads/")) return val.split("/uploads/").pop().replace(/^\/+/, "");
+  if (/^https?:\/\//i.test(val)) return val.split("/").pop().replace(/^\/+/, "");
+  return val.replace(/^\/+/, "");
+};
 
 const parseBodyValue = (value, fallback) => {
   if (value === undefined || value === null || value === "") {
@@ -54,11 +62,11 @@ const buildUploadedFileUrl = (req, fileName) => {
 
 const getUploadedFileName = (req, fieldName) => {
   if (req.file?.filename && (!fieldName || req.file.fieldname === fieldName)) {
-    return buildUploadedFileUrl(req, req.file.filename);
+    return buildUploadedFileUrl(req, sanitizeImageFilename(req.file.filename));
   }
 
   if (req.files?.[fieldName]?.[0]?.filename) {
-    return buildUploadedFileUrl(req, req.files[fieldName][0].filename);
+    return buildUploadedFileUrl(req, sanitizeImageFilename(req.files[fieldName][0].filename));
   }
 
   const bodyValue = parseBodyValue(req.body?.[fieldName], null);
@@ -66,7 +74,7 @@ const getUploadedFileName = (req, fieldName) => {
     typeof bodyValue === "string" &&
     !bodyValue.includes("[object Object]")
   ) {
-    return bodyValue;
+    return sanitizeImageFilename(bodyValue);
   }
   return null;
 };
@@ -74,17 +82,20 @@ const getUploadedFileName = (req, fieldName) => {
 const getUploadedFileNames = (req, fieldName) => {
   if (Array.isArray(req.files?.[fieldName]) && req.files[fieldName].length) {
     return req.files[fieldName]
-      .map((file) => buildUploadedFileUrl(req, file.filename))
+      .map((file) => buildUploadedFileUrl(req, sanitizeImageFilename(file.filename)))
       .filter(Boolean);
   }
 
   const bodyValue = parseBodyValue(req.body?.[fieldName], []);
 
   if (Array.isArray(bodyValue)) {
-    return bodyValue.filter(
-      (value) =>
-        typeof value === "string" && value && !value.includes("[object Object]")
-    );
+    return bodyValue
+      .filter(
+        (value) =>
+          typeof value === "string" && value && !value.includes("[object Object]")
+      )
+      .map(sanitizeImageFilename)
+      .filter(Boolean);
   }
 
   if (
@@ -92,7 +103,8 @@ const getUploadedFileNames = (req, fieldName) => {
     bodyValue &&
     !bodyValue.includes("[object Object]")
   ) {
-    return [bodyValue];
+    const sanitized = sanitizeImageFilename(bodyValue);
+    return sanitized ? [sanitized] : [];
   }
 
   return [];
@@ -103,4 +115,5 @@ module.exports = {
   parseJsonBodyField,
   getUploadedFileName,
   getUploadedFileNames,
+  sanitizeImageFilename,
 };

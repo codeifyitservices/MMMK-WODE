@@ -1,6 +1,7 @@
 const { generateProductThumbnail } = require("../../../utils/productThumbnail");
 
-const DEFAULT_PUBLIC_UPLOAD_BASE_URL = "https://node.projects.codenap.in/mmk";
+const DEFAULT_PUBLIC_UPLOAD_BASE_URL =
+  process.env.BACKEND_URL || "https://mmmk-wode.com";
 
 const buildUploadedFileUrl = (req, fileName) => {
   return fileName || null;

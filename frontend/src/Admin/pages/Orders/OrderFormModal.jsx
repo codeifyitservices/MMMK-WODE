@@ -35,7 +35,13 @@ const OrderFormModal = ({ editData, onCancel, tableQuery }) => {
       form.setFieldsValue({
         user: editData?.userId?.firstName
           ? `${editData.userId.firstName} ${editData.userId.lastName || ''}`.trim()
-          : '',
+          : editData?.userId?.email ||
+            editData?.shippingAddress?.name ||
+            (editData?.shippingAddress?.firstName
+              ? `${editData.shippingAddress.firstName} ${editData.shippingAddress.lastName || ''}`.trim()
+              : '') ||
+            editData?.userId?._id ||
+            'Guest User',
         amountUSD: editData?.displayAmountUSD,
         amountOriginal: editData?.displayAmountOriginal,
         paymentType: editData?.mode,
@@ -66,7 +72,6 @@ const OrderFormModal = ({ editData, onCancel, tableQuery }) => {
         <Form.Item
           label="User"
           name="user"
-          rules={[{ required: true, message: 'Please enter a user ID' }]}
         >
           <Input placeholder="User" disabled={true} />
         </Form.Item>
@@ -152,7 +157,6 @@ const OrderFormModal = ({ editData, onCancel, tableQuery }) => {
         <Form.Item
           label="Payment Type"
           name="paymentType"
-          rules={[{ required: true, message: 'Please enter a payment type' }]}
         >
           <Input placeholder="Enter payment type" disabled={true} />
         </Form.Item>

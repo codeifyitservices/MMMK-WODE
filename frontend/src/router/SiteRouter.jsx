@@ -3,6 +3,7 @@ import { lazy, Suspense } from 'react';
 
 import UserProtectedRoute from '../components/global/UserProtectedRoute';
 import CartProvider from '../context/CartProvider';
+import { WishlistProvider } from '../context/WishlistContext';
 import InfluencerAuthProvider from '../context/InfluencerAuthProvider';
 import InfluencerProtectedRoute from '../components/influencer/InfluencerProtectedRoute';
 import SiteLoading from '../layout/SiteLoading';
@@ -62,7 +63,8 @@ export default function SiteRouter() {
   return (
     <InfluencerAuthProvider>
       <CartProvider>
-        <Routes>
+        <WishlistProvider>
+          <Routes>
           {/* Influencer Portal Dedicated Routes */}
           <Route
             path="/influencer/login"
@@ -438,6 +440,7 @@ export default function SiteRouter() {
           <Route path="/signup" element={<Navigate to="/auth" replace />} />
           <Route path="/register" element={<Navigate to="/auth" replace />} />
       </Routes>
+        </WishlistProvider>
     </CartProvider>
   </InfluencerAuthProvider>
   );

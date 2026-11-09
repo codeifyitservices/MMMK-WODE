@@ -66,7 +66,12 @@ import { AddButton, DeleteButton } from '../../UI/Buttons';
 import { LANGUAGECODES, LANGUAGECODETONAME } from '../../../utils/staticData';
 import { FormTabs } from '../../UI/Tabs';
 import { getTranslatedFields } from '../../../utils/getTranslatedFields';
-import { resolveAssetUrl } from '../../../utils/assetUrl';
+import {
+  getAssetFallbackUrl,
+  getFileNameFromAsset,
+  isLocalEnvironment,
+  resolveAssetUrl,
+} from '../../../utils/assetUrl';
 import { uploadSingleAdminFile } from '../../../apis/admin/upload';
 
 
@@ -443,10 +448,13 @@ const ProductModalForm = ({
         return;
       }
       const formData = new FormData();
-      const uploadedPrimaryImage =
+      const rawPrimaryImage =
         image[0]?.response?.uploadedFile || image[0]?.uid || image[0]?.name;
+      const uploadedPrimaryImage =
+        getFileNameFromAsset(rawPrimaryImage) || rawPrimaryImage;
       const uploadedGalleryImages = images
         .map((file) => file?.response?.uploadedFile || file?.uid || file?.name)
+        .map((fileName) => getFileNameFromAsset(fileName) || fileName)
         .filter(Boolean)
         .filter((fileName) => fileName !== uploadedPrimaryImage);
 
@@ -489,7 +497,11 @@ const ProductModalForm = ({
           
           formData.append(
             'deletedImages',
-            JSON.stringify(utils.deletedImages || [])
+            JSON.stringify(
+              (utils.deletedImages || [])
+                .map((img) => getFileNameFromAsset(img) || img)
+                .filter(Boolean)
+            )
           );
           res = await updateProduct(selected?._id, formData);
         } else {
@@ -745,6 +757,62 @@ const PrimaryDetails = ({
         isPreviewOpen: false,
         previewImage: '',
       });
+
+      if (selected && isLocalEnvironment()) {
+        if (selected.image) {
+          const testImg = new window.Image();
+          testImg.onerror = () => {
+            const fallbackUrl = getAssetFallbackUrl(selected.image);
+            updateDynamicData((prev) => ({
+              ...prev,
+              primaryImageList: [
+                {
+                  uid: selected.image,
+                  name: selected.image,
+                  status: 'done',
+                  url: fallbackUrl,
+                },
+              ],
+            }));
+            const currentPrimary = form.getFieldValue('image') || [];
+            if (currentPrimary.length) {
+              form.setFieldsValue({
+                image: [
+                  {
+                    ...currentPrimary[0],
+                    url: fallbackUrl,
+                  },
+                ],
+              });
+            }
+          };
+          testImg.src = resolveAssetUrl(selected.image);
+        }
+
+        if (Array.isArray(selected.images) && selected.images.length > 0) {
+          selected.images.forEach((imgName) => {
+            const testImg = new window.Image();
+            testImg.onerror = () => {
+              const fallbackUrl = getAssetFallbackUrl(imgName);
+              updateDynamicData((prev) => ({
+                ...prev,
+                fileList: (prev.fileList || []).map((file) =>
+                  file.uid === imgName ? { ...file, url: fallbackUrl } : file
+                ),
+              }));
+              const currentFormImages = form.getFieldValue('images') || [];
+              if (currentFormImages.length) {
+                form.setFieldsValue({
+                  images: currentFormImages.map((file) =>
+                    file.uid === imgName ? { ...file, url: fallbackUrl } : file
+                  ),
+                });
+              }
+            };
+            testImg.src = resolveAssetUrl(imgName);
+          });
+        }
+      }
     }
   }, [selected, isOpen]);
 

@@ -2,7 +2,11 @@ import { useState, useRef, useEffect } from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { FiChevronLeft, FiChevronRight } from 'react-icons/fi';
 import 'swiper/css';
-import { resolveAssetUrl } from '../../utils/assetUrl';
+import {
+  DEFAULT_FALLBACK_IMAGE,
+  getAssetFallbackUrl,
+  resolveAssetUrl,
+} from '../../utils/assetUrl';
 
 export default function Slider({ images }) {
   const [mainSwiper, setMainSwiper] = useState(null);
@@ -56,6 +60,14 @@ export default function Slider({ images }) {
                   alt={`Product view ${index + 1}`}
                   loading={index === 0 ? 'eager' : 'lazy'}
                   decoding="async"
+                  onError={(e) => {
+                    const fallback = getAssetFallbackUrl(img);
+                    if (e.currentTarget.src !== fallback) {
+                      e.currentTarget.src = fallback;
+                    } else if (e.currentTarget.src !== DEFAULT_FALLBACK_IMAGE) {
+                      e.currentTarget.src = DEFAULT_FALLBACK_IMAGE;
+                    }
+                  }}
                   className="w-full h-full object-contain mx-auto select-none pointer-events-none drop-shadow-md"
                 />
               </div>
@@ -122,6 +134,14 @@ export default function Slider({ images }) {
                   alt={`Thumbnail ${index + 1}`}
                   loading="lazy"
                   decoding="async"
+                  onError={(e) => {
+                    const fallback = getAssetFallbackUrl(img);
+                    if (e.currentTarget.src !== fallback) {
+                      e.currentTarget.src = fallback;
+                    } else if (e.currentTarget.src !== DEFAULT_FALLBACK_IMAGE) {
+                      e.currentTarget.src = DEFAULT_FALLBACK_IMAGE;
+                    }
+                  }}
                   className="w-full h-full object-cover bg-neutral-900/60"
                 />
               </button>

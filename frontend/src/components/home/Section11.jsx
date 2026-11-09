@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
-import { EffectCoverflow, Navigation, FreeMode } from 'swiper/modules';
+import { EffectCoverflow, Navigation } from 'swiper/modules';
 import { ChevronLeft, ChevronRight, Volume2, VolumeX } from 'lucide-react';
 import { useTranslationContext } from '../../context/TranslationContext';
 
@@ -8,7 +8,6 @@ import { useTranslationContext } from '../../context/TranslationContext';
 import 'swiper/css';
 import 'swiper/css/effect-coverflow';
 import 'swiper/css/navigation';
-import 'swiper/css/free-mode';
 
 const CinematicVideoPlayer = ({ videoSrc, isActive }) => {
   const videoRef = useRef(null);
@@ -101,15 +100,10 @@ export default function Section11() {
           grabCursor={true}
           centeredSlides={true}
           loop={true}
-          loopAdditionalSlides={6}
-          loopedSlides={6}
+          loopAdditionalSlides={4}
+          watchSlidesProgress={true}
+          speed={500}
           slideToClickedSlide={true}
-          freeMode={{
-            enabled: true,
-            sticky: true,
-            momentumRatio: 0.3,
-            momentumVelocityRatio: 0.4,
-          }}
           touchRatio={0.8}
           threshold={15}
           navigation={init ? {
@@ -149,7 +143,7 @@ export default function Section11() {
               spaceBetween: 40,
             },
           }}
-          modules={[EffectCoverflow, Navigation, FreeMode]}
+          modules={[EffectCoverflow, Navigation]}
           className="cinematic-swiper !overflow-visible"
         >
           {Array.from({ length: 24 }, (_, i) => {

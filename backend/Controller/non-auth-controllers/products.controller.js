@@ -195,6 +195,9 @@ const getAllProducts = async (req, res) => {
          if (s === 'priceDesc') return (b.websitePrice || b.price || 0) - (a.websitePrice || a.price || 0);
          if (s === 'newest') return new Date(b.createdAt) - new Date(a.createdAt);
          if (s === 'nameAsc') return String(a.productName?.en).localeCompare(String(b.productName?.en));
+         if (b.searchScore !== a.searchScore) {
+           return (b.searchScore || 0) - (a.searchScore || 0);
+         }
          return (a.order || 0) - (b.order || 0);
       });
 

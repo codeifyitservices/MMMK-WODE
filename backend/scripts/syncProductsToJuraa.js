@@ -13,7 +13,9 @@ const Category = require("../Models/Category"); // Ensure Category model is load
 
 const API_URL = "https://juraa.co/api/rest/v1/product/add";
 const API_KEY = process.env.JURA_API_KEY;
-const BASE_IMAGE_URL = process.env.VITE_IMAGE_URL || "https://node.projects.codenap.in/mmk/uploads/";
+const BASE_IMAGE_URL =
+  process.env.VITE_IMAGE_URL ||
+  `${process.env.BACKEND_URL || "https://mmmk-wode.com"}/uploads/`;
 
 const syncProducts = async () => {
   try {

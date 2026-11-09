@@ -186,11 +186,8 @@ const create = async (req, res) => {
     );
   } catch (err) {
     console.error("Error creating product:", err);
-    if (primaryImage) deleteFile(primaryImage);
-    if (primaryThumbnail) deleteFile(primaryThumbnail);
-    if (imagesUploaded.length) {
-      await Promise.all(imagesUploaded.map((image) => deleteFile(image)));
-    }
+    // Do NOT delete pre-uploaded files on validation/duplicate SKU errors.
+    // The user will correct the form error and submit again with the same file.
     if (err.statusCode) {
       return res.status(err.statusCode).json({
         success: false,

@@ -66,7 +66,12 @@ import { AddButton, DeleteButton } from '../../UI/Buttons';
 import { LANGUAGECODES, LANGUAGECODETONAME } from '../../../utils/staticData';
 import { FormTabs } from '../../UI/Tabs';
 import { getTranslatedFields } from '../../../utils/getTranslatedFields';
-import { resolveAssetUrl, getFileNameFromAsset } from '../../../utils/assetUrl';
+import {
+  getAssetFallbackUrl,
+  getFileNameFromAsset,
+  isLocalEnvironment,
+  resolveAssetUrl,
+} from '../../../utils/assetUrl';
 import { uploadSingleAdminFile } from '../../../apis/admin/upload';
 
 
@@ -752,6 +757,62 @@ const PrimaryDetails = ({
         isPreviewOpen: false,
         previewImage: '',
       });
+
+      if (selected && isLocalEnvironment()) {
+        if (selected.image) {
+          const testImg = new window.Image();
+          testImg.onerror = () => {
+            const fallbackUrl = getAssetFallbackUrl(selected.image);
+            updateDynamicData((prev) => ({
+              ...prev,
+              primaryImageList: [
+                {
+                  uid: selected.image,
+                  name: selected.image,
+                  status: 'done',
+                  url: fallbackUrl,
+                },
+              ],
+            }));
+            const currentPrimary = form.getFieldValue('image') || [];
+            if (currentPrimary.length) {
+              form.setFieldsValue({
+                image: [
+                  {
+                    ...currentPrimary[0],
+                    url: fallbackUrl,
+                  },
+                ],
+              });
+            }
+          };
+          testImg.src = resolveAssetUrl(selected.image);
+        }
+
+        if (Array.isArray(selected.images) && selected.images.length > 0) {
+          selected.images.forEach((imgName) => {
+            const testImg = new window.Image();
+            testImg.onerror = () => {
+              const fallbackUrl = getAssetFallbackUrl(imgName);
+              updateDynamicData((prev) => ({
+                ...prev,
+                fileList: (prev.fileList || []).map((file) =>
+                  file.uid === imgName ? { ...file, url: fallbackUrl } : file
+                ),
+              }));
+              const currentFormImages = form.getFieldValue('images') || [];
+              if (currentFormImages.length) {
+                form.setFieldsValue({
+                  images: currentFormImages.map((file) =>
+                    file.uid === imgName ? { ...file, url: fallbackUrl } : file
+                  ),
+                });
+              }
+            };
+            testImg.src = resolveAssetUrl(imgName);
+          });
+        }
+      }
     }
   }, [selected, isOpen]);
 

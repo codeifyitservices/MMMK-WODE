@@ -1,6 +1,7 @@
 /* eslint-disable react/prop-types */
 import { useEffect, useMemo, useState } from 'react';
 import {
+  DEFAULT_FALLBACK_IMAGE,
   getAssetFallbackUrl,
   getThumbnailAssetUrl,
   resolveAssetUrl,
@@ -40,6 +41,12 @@ const OptimizedProductImage = ({
       setTriedLocalFallback(true);
       setCurrentSrc(localFallbackSrc);
       return;
+    }
+
+    // If all asset URLs 404, show clean placeholder
+    if (currentSrc !== DEFAULT_FALLBACK_IMAGE) {
+      setCurrentSrc(DEFAULT_FALLBACK_IMAGE);
+      setIsLoaded(true);
     }
   };
 

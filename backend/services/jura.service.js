@@ -8,10 +8,19 @@ const logger = require('../utils/logger');
  */
 const resolveAssetUrl = (filename) => {
   if (!filename) return "";
-  if (/^(?:https?:)?\/\//i.test(filename)) return filename;
-  
-  // Match the frontend's VITE_IMAGE_URL fallback
-  const baseUrl = process.env.PUBLIC_UPLOAD_BASE_URL || 'https://node.projects.codenap.in/mmk/uploads';
+  const baseUrl =
+    process.env.PUBLIC_UPLOAD_BASE_URL ||
+    (process.env.BACKEND_URL ? `${process.env.BACKEND_URL.replace(/\/$/, "")}/uploads` : null) ||
+    "https://mmmk-wode.com/uploads";
+
+  if (/^(?:https?:)?\/\//i.test(filename)) {
+    if (filename.includes("codenap.in") || filename.includes("localhost") || filename.includes("127.0.0.1")) {
+      const cleanName = filename.split("/uploads/").pop()?.split("/").pop() || "";
+      return cleanName ? `${baseUrl.replace(/\/$/, "")}/${cleanName}` : filename;
+    }
+    return filename;
+  }
+
   return `${baseUrl.replace(/\/$/, "")}/${filename.replace(/^\/+/, "")}`;
 };
 

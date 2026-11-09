@@ -1,5 +1,12 @@
 const mongoose = require("mongoose");
 
+const sanitizeImageFilename = (val) => {
+  if (!val || typeof val !== "string") return val;
+  if (val.includes("/uploads/")) return val.split("/uploads/").pop().replace(/^\/+/, "");
+  if (/^https?:\/\//i.test(val)) return val.split("/").pop().replace(/^\/+/, "");
+  return val.replace(/^\/+/, "");
+};
+
 const languageSchema = {
   en: { type: String, trim: true },
   ar: { type: String, trim: true },
@@ -27,14 +34,27 @@ const productSchema = new mongoose.Schema(
       type: String,
       default: null,
       required: true,
+      set: sanitizeImageFilename,
     },
     thumbnail: {
       type: String,
       default: null,
+      set: sanitizeImageFilename,
     },
     images: {
-      type: [String],
+      type: [
+        {
+          type: String,
+          set: sanitizeImageFilename,
+        },
+      ],
       default: null,
+      set: (val) => {
+        if (Array.isArray(val)) {
+          return val.map(sanitizeImageFilename).filter(Boolean);
+        }
+        return val;
+      },
     },
     // sku: {
     //   type: String,
@@ -112,4 +132,7 @@ productSchema.index({ status: 1, createdAt: -1 });
 productSchema.index({ brand: 1, status: 1 });
 productSchema.index({ gender: 1, status: 1 });
 
-module.exports = mongoose.model("Product", productSchema);
+const Product = mongoose.model("Product", productSchema);
+Product.sanitizeImageFilename = sanitizeImageFilename;
+
+module.exports = Product;

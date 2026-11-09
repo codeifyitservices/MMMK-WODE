@@ -66,7 +66,7 @@ import { AddButton, DeleteButton } from '../../UI/Buttons';
 import { LANGUAGECODES, LANGUAGECODETONAME } from '../../../utils/staticData';
 import { FormTabs } from '../../UI/Tabs';
 import { getTranslatedFields } from '../../../utils/getTranslatedFields';
-import { resolveAssetUrl } from '../../../utils/assetUrl';
+import { resolveAssetUrl, getFileNameFromAsset } from '../../../utils/assetUrl';
 import { uploadSingleAdminFile } from '../../../apis/admin/upload';
 
 
@@ -443,10 +443,13 @@ const ProductModalForm = ({
         return;
       }
       const formData = new FormData();
-      const uploadedPrimaryImage =
+      const rawPrimaryImage =
         image[0]?.response?.uploadedFile || image[0]?.uid || image[0]?.name;
+      const uploadedPrimaryImage =
+        getFileNameFromAsset(rawPrimaryImage) || rawPrimaryImage;
       const uploadedGalleryImages = images
         .map((file) => file?.response?.uploadedFile || file?.uid || file?.name)
+        .map((fileName) => getFileNameFromAsset(fileName) || fileName)
         .filter(Boolean)
         .filter((fileName) => fileName !== uploadedPrimaryImage);
 
@@ -489,7 +492,11 @@ const ProductModalForm = ({
           
           formData.append(
             'deletedImages',
-            JSON.stringify(utils.deletedImages || [])
+            JSON.stringify(
+              (utils.deletedImages || [])
+                .map((img) => getFileNameFromAsset(img) || img)
+                .filter(Boolean)
+            )
           );
           res = await updateProduct(selected?._id, formData);
         } else {

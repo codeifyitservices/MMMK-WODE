@@ -1,6 +1,10 @@
 /* eslint-disable react/prop-types */
 import { useEffect, useMemo, useState } from 'react';
-import { getThumbnailAssetUrl, resolveAssetUrl } from '../../utils/assetUrl';
+import {
+  getAssetFallbackUrl,
+  getThumbnailAssetUrl,
+  resolveAssetUrl,
+} from '../../utils/assetUrl';
 import { cn } from '../../utils/cn';
 
 const OptimizedProductImage = ({
@@ -12,13 +16,16 @@ const OptimizedProductImage = ({
 }) => {
   const fallbackSrc = useMemo(() => resolveAssetUrl(src), [src]);
   const thumbnailSrc = useMemo(() => getThumbnailAssetUrl(src), [src]);
+  const localFallbackSrc = useMemo(() => getAssetFallbackUrl(src), [src]);
   const [currentSrc, setCurrentSrc] = useState(thumbnailSrc || fallbackSrc);
   const [triedFallback, setTriedFallback] = useState(false);
+  const [triedLocalFallback, setTriedLocalFallback] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
     setCurrentSrc(thumbnailSrc || fallbackSrc);
     setTriedFallback(false);
+    setTriedLocalFallback(false);
     setIsLoaded(false);
   }, [fallbackSrc, thumbnailSrc]);
 
@@ -26,6 +33,12 @@ const OptimizedProductImage = ({
     if (!triedFallback && currentSrc !== fallbackSrc && fallbackSrc) {
       setTriedFallback(true);
       setCurrentSrc(fallbackSrc);
+      return;
+    }
+
+    if (!triedLocalFallback && currentSrc !== localFallbackSrc && localFallbackSrc) {
+      setTriedLocalFallback(true);
+      setCurrentSrc(localFallbackSrc);
       return;
     }
   };

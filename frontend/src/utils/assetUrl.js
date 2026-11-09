@@ -6,6 +6,27 @@ const ASSET_BASE_URL = (
   LIVE_UPLOADS_URL
 ).replace(/\/$/, '');
 
+const LOCAL_BACKEND_UPLOADS = `${(
+  import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001'
+).replace(/\/$/, '')}/uploads`;
+
+export const DEFAULT_FALLBACK_IMAGE =
+  'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100" viewBox="0 0 100 100"><rect width="100" height="100" fill="%23f3f4f6"/><path d="M30 65 L45 45 L55 58 L65 42 L80 65 Z" fill="%23d1d5db"/><circle cx="40" cy="35" r="6" fill="%23d1d5db"/></svg>';
+
+export const isLocalEnvironment = () => {
+  if (typeof window === 'undefined') {
+    return Boolean(import.meta.env.DEV);
+  }
+  const hostname = window.location.hostname.toLowerCase();
+  return (
+    hostname === 'localhost' ||
+    hostname === '127.0.0.1' ||
+    hostname === '0.0.0.0' ||
+    hostname.endsWith('.local') ||
+    Boolean(import.meta.env.DEV)
+  );
+};
+
 export const isAbsoluteAssetUrl = (value = '') =>
   /^(?:https?:)?\/\//i.test(value) ||
   value.startsWith('data:') ||
@@ -19,15 +40,21 @@ export const resolveAssetUrl = (value = '') => {
     try {
       const parsedUrl = new URL(value);
       const host = parsedUrl.hostname.toLowerCase();
-      const isLegacyHost =
+      const isLegacyStagingHost = host.includes('codenap.in');
+      const isLocalHost =
         host === 'localhost' ||
         host === '127.0.0.1' ||
         host === '0.0.0.0' ||
-        host.endsWith('.local') ||
-        host.includes('codenap.in');
+        host.endsWith('.local');
 
-      // If an absolute URL points to a local or legacy staging uploads server, redirect to live assets
-      if (isLegacyHost && parsedUrl.pathname.includes('/uploads/')) {
+      // If pointing to old codenap staging uploads, redirect to live assets
+      if (isLegacyStagingHost && parsedUrl.pathname.includes('/uploads/')) {
+        const filename = parsedUrl.pathname.split('/uploads/').pop()?.replace(/^\/+/, '');
+        return filename ? `${ASSET_BASE_URL}/${filename}` : value;
+      }
+
+      // If pointing to a localhost upload and running in production, redirect to live assets
+      if (isLocalHost && !isLocalEnvironment() && parsedUrl.pathname.includes('/uploads/')) {
         const filename = parsedUrl.pathname.split('/uploads/').pop()?.replace(/^\/+/, '');
         return filename ? `${ASSET_BASE_URL}/${filename}` : value;
       }
@@ -59,6 +86,18 @@ export const getFileNameFromAsset = (value = '') => {
   }
 
   return String(value).replace(/^\/+/, '').split('/').pop() || '';
+};
+
+export const getAssetFallbackUrl = (value = '') => {
+  const filename = getFileNameFromAsset(value);
+  if (!filename) return DEFAULT_FALLBACK_IMAGE;
+
+  // In local development, if primary resolution points to remote CDN, fall back to local backend
+  if (isLocalEnvironment()) {
+    return `${LOCAL_BACKEND_UPLOADS}/${filename}`;
+  }
+
+  return DEFAULT_FALLBACK_IMAGE;
 };
 
 export const getThumbnailAssetUrl = (value = '') => {

@@ -20,7 +20,11 @@ import { getTranslatedFields } from '../../../utils/getTranslatedFields';
 import { FormTabs } from '../../UI/Tabs';
 import { useQuery } from '@tanstack/react-query';
 import { getAllFilters } from '../../../apis/admin/filter';
-import { resolveAssetUrl } from '../../../utils/assetUrl';
+import {
+  getAssetFallbackUrl,
+  isLocalEnvironment,
+  resolveAssetUrl,
+} from '../../../utils/assetUrl';
 import { appendCompressedImage } from '../../../utils/imageCompression';
 
 const FilterDropdown = ({ value, onChange }) => {
@@ -73,10 +77,10 @@ const CategoryModal = ({
     setUtils((prev) => ({ ...prev, ...newUtils }));
 
   useEffect(() => {
-    
     if (isVisible) {
       form.resetFields();
       setImageFile(null);
+      const initialUrl = resolveAssetUrl(currentEditCategory?.image);
       updateUtils({
         isTabLoading: false,
         activeTab: 0,
@@ -86,13 +90,30 @@ const CategoryModal = ({
                 uid: '-1',
                 name: 'category-image.jpg',
                 status: 'done',
-                url:
-                  resolveAssetUrl(currentEditCategory?.image),
+                url: initialUrl,
               },
             ]
           : [],
       });
       if (currentEditCategory) form.setFieldsValue(currentEditCategory);
+
+      if (currentEditCategory?.image && isLocalEnvironment()) {
+        const testImg = new window.Image();
+        testImg.onerror = () => {
+          const fallbackUrl = getAssetFallbackUrl(currentEditCategory.image);
+          updateUtils({
+            fileList: [
+              {
+                uid: '-1',
+                name: 'category-image.jpg',
+                status: 'done',
+                url: fallbackUrl,
+              },
+            ],
+          });
+        };
+        testImg.src = initialUrl;
+      }
     }
   }, [currentEditCategory, isVisible]);
 

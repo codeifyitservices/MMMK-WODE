@@ -178,10 +178,21 @@ const ProductDetails = () => {
     selectedAvailableQuantity - quantityAlreadyInCart,
     0
   );
-  const isOutOfStock =
-    skuList.length > 0 && !usesProductLevelStock
-      ? totalAvailableStock <= 0 || remainingSelectableQuantity <= 0
-      : remainingSelectableQuantity <= 0;
+  const isComingSoon = Boolean(
+    productData?.status === 'Coming Soon' ||
+    (!Number(productData?.websitePrice || 0) && !Number(productData?.price || 0))
+  );
+
+  const isOutOfStock = Boolean(
+    !isComingSoon && (
+      productData?.status === 'Out of stock' ||
+      (skuList.length > 0 && !usesProductLevelStock
+        ? totalAvailableStock <= 0 || remainingSelectableQuantity <= 0
+        : remainingSelectableQuantity <= 0 || Number(productData?.quantity || 0) <= 0)
+    )
+  );
+
+  const isInStock = !isComingSoon && !isOutOfStock;
   const productImages = useMemo(() => {
     return [
       ...(productData?.image ? [productData.image] : []),
@@ -317,6 +328,11 @@ const ProductDetails = () => {
 
   const handleAddToCart = async (e) => {
     try {
+      if (isComingSoon) {
+        message.warning(common.comingSoon || 'Coming Soon');
+        return;
+      }
+
       if (isOutOfStock) {
         message.warning(common.outOfStock || 'Sold out');
         return;
@@ -548,53 +564,66 @@ const ProductDetails = () => {
 
                   {/* Actions & Quantity: Hidden on mobile/tablet (< lg) to match Zara layout (handled by sticky bottom bar), visible on desktop (>= lg) */}
                   <div className="hidden lg:block">
-                    <div className="flex items-center gap-3 mt-5">
-                      <div className="flex items-center border border-white">
-                        <button
-                          className="px-3 text-2nd"
-                          type="button"
-                          aria-label={common.decreaseQuantity || 'Decrease quantity'}
-                          onClick={() =>
-                            setCount((prevData) =>
-                              prevData === 1 ? 1 : prevData - 1
-                            )
-                          }
-                          disabled={isOutOfStock}
-                        >
-                          -
-                        </button>
-                        <span className="px-3 font-semibold text-3rd">
-                          {count}
-                        </span>
-                        <button
-                          className="px-3 text-2nd"
-                          type="button"
-                          aria-label={common.increaseQuantity || 'Increase quantity'}
-                          onClick={() => {
-                            if (selectedAvailableQuantity <= 0) {
-                              message.warning(common.outOfStock || 'Sold out');
-                              return;
-                            }
-                            if (remainingSelectableQuantity <= 0) {
-                              message.warning(common.outOfStock || 'Sold out');
-                              return;
-                            }
-                            if (count >= remainingSelectableQuantity) {
-                              message.warning(
-                                `Maximum available quantity is ${remainingSelectableQuantity}`
-                              );
-                              return;
-                            }
-                            setCount((prev) => prev + 1);
-                          }}
-                          disabled={isOutOfStock}
-                        >
-                          +
-                        </button>
-                      </div>
-                      {productData?.price &&
-                        productData?.websitePrice &&
-                        !isOutOfStock && (
+                    {isComingSoon ? (
+                      <button
+                        type="button"
+                        disabled
+                        className="w-full py-3 mt-4 text-xs font-semibold tracking-widest text-neutral-400 uppercase bg-neutral-900 border border-neutral-700 rounded-sm cursor-not-allowed"
+                      >
+                        {common.comingSoon || 'COMING SOON'}
+                      </button>
+                    ) : isOutOfStock ? (
+                      <button
+                        type="button"
+                        disabled
+                        className="w-full py-3 mt-4 text-xs font-semibold tracking-widest text-neutral-400 uppercase bg-neutral-900 border border-neutral-700 rounded-sm cursor-not-allowed"
+                      >
+                        {common.outOfStock || 'OUT OF STOCK'}
+                      </button>
+                    ) : (
+                      <>
+                        <div className="flex items-center gap-3 mt-5">
+                          <div className="flex items-center border border-white">
+                            <button
+                              className="px-3 text-2nd"
+                              type="button"
+                              aria-label={common.decreaseQuantity || 'Decrease quantity'}
+                              onClick={() =>
+                                setCount((prevData) =>
+                                  prevData === 1 ? 1 : prevData - 1
+                                )
+                              }
+                            >
+                              -
+                            </button>
+                            <span className="px-3 font-semibold text-3rd">
+                              {count}
+                            </span>
+                            <button
+                              className="px-3 text-2nd"
+                              type="button"
+                              aria-label={common.increaseQuantity || 'Increase quantity'}
+                              onClick={() => {
+                                if (selectedAvailableQuantity <= 0) {
+                                  message.warning(common.outOfStock || 'Sold out');
+                                  return;
+                                }
+                                if (remainingSelectableQuantity <= 0) {
+                                  message.warning(common.outOfStock || 'Sold out');
+                                  return;
+                                }
+                                if (count >= remainingSelectableQuantity) {
+                                  message.warning(
+                                    `Maximum available quantity is ${remainingSelectableQuantity}`
+                                  );
+                                  return;
+                                }
+                                setCount((prev) => prev + 1);
+                              }}
+                            >
+                              +
+                            </button>
+                          </div>
                           <button
                             name="buyNow"
                             onClick={handleAddToCart}
@@ -602,18 +631,17 @@ const ProductDetails = () => {
                           >
                             {common.buyNow}
                           </button>
-                        )}
-                    </div>
+                        </div>
 
-                    {!isOutOfStock && (
-                      <button
-                        name="wishList"
-                        type="button"
-                        onClick={handleAddToCart}
-                        className="w-full py-2 mt-3 font-semibold text-black bg-white"
-                      >
-                        {common.addToCart}
-                      </button>
+                        <button
+                          name="wishList"
+                          type="button"
+                          onClick={handleAddToCart}
+                          className="w-full py-2 mt-3 font-semibold text-black bg-white"
+                        >
+                          {common.addToCart}
+                        </button>
+                      </>
                     )}
                   </div>
                 </div>
@@ -737,48 +765,58 @@ const ProductDetails = () => {
               isScrolled ? 'w-[62%] sm:w-[65%]' : 'w-full'
             }`}
           >
-            {/* ADD TO CART Button */}
-            <button
-              type="button"
-              onClick={handleAddToCart}
-              disabled={isOutOfStock}
-              aria-label={common.addToCart || 'Add to Cart'}
-              className={`flex-1 border border-black tracking-wider text-[11px] sm:text-xs font-semibold uppercase text-center transition-all duration-300 ease-in-out whitespace-nowrap ${
-                isOutOfStock
-                  ? 'py-2.5 bg-gray-100 text-gray-400 border-gray-300 cursor-not-allowed'
-                  : isScrolled
-                  ? 'py-2.5 bg-white text-black hover:bg-black hover:text-white active:scale-[0.98]'
-                  : 'py-3 bg-white text-black hover:bg-black hover:text-white active:scale-[0.99]'
-              }`}
-            >
-              {isOutOfStock
-                ? (common.outOfStock || 'SOLD OUT').toUpperCase()
-                : isScrolled
-                ? 'ADD'
-                : (common.addToCart || 'ADD TO CART').toUpperCase()}
-            </button>
+            {isComingSoon ? (
+              <button
+                type="button"
+                disabled
+                className="w-full py-3 bg-neutral-900 text-neutral-400 border border-neutral-700 cursor-not-allowed tracking-wider text-[11px] sm:text-xs font-semibold uppercase text-center"
+              >
+                {(common.comingSoon || 'COMING SOON').toUpperCase()}
+              </button>
+            ) : isOutOfStock ? (
+              <button
+                type="button"
+                disabled
+                className="w-full py-3 bg-neutral-900 text-neutral-400 border border-neutral-700 cursor-not-allowed tracking-wider text-[11px] sm:text-xs font-semibold uppercase text-center"
+              >
+                {(common.outOfStock || 'OUT OF STOCK').toUpperCase()}
+              </button>
+            ) : (
+              <>
+                {/* ADD TO CART Button */}
+                <button
+                  type="button"
+                  onClick={handleAddToCart}
+                  aria-label={common.addToCart || 'Add to Cart'}
+                  className={`flex-1 border border-black tracking-wider text-[11px] sm:text-xs font-semibold uppercase text-center transition-all duration-300 ease-in-out whitespace-nowrap ${
+                    isScrolled
+                      ? 'py-2.5 bg-white text-black hover:bg-black hover:text-white active:scale-[0.98]'
+                      : 'py-3 bg-white text-black hover:bg-black hover:text-white active:scale-[0.99]'
+                  }`}
+                >
+                  {isScrolled
+                    ? 'ADD'
+                    : (common.addToCart || 'ADD TO CART').toUpperCase()}
+                </button>
 
-            {/* BUY NOW Button */}
-            <button
-              type="button"
-              name="buyNow"
-              onClick={handleAddToCart}
-              disabled={isOutOfStock}
-              aria-label={common.buyNow || 'Buy Now'}
-              className={`flex-1 border border-black tracking-wider text-[11px] sm:text-xs font-semibold uppercase text-center transition-all duration-300 ease-in-out whitespace-nowrap ${
-                isOutOfStock
-                  ? 'py-2.5 bg-gray-100 text-gray-400 border-gray-300 cursor-not-allowed'
-                  : isScrolled
-                  ? 'py-2.5 bg-black text-white hover:bg-neutral-800 active:scale-[0.98]'
-                  : 'py-3 bg-black text-white hover:bg-neutral-800 active:scale-[0.99]'
-              }`}
-            >
-              {isOutOfStock
-                ? (common.outOfStock || 'SOLD OUT').toUpperCase()
-                : isScrolled
-                ? 'BUY'
-                : (common.buyNow || 'BUY NOW').toUpperCase()}
-            </button>
+                {/* BUY NOW Button */}
+                <button
+                  type="button"
+                  name="buyNow"
+                  onClick={handleAddToCart}
+                  aria-label={common.buyNow || 'Buy Now'}
+                  className={`flex-1 border border-black tracking-wider text-[11px] sm:text-xs font-semibold uppercase text-center transition-all duration-300 ease-in-out whitespace-nowrap ${
+                    isScrolled
+                      ? 'py-2.5 bg-black text-white hover:bg-neutral-800 active:scale-[0.98]'
+                      : 'py-3 bg-black text-white hover:bg-neutral-800 active:scale-[0.99]'
+                  }`}
+                >
+                  {isScrolled
+                    ? 'BUY'
+                    : (common.buyNow || 'BUY NOW').toUpperCase()}
+                </button>
+              </>
+            )}
           </div>
 
           {/* Compact Price Display: Smoothly appears on the right when scrolled (matching Zara Screenshot 3) */}

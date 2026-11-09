@@ -85,8 +85,15 @@ const ProductGrid = ({ list = [], textColor = 'white' }) => {
     (Array.isArray(product?.filters) && product.filters.length > 0) ||
     (Array.isArray(product?.skus) && product.skus.length > 0);
 
+  const isProductComingSoon = (product) =>
+    Boolean(
+      product?.status === 'Coming Soon' ||
+      (!Number(product?.websitePrice || 0) && !Number(product?.price || 0))
+    );
+
   const getProductStockStatus = (product) =>
-    Number(product?.quantity || 0) <= 0 || product?.status === 'Out of stock';
+    !isProductComingSoon(product) &&
+    (Number(product?.quantity || 0) <= 0 || product?.status === 'Out of stock');
 
   const productsById = useMemo(() => {
     return list.reduce((acc, product) => {
@@ -262,8 +269,18 @@ const ProductGrid = ({ list = [], textColor = 'white' }) => {
 
                 <button
                   type="button"
-                  title={getProductStockStatus(product) ? common.soldOut : common.addToCart}
-                  disabled={getProductStockStatus(product) || addingProductId === product._id}
+                  title={
+                    isProductComingSoon(product)
+                      ? common.comingSoon || 'Coming Soon'
+                      : getProductStockStatus(product)
+                      ? common.soldOut
+                      : common.addToCart
+                  }
+                  disabled={
+                    isProductComingSoon(product) ||
+                    getProductStockStatus(product) ||
+                    addingProductId === product._id
+                  }
                   onClick={(e) => {
                     e.stopPropagation();
                     handleAddToCartClick(product);
@@ -275,8 +292,12 @@ const ProductGrid = ({ list = [], textColor = 'white' }) => {
                 </button>
               </div>
 
-              {/* Price / MRP */}
-              {product.price && product.websitePrice ? (
+              {/* Price / MRP / Status */}
+              {isProductComingSoon(product) ? (
+                <p className="text-xs text-amber-400 font-medium text-left">
+                  {common.comingSoon || 'Coming Soon'}
+                </p>
+              ) : product.price && product.websitePrice ? (
                 <div className="flex flex-wrap items-center justify-start gap-1.5 text-left text-white">
                   <span className="text-xs font-semibold sm:text-sm">
                     {formatConvertedPrice(product?.websitePrice)}

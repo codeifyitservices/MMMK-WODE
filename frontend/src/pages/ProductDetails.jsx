@@ -506,6 +506,18 @@ const ProductDetails = () => {
                             -{Math.round(((productData.price - productData.websitePrice) / productData.price) * 100)}% OFF
                           </span>
                         )}
+
+                        {/* Status Badge */}
+                        {isOutOfStock && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-red-950/40 text-red-400 border border-red-800/60">
+                            {common.outOfStock || 'Out of Stock'}
+                          </span>
+                        )}
+                        {isComingSoon && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-amber-950/40 text-amber-400 border border-amber-800/60">
+                            {common.comingSoon || 'Coming Soon'}
+                          </span>
+                        )}
                       </div>
 
                       {/* Tax Inclusive Note */}
@@ -565,21 +577,17 @@ const ProductDetails = () => {
                   {/* Actions & Quantity: Hidden on mobile/tablet (< lg) to match Zara layout (handled by sticky bottom bar), visible on desktop (>= lg) */}
                   <div className="hidden lg:block">
                     {isComingSoon ? (
-                      <button
-                        type="button"
-                        disabled
-                        className="w-full py-3 mt-4 text-xs font-semibold tracking-widest text-neutral-400 uppercase bg-neutral-900 border border-neutral-700 rounded-sm cursor-not-allowed"
-                      >
-                        {common.comingSoon || 'COMING SOON'}
-                      </button>
+                      <div className="mt-5 p-3 rounded border border-amber-500/20 bg-amber-950/20 text-center">
+                        <span className="text-xs font-semibold uppercase tracking-widest text-amber-400">
+                          {common.comingSoon || 'Coming Soon'}
+                        </span>
+                      </div>
                     ) : isOutOfStock ? (
-                      <button
-                        type="button"
-                        disabled
-                        className="w-full py-3 mt-4 text-xs font-semibold tracking-widest text-neutral-400 uppercase bg-neutral-900 border border-neutral-700 rounded-sm cursor-not-allowed"
-                      >
-                        {common.outOfStock || 'OUT OF STOCK'}
-                      </button>
+                      <div className="mt-5 p-3 rounded border border-red-500/20 bg-red-950/20 text-center">
+                        <span className="text-xs font-semibold uppercase tracking-widest text-red-400">
+                          {common.outOfStock || 'Out of Stock'}
+                        </span>
+                      </div>
                     ) : (
                       <>
                         <div className="flex items-center gap-3 mt-5">
@@ -766,21 +774,13 @@ const ProductDetails = () => {
             }`}
           >
             {isComingSoon ? (
-              <button
-                type="button"
-                disabled
-                className="w-full py-3 bg-neutral-900 text-neutral-400 border border-neutral-700 cursor-not-allowed tracking-wider text-[11px] sm:text-xs font-semibold uppercase text-center"
-              >
-                {(common.comingSoon || 'COMING SOON').toUpperCase()}
-              </button>
+              <div className="w-full py-2.5 text-center text-xs font-semibold uppercase tracking-wider text-amber-400 bg-neutral-900 border border-neutral-800">
+                {common.comingSoon || 'Coming Soon'}
+              </div>
             ) : isOutOfStock ? (
-              <button
-                type="button"
-                disabled
-                className="w-full py-3 bg-neutral-900 text-neutral-400 border border-neutral-700 cursor-not-allowed tracking-wider text-[11px] sm:text-xs font-semibold uppercase text-center"
-              >
-                {(common.outOfStock || 'OUT OF STOCK').toUpperCase()}
-              </button>
+              <div className="w-full py-2.5 text-center text-xs font-semibold uppercase tracking-wider text-red-400 bg-neutral-900 border border-neutral-800">
+                {common.outOfStock || 'Out of Stock'}
+              </div>
             ) : (
               <>
                 {/* ADD TO CART Button */}

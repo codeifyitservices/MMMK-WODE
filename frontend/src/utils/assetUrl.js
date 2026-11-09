@@ -6,8 +6,10 @@ const ASSET_BASE_URL = (
   LIVE_UPLOADS_URL
 ).replace(/\/$/, '');
 
-const LOCAL_BACKEND_UPLOADS = `${(
-  import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001'
+const BACKEND_UPLOADS_URL = `${(
+  import.meta.env.VITE_BACKEND_URL ||
+  import.meta.env.VITE_SHARED_UPLOAD_BASE_URL ||
+  'http://localhost:3001'
 ).replace(/\/$/, '')}/uploads`;
 
 export const DEFAULT_FALLBACK_IMAGE =
@@ -92,9 +94,10 @@ export const getAssetFallbackUrl = (value = '') => {
   const filename = getFileNameFromAsset(value);
   if (!filename) return DEFAULT_FALLBACK_IMAGE;
 
-  // In local development, if primary resolution points to remote CDN, fall back to local backend
-  if (isLocalEnvironment()) {
-    return `${LOCAL_BACKEND_UPLOADS}/${filename}`;
+  // Fall back to active backend /uploads (e.g. Render in production or localhost in dev)
+  // whenever primary CDN resolution does not point to it
+  if (BACKEND_UPLOADS_URL && !ASSET_BASE_URL.startsWith(BACKEND_UPLOADS_URL)) {
+    return `${BACKEND_UPLOADS_URL}/${filename}`;
   }
 
   return DEFAULT_FALLBACK_IMAGE;

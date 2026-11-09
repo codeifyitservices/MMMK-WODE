@@ -97,7 +97,7 @@ const CategoryModal = ({
       });
       if (currentEditCategory) form.setFieldsValue(currentEditCategory);
 
-      if (currentEditCategory?.image && isLocalEnvironment()) {
+      if (currentEditCategory?.image) {
         const testImg = new window.Image();
         testImg.onerror = () => {
           const fallbackUrl = getAssetFallbackUrl(currentEditCategory.image);

@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import productImg from '../../assets/product4-trans.jpeg';
 import { useCart } from '../../context/CartProvider';
 import { getCartItems, addCartItem } from '../../apis/user/cart';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getRandomProducts, getProductSkus } from '../../apis/nonAuth/products';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -28,6 +28,7 @@ const SavedItems = () => {
   const formatConvertedPrice = (amount) =>
     formatPrice(convertPrice(amount, currency, rates), currency);
   const { data, refetch: refetchCart } = useCart();
+  const queryClient = useQueryClient();
   const [cartList, setCartList] = useState([]);
   const [wishlistItems, setWishlistItems] = useState([]);
   const [productList, setProductList] = useState([]);
@@ -80,6 +81,7 @@ const SavedItems = () => {
       notification.success({ message: 'Moved to cart successfully' });
       refetchWishList();
       refetchCart();
+      queryClient.invalidateQueries({ queryKey: ['wish-list'] });
     } catch (err) {
       notification.error({ message: err.message || 'Failed to move to cart' });
     }
@@ -243,6 +245,7 @@ const SavedItems = () => {
       });
       notification.success({ message: 'Removed from wishlist successfully' });
       refetchWishList();
+      queryClient.invalidateQueries({ queryKey: ['wish-list'] });
     } catch (err) {
       notification.error({ message: 'Failed to remove from wishlist' });
     }

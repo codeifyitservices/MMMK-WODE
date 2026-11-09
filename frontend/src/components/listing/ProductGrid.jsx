@@ -2,9 +2,9 @@ import { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslationContext } from '../../context/TranslationContext';
 import { FiHeart, FiPlus } from 'react-icons/fi';
+import { FaHeart } from 'react-icons/fa';
 import { message, notification } from 'antd';
-import { addItemToWishList } from '../../apis/user/wishList';
-import { getStoredUserId } from '../../utils/authStorage';
+import { useWishlist } from '../../context/WishlistContext';
 import { convertPrice, formatPrice } from '../../utils/currency';
 import { useCurrency } from '../../context/CurrencyContext';
 import { useQueryClient } from '@tanstack/react-query';
@@ -20,6 +20,7 @@ const ProductGrid = ({ list = [], textColor = 'white' }) => {
   const { currency, rates } = useCurrency();
   const queryClient = useQueryClient();
   const { addProductToCart } = useCart();
+  const { isWishlisted, toggleWishlist } = useWishlist();
   const [variantModalProduct, setVariantModalProduct] = useState(null);
   const [variantModalSkus, setVariantModalSkus] = useState([]);
   const [variantModalLoading, setVariantModalLoading] = useState(false);
@@ -186,34 +187,7 @@ const ProductGrid = ({ list = [], textColor = 'white' }) => {
     setVariantModalLoading(false);
   };
 
-  const handleAddWishList = async (id) => {
-    const userId = getStoredUserId();
-    if (!userId) {
-      notification.error({
-        message: common.signInToContinue || 'Please sign in to continue',
-        placement: 'topRight',
-      });
-      navigate('/auth', { state: { from: window.location.pathname } });
-      return null;
-    }
 
-    try {
-      await addItemToWishList({
-        productId: id,
-        userId,
-      });
-      notification.success({
-        message: common.wishlistAdded,
-        placement: 'topRight',
-      });
-    } catch (err) {
-      
-      notification.error({
-        message: common.wishlistAddFailed,
-        placement: 'topRight',
-      });
-    }
-  };
 
   const navigate = useNavigate();
   return list?.length > 0 ? (
@@ -230,15 +204,23 @@ const ProductGrid = ({ list = [], textColor = 'white' }) => {
           >
             <button
               type="button"
-              title={common.addToWishlist}
+              title={
+                isWishlisted(product._id)
+                  ? common?.removeFromWishlist || 'Remove from Wishlist'
+                  : common?.addToWishlist || 'Add to Wishlist'
+              }
               onClick={(e) => {
                 e.stopPropagation();
-                handleAddWishList(product._id);
+                toggleWishlist(product._id, getProductName(product));
               }}
-              aria-label={`${common.addToWishlist} ${getProductName(product)}`}
-              className="absolute top-2 right-2 z-20"
+              aria-label={`${isWishlisted(product._id) ? 'Remove from Wishlist' : common?.addToWishlist || 'Add to Wishlist'} ${getProductName(product)}`}
+              className="absolute top-2 right-2 sm:top-3 sm:right-4 z-20 p-1"
             >
-              <FiHeart className="absolute right-1 top-1 h-5 w-5 text-red-500 sm:right-4 sm:top-2 sm:h-6 sm:w-6 transition-transform hover:scale-110" />
+              {isWishlisted(product._id) ? (
+                <FaHeart className="h-5 w-5 text-red-500 fill-red-500 sm:h-6 sm:w-6 transition-transform hover:scale-110 drop-shadow" />
+              ) : (
+                <FiHeart className="h-5 w-5 text-red-500 sm:h-6 sm:w-6 transition-transform hover:scale-110" />
+              )}
             </button>
 
             <div className="flex flex-col gap-2 text-center">

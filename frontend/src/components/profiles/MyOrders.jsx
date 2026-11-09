@@ -165,37 +165,39 @@ const MyOrders = () => {
       key: 'action',
       align: 'center',
       fixed: 'right',
-      width: 120,
+      width: 170,
       render: (_, record) => {
         const isCancellable =
           ['Pending', 'Processing'].includes(record?.status) &&
           !['In Transit', 'Out for Delivery', 'Delivered'].includes(record?.deliveryStatus);
 
         return (
-          <div className="flex items-center justify-center gap-1">
-            <Button
-              type="link"
+          <div className="flex items-center justify-center gap-2">
+            <button
+              type="button"
               onClick={() => setActiveOrder(record)}
-              icon={<FaEye />}
-              title="View Order"
-            />
+              className="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-semibold uppercase tracking-wider text-black bg-gray-100 border border-gray-300 rounded-full hover:bg-black hover:text-white hover:border-black transition-all duration-200 cursor-pointer shadow-sm"
+              title="View Order Details"
+            >
+              <FaEye size={12} />
+              <span>{profile.view || 'View'}</span>
+            </button>
             {isCancellable && (
               <Popconfirm
                 title="Cancel Order"
                 description="Are you sure you want to cancel this order?"
                 okText="Yes, Cancel"
                 cancelText="No"
-                okButtonProps={{ danger: true }}
+                okButtonProps={{ danger: true, style: { background: '#dc2626' } }}
                 onConfirm={() => handleCancelOrder(record._id)}
               >
-                <Button
-                  type="link"
-                  danger
+                <button
+                  type="button"
+                  className="inline-flex items-center px-3 py-1 text-xs font-semibold uppercase tracking-wider text-red-700 bg-red-50 border border-red-200 rounded-full hover:bg-red-600 hover:text-white hover:border-red-600 transition-all duration-200 cursor-pointer shadow-sm"
                   title="Cancel Order"
-                  className="p-0 text-red-500 hover:text-red-700 text-xs font-semibold"
                 >
-                  Cancel
-                </Button>
+                  {profile.cancel || 'Cancel'}
+                </button>
               </Popconfirm>
             )}
           </div>

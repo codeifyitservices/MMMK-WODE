@@ -194,7 +194,9 @@ const ParticularOrder = ({ activeOrder, setActiveOrder }) => {
                   />
                   <div className="flex-1">
                     <h3 className="text-lg font-semibold">
-                      {product.sku === 'MMMK-BAG' ? 'MMMK Exclusive Bag' : (activeOrder.translated?.[`productName_${index}`] || product?.name)}
+                      {product.sku === 'MMMK-BAG'
+                        ? 'MMMK Exclusive Bag'
+                        : (activeOrder.translated?.[`productName_${index}`] || product?.name || product?.id?.productName?.en || 'Product')}
                     </h3>
                     <div className="flex items-center justify-between mt-2">
                       <div className="flex items-center gap-4">
@@ -305,9 +307,9 @@ const ParticularOrder = ({ activeOrder, setActiveOrder }) => {
             <h4 className="font-semibold">{profile.contactInformation}</h4>
             <p className="text-gray-600">
               <span className="font-semibold">{profile.phone}: </span>
-              {activeOrder?.userId?.contactNumber || 'N/A'} <br />
+              {activeOrder?.userId?.contactNumber || activeOrder?.shippingAddress?.phoneNumber || activeOrder?.shippingAddress?.phone || 'N/A'} <br />
               <span className="font-semibold">{profile.email}: </span>
-              {activeOrder?.userId?.email}
+              {activeOrder?.userId?.email || activeOrder?.shippingAddress?.email || 'N/A'}
             </p>
           </div>
 

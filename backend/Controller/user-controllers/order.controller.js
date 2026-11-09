@@ -335,13 +335,15 @@ const getOrders = async (req, res) => {
     const limitNum = Math.max(1, parseInt(limit));
     const skip = (pageNum - 1) * limitNum;
     
-    // Optimized query: Select only needed fields and use lean for faster execution
     const data = await Order.find(filter)
-      .select('orderId createdAt status mode price paymentStatus totalQuantity temp currency')
       .populate({
         path: "products.id",
         model: "Product",
-        select: "productName images" // Only select needed fields from product
+        select: "productName images discount price",
+      })
+      .populate({
+        path: "userId",
+        select: "firstName lastName email contactNumber phone",
       })
       .sort({ createdAt: -1 })
       .skip(skip)
@@ -484,13 +486,14 @@ async function getOrderByIdPublic(req, res) {
     }
 
     const order = await Order.findOne({ orderId })
-      .select(
-        "orderId createdAt status mode price paymentStatus totalQuantity temp currency amount creditsUsed amountDueCOD amountPaidOnline jura_order_id depoter_order_id juraSyncStatus depoterSyncStatus juraSyncError depoterSyncError stripeSessionId"
-      )
       .populate({
         path: "products.id",
         model: "Product",
-        select: "productName images",
+        select: "productName images discount price",
+      })
+      .populate({
+        path: "userId",
+        select: "firstName lastName email contactNumber phone",
       })
       .lean();
 

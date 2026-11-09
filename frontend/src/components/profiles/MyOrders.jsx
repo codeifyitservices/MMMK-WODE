@@ -167,9 +167,13 @@ const MyOrders = () => {
     },
   ];
 
-  return activeOrder ? (
+  const currentActiveOrder = activeOrder
+    ? Orders.data?.data?.find((o) => o._id === activeOrder._id) || activeOrder
+    : null;
+
+  return currentActiveOrder ? (
     <ParticularOrder
-      activeOrder={activeOrder}
+      activeOrder={currentActiveOrder}
       setActiveOrder={setActiveOrder}
     />
   ) : (

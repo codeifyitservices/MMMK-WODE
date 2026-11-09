@@ -9,7 +9,7 @@ import ProductDetailsSkeleton from '../components/details/ProductDetailsSkeleton
 import bg from '../assets/bg.png';
 import { useQuery } from '@tanstack/react-query';
 import Section10 from '../components/home/Section10';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { message, notification } from 'antd';
 import {
   getProductSkus,
@@ -424,7 +424,7 @@ const ProductDetails = () => {
           {/* navbar */}
           <CategoryNavBar />
 
-          {query.isLoading ? (
+          {(query.isLoading || query.isPending) ? (
             <div className="min-h-[500px] flex flex-col items-center justify-center text-center p-8">
               <div className="inline-block h-10 w-10 animate-spin rounded-full border-4 border-solid border-[#dfba73] border-r-transparent" />
               <p className="mt-4 text-sm text-gray-300">{common.loading || 'Loading product...'}</p>

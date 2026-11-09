@@ -19,14 +19,15 @@ export const resolveAssetUrl = (value = '') => {
     try {
       const parsedUrl = new URL(value);
       const host = parsedUrl.hostname.toLowerCase();
-      const isLocalHost =
+      const isLegacyHost =
         host === 'localhost' ||
         host === '127.0.0.1' ||
         host === '0.0.0.0' ||
-        host.endsWith('.local');
+        host.endsWith('.local') ||
+        host.includes('codenap.in');
 
-      // If an absolute URL points to a local uploads server, redirect to live assets
-      if (isLocalHost && parsedUrl.pathname.includes('/uploads/')) {
+      // If an absolute URL points to a local or legacy staging uploads server, redirect to live assets
+      if (isLegacyHost && parsedUrl.pathname.includes('/uploads/')) {
         const filename = parsedUrl.pathname.split('/uploads/').pop()?.replace(/^\/+/, '');
         return filename ? `${ASSET_BASE_URL}/${filename}` : value;
       }
@@ -46,7 +47,7 @@ export const resolveAssetUrl = (value = '') => {
   return `${ASSET_BASE_URL}/${filename}`;
 };
 
-const getFileNameFromAsset = (value = '') => {
+export const getFileNameFromAsset = (value = '') => {
   if (!value) return '';
 
   if (isAbsoluteAssetUrl(value)) {

@@ -1,10 +1,10 @@
 /* eslint-disable react/prop-types */
 /* eslint-disable no-unused-vars */
-import { Table, Button, Empty } from 'antd';
+import { Table, Button, Empty, Popconfirm, message } from 'antd';
 import { FaEye, FaExchangeAlt } from 'react-icons/fa';
 import { TbGiftCard } from 'react-icons/tb';
 import { useQuery } from '@tanstack/react-query';
-import { getOrders } from '../../apis/user/order';
+import { getOrders, cancelOrder } from '../../apis/user/order';
 import { useState } from 'react';
 import ParticularOrder from './ParticularOrder';
 import { LuSearch } from 'react-icons/lu';
@@ -42,6 +42,16 @@ const MyOrders = () => {
       current: newPagination.current,
       pageSize: newPagination.pageSize,
     });
+  };
+
+  const handleCancelOrder = async (orderId) => {
+    try {
+      await cancelOrder(orderId);
+      message.success(profile.orderCancelledSuccess || 'Order cancelled successfully');
+      Orders.refetch();
+    } catch (err) {
+      message.error(err?.response?.data?.message || 'Failed to cancel order');
+    }
   };
 
   const columns = [
@@ -155,15 +165,42 @@ const MyOrders = () => {
       key: 'action',
       align: 'center',
       fixed: 'right',
-      width: 80,
-      render: (_, record) => (
-        <Button
-          type="link"
-          onClick={() => setActiveOrder(record)}
-          icon={<FaEye />}
-          title="View Order"
-        />
-      ),
+      width: 120,
+      render: (_, record) => {
+        const isCancellable =
+          ['Pending', 'Processing'].includes(record?.status) &&
+          !['In Transit', 'Out for Delivery', 'Delivered'].includes(record?.deliveryStatus);
+
+        return (
+          <div className="flex items-center justify-center gap-1">
+            <Button
+              type="link"
+              onClick={() => setActiveOrder(record)}
+              icon={<FaEye />}
+              title="View Order"
+            />
+            {isCancellable && (
+              <Popconfirm
+                title="Cancel Order"
+                description="Are you sure you want to cancel this order?"
+                okText="Yes, Cancel"
+                cancelText="No"
+                okButtonProps={{ danger: true }}
+                onConfirm={() => handleCancelOrder(record._id)}
+              >
+                <Button
+                  type="link"
+                  danger
+                  title="Cancel Order"
+                  className="p-0 text-red-500 hover:text-red-700 text-xs font-semibold"
+                >
+                  Cancel
+                </Button>
+              </Popconfirm>
+            )}
+          </div>
+        );
+      },
     },
   ];
 

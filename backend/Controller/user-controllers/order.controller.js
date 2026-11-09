@@ -13,16 +13,20 @@ const { localizeValue } = require("../../utils/localization");
 const {
   sendOrderToJura,
   extractJuraOrderId,
+  sendOrderUpdateToJura,
 } = require("../../utils/juraDelivery");
 const {
   deductStockForOrder,
   validateStockAvailability,
+  restockItems,
 } = require("../../utils/stockService");
 const {
   normalizeAmount,
   resolveRequestedCredit,
   deductCreditsFromUser,
+  restoreCreditsToUser,
 } = require("../../utils/creditService");
+const { reverseOrderCommission } = require("../../services/influencerCommissionService");
 const {
   assertCouponUsableByUser,
   recordCouponUsageForOrder,
@@ -473,7 +477,130 @@ const requestReturnExchange = async (req, res) => {
   }
 };
 
-module.exports = { createOrder, getOrders, requestReturnExchange, getOrderByIdPublic };
+const cancelUserOrder = async (req, res) => {
+  try {
+    const { orderId } = req.params;
+    const { reason = "" } = req.body || {};
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Unauthorized",
+      });
+    }
+
+    const orderQuery = {
+      userId,
+      $or: [
+        ...(mongoose.isValidObjectId(orderId) ? [{ _id: orderId }] : []),
+        { orderId: String(orderId).trim() },
+      ],
+    };
+
+    const order = await Order.findOne(orderQuery);
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
+    if (order.status === "Cancelled") {
+      return res.status(400).json({
+        success: false,
+        message: "Order is already cancelled",
+      });
+    }
+
+    const nonCancellableDeliveryStatuses = ["In Transit", "Out for Delivery", "Delivered"];
+    if (
+      nonCancellableDeliveryStatuses.includes(order.deliveryStatus) ||
+      order.status === "Complete"
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "Order has already been dispatched or delivered and cannot be cancelled",
+      });
+    }
+
+    order.status = "Cancelled";
+    order.temp = {
+      ...(order.temp || {}),
+      cancelReason: reason || "Cancelled by user",
+      cancelledAt: new Date().toISOString(),
+      cancelledBy: "user",
+    };
+
+    // Restock items if stock was deducted
+    if (order.stockAdjusted && Array.isArray(order.products) && order.products.length > 0) {
+      try {
+        await restockItems(order.products);
+        order.stockAdjusted = false;
+      } catch (stockErr) {
+        console.error("[CancelOrder] Stock restock error:", stockErr);
+      }
+    }
+
+    // Restore credits if user applied credits
+    if (order.creditsUsed > 0 && order.creditsDeducted && !order.creditsRestored) {
+      try {
+        await restoreCreditsToUser(order.userId, order.creditsUsed, null, order.orderId);
+        order.creditsRestored = true;
+      } catch (creditErr) {
+        console.error("[CancelOrder] Credit restore error:", creditErr);
+      }
+    }
+
+    // Reverse influencer commission if attributed
+    try {
+      if (typeof reverseOrderCommission === "function") {
+        await reverseOrderCommission(order._id, "User cancelled order");
+      }
+    } catch (commErr) {
+      console.warn("[CancelOrder] Influencer commission reverse error:", commErr?.message);
+    }
+
+    await order.save();
+
+    // Notify Jura if order was synced
+    try {
+      if (order.jura_order_id || order.depoter_order_id) {
+        const orderForSync = await Order.findById(order._id).populate("products.id");
+        await sendOrderUpdateToJura(orderForSync);
+      }
+    } catch (juraErr) {
+      console.warn("[CancelOrder] Jura update error:", juraErr?.message);
+    }
+
+    const updatedOrder = await Order.findById(order._id)
+      .populate({
+        path: "products.id",
+        model: "Product",
+        select: "productName images discount price",
+      })
+      .populate({
+        path: "userId",
+        select: "firstName lastName email contactNumber phone",
+      })
+      .lean();
+
+    return res.status(200).json({
+      success: true,
+      message: "Order cancelled successfully",
+      data: updatedOrder,
+    });
+  } catch (err) {
+    console.error("Cancel user order error:", err);
+    return res.status(500).json({
+      success: false,
+      message: err.message || "Failed to cancel order",
+    });
+  }
+};
+
+module.exports = { createOrder, getOrders, requestReturnExchange, cancelUserOrder, getOrderByIdPublic };
 
 // ─── Public: look up a single order by its orderId string (no auth required) ──
 // The orderId is a long unguessable string, so exposing it publicly is safe.

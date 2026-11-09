@@ -127,6 +127,15 @@ const getCategoryKeywords = (categoryName = "") => {
   return Array.from(keywords);
 };
 
+const isPluralMatch = (a, b) => {
+  if (a === b) return true;
+  if (a.endsWith("s") && a.slice(0, -1) === b) return true;
+  if (a.endsWith("es") && a.slice(0, -2) === b) return true;
+  if (b.endsWith("s") && b.slice(0, -1) === a) return true;
+  if (b.endsWith("es") && b.slice(0, -2) === a) return true;
+  return false;
+};
+
 const scoreTokens = (queryTokens, targetTokens) => {
   if (!queryTokens.length || !targetTokens.length) return 0;
 
@@ -137,7 +146,7 @@ const scoreTokens = (queryTokens, targetTokens) => {
   for (const qToken of effectiveQueryTokens) {
     let bestTokenScore = 0;
     for (const tToken of targetTokens) {
-      if (tToken === qToken) {
+      if (tToken === qToken || isPluralMatch(qToken, tToken)) {
         bestTokenScore = Math.max(bestTokenScore, 1.0);
       } else if (tToken.startsWith(qToken) && qToken.length >= 2) {
         // Prefix match: e.g. "perf" -> "perfume", "biki" -> "bikini"
@@ -200,9 +209,12 @@ const scoreCategory = (query, category) => {
 
   const catName = category.name?.en || "";
   const catKeywords = getCategoryKeywords(catName);
-  const subCategories = Array.isArray(category.subCategory)
-    ? category.subCategory
-    : [];
+  const subCategories = [
+    ...(Array.isArray(category.subcategories)
+      ? category.subcategories.map((s) => (typeof s === "string" ? s : s?.en))
+      : []),
+    ...(Array.isArray(category.subCategory) ? category.subCategory : []),
+  ].filter(Boolean);
 
   const allTargetTokens = [
     ...catKeywords.flatMap((k) => normalizeText(k).split(" ")),
@@ -242,7 +254,7 @@ const searchCatalog = async (query, options = {}) => {
   const [categories, products] = await Promise.all([
     includeCategories
       ? Category.find({})
-          .select("name subCategory createdAt")
+          .select("name subCategory subcategories createdAt")
           .lean()
       : Promise.resolve([]),
     includeProducts

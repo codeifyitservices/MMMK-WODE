@@ -527,25 +527,51 @@ const ShoppingCart = () => {
                         >
                         <div className="flex flex-col items-center md:flex-row md:items-start gap-4">
                           {/* Product Image */}
-                          <img
-                            src={
-                              resolveAssetUrl(list?.product?.images?.[0])
-                            }
-                            className="object-cover rounded-lg shadow-md w-[180px] md:w-[220px] border"
-                            alt={list.translated?.productName || list?.product?.productName?.en || ''}
-                          />
+                          {list?.product?._id ? (
+                            <Link
+                              to={`/product-details/${list.product._id}`}
+                              className="block shrink-0 cursor-pointer transition-opacity hover:opacity-90"
+                            >
+                              <img
+                                src={
+                                  resolveAssetUrl(list?.product?.images?.[0])
+                                }
+                                className="object-cover rounded-lg shadow-md w-[180px] md:w-[220px] border cursor-pointer"
+                                alt={list.translated?.productName || list?.product?.productName?.en || ''}
+                              />
+                            </Link>
+                          ) : (
+                            <img
+                              src={
+                                resolveAssetUrl(list?.product?.images?.[0])
+                              }
+                              className="object-cover rounded-lg shadow-md w-[180px] md:w-[220px] border"
+                              alt={list.translated?.productName || list?.product?.productName?.en || ''}
+                            />
+                          )}
 
                           {/* Product Info */}
                           <div className="flex-1 mt-2">
                             <div className="flex items-center gap-2">
-                              <h3 className="font-semibold text-lg text-gray-800">
-                                {list.translated?.productName || list?.product?.productName?.en}
-                              </h3>
-                              {list?.filters && (
+                              {list?.product?._id ? (
+                                <Link
+                                  to={`/product-details/${list.product._id}`}
+                                  className="cursor-pointer hover:underline text-gray-800 hover:text-black"
+                                >
+                                  <h3 className="font-semibold text-lg text-gray-800 hover:text-black">
+                                    {list.translated?.productName || list?.product?.productName?.en}
+                                  </h3>
+                                </Link>
+                              ) : (
+                                <h3 className="font-semibold text-lg text-gray-800">
+                                  {list.translated?.productName || list?.product?.productName?.en}
+                                </h3>
+                              )}
+                              {list?.filters && Object.keys(list.filters).length > 0 && (
                                 <span>
                                   (
-                                  {Object.keys(list?.filters || {})
-                                    .map((key) => `${key}: ${list?.filters[key]}`)
+                                  {Object.keys(list.filters)
+                                    .map((key) => `${key}: ${list.filters[key]}`)
                                     .join(', ')}
                                   )
                                 </span>

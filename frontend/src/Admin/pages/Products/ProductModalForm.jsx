@@ -758,7 +758,7 @@ const PrimaryDetails = ({
         previewImage: '',
       });
 
-      if (selected && isLocalEnvironment()) {
+      if (selected) {
         if (selected.image) {
           const testImg = new window.Image();
           testImg.onerror = () => {

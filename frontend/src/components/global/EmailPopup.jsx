@@ -21,6 +21,10 @@ const EXCLUDED_PREFIXES = [
   '/forget-password',
 ];
 
+// Module-scoped in-memory flag: survives client-side route transitions,
+// automatically resets to false on browser page refresh
+let isSessionDismissed = false;
+
 const EmailPopup = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -48,6 +52,18 @@ const EmailPopup = () => {
     try {
       localStorage.removeItem(STORAGE_KEY_DISMISSED_UNTIL);
     } catch (_) {}
+
+    // Suppress if already claimed coupon in localStorage
+    const hasClaimedCoupon =
+      localStorage.getItem(STORAGE_KEY_SUBSCRIBED) === 'true';
+    if (!isForceTest && hasClaimedCoupon) {
+      return;
+    }
+
+    // Suppress if dismissed in this session (survives route navigation)
+    if (!isForceTest && isSessionDismissed) {
+      return;
+    }
 
     if (isExcludedRoute) return;
 
@@ -104,9 +120,8 @@ const EmailPopup = () => {
   }, [location.pathname, location.search, location.hash, isExcludedRoute, isForceTest]);
 
   const handleDismiss = () => {
+    isSessionDismissed = true;
     setIsOpen(false);
-    // Dismissing only closes the current popup view.
-    // It will show again on browser refresh if user hasn't submitted their email.
   };
 
   const handleSubscribe = async (e) => {
@@ -133,6 +148,7 @@ const EmailPopup = () => {
       });
 
       if (response?.success) {
+        isSessionDismissed = true;
         // Mark as subscribed and record email for dynamic DB synchronization
         try {
           localStorage.setItem(STORAGE_KEY_SUBSCRIBER_EMAIL, cleanEmail);
@@ -166,6 +182,7 @@ const EmailPopup = () => {
   };
 
   const handleShopNow = () => {
+    isSessionDismissed = true;
     setIsOpen(false);
     navigate('/product-listings');
   };

@@ -56,6 +56,9 @@ const InfluencerOrdersPage = lazy(() => import('../pages/influencer/InfluencerOr
 const InfluencerWalletPage = lazy(() => import('../pages/influencer/InfluencerWalletPage'));
 const InfluencerProfilePage = lazy(() => import('../pages/influencer/InfluencerProfilePage'));
 
+// CMS Dynamic Custom Pages
+const CustomStaticPage = lazy(() => import('../pages/CustomStaticPage'));
+
 // Add more lazy imports as needed
 const PageNotFound = lazy(() => import('../layout/PageNotFound').catch(() => { window.location.reload(); }));
 
@@ -422,6 +425,24 @@ export default function SiteRouter() {
             element={
               <Suspense fallback={<SiteLoading />}>
                 <InfluencerApplyPage />
+              </Suspense>
+            }
+          />
+
+          {/* Dynamic CMS Custom & Static Pages */}
+          <Route
+            path="/page/:slug"
+            element={
+              <Suspense fallback={<SiteLoading />}>
+                <CustomStaticPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/:slug"
+            element={
+              <Suspense fallback={<SiteLoading />}>
+                <CustomStaticPage />
               </Suspense>
             }
           />

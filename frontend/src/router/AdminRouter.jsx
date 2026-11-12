@@ -68,6 +68,10 @@ const InfluencerPayoutsAdminPage = lazy(() => import('../Admin/pages/Influencers
 const NewsletterSubscribersPage = lazy(() => import('../Admin/pages/Marketing/NewsletterSubscribersPage').catch(() => { window.location.reload(); }));
 const NewsletterPopupSettingsPage = lazy(() => import('../Admin/pages/Marketing/NewsletterPopupSettingsPage').catch(() => { window.location.reload(); }));
 
+// SEO & CMS Pages
+const SeoSettingsPage = lazy(() => import('../Admin/pages/SEO/SeoSettingsPage').catch(() => { window.location.reload(); }));
+const PagesManagementPage = lazy(() => import('../Admin/pages/SEO/PagesManagementPage').catch(() => { window.location.reload(); }));
+
 export default function AdminRouter() {
   return (
     <AdminProtectedRoute>
@@ -373,6 +377,43 @@ export default function AdminRouter() {
               }
             />
           </Route>
+          {/* SEO & CMS Pages Suite */}
+          <Route path="cms">
+            <Route index element={<Navigate to="seo-settings" replace />} />
+            <Route
+              path="seo-settings"
+              element={
+                <AdminSidebar>
+                  <SeoSettingsPage />
+                </AdminSidebar>
+              }
+            />
+            <Route
+              path="pages"
+              element={
+                <AdminSidebar>
+                  <PagesManagementPage />
+                </AdminSidebar>
+              }
+            />
+          </Route>
+          <Route
+            path="seo-settings"
+            element={
+              <AdminSidebar>
+                <SeoSettingsPage />
+              </AdminSidebar>
+            }
+          />
+          <Route
+            path="pages"
+            element={
+              <AdminSidebar>
+                <PagesManagementPage />
+              </AdminSidebar>
+            }
+          />
+
           <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />
         </Routes>
       </AdminProvider>

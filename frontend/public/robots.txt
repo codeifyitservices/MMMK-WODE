@@ -9,4 +9,4 @@ Disallow: /checkout
 Disallow: /shopping-cart
 Disallow: /profile/
 
-Sitemap: https://mmk.projects.codenap.in/sitemap.xml
+Sitemap: https://mmmk-wode.com/sitemap.xml

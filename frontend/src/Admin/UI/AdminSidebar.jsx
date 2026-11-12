@@ -27,6 +27,7 @@ import {
   TrendingUp,
   Eye,
   Sparkles,
+  Globe,
 } from 'lucide-react';
 import { FaGift } from 'react-icons/fa';
 import { cn } from '../../utils/cn';
@@ -185,6 +186,24 @@ export default function AdminSidebar({ children }) {
             label: 'Payout Requests',
             title: 'Payout Requests',
             key: '/admin/influencers/payouts',
+          },
+        ],
+      },
+      {
+        icon: <Globe size={15} />,
+        label: 'Site Content (SEO)',
+        title: 'Site Content (SEO)',
+        key: '/admin/cms',
+        children: [
+          {
+            label: 'SEO Settings',
+            title: 'SEO Settings',
+            key: '/admin/cms/seo-settings',
+          },
+          {
+            label: 'Pages Management',
+            title: 'Pages Management',
+            key: '/admin/cms/pages',
           },
         ],
       },

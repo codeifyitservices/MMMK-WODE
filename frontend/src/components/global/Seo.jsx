@@ -1,80 +1,115 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
 import { useTranslationContext } from '../../context/TranslationContext';
+import {
+  setMetaTag,
+  setLinkTag,
+  injectJsonLd,
+  removeJsonLd,
+} from '../../utils/seoHelper';
 
-const DEFAULT_TITLE = 'MMMK Wode | Luxury Ecommerce';
+const BACKEND_URL =
+  import.meta.env.VITE_BACKEND_URL || 'http://localhost:3001';
+
+const DEFAULT_TITLE = 'MMMK WODE | Luxury Ecommerce';
 const DEFAULT_DESCRIPTION =
-  'Shop luxury jewelry, fragrance, swimwear, and curated fashion collections from MMMK Wode.';
+  'Shop luxury jewelry, fragrance, swimwear, and curated fashion collections from MMMK WODE.';
 
 const META_BY_PATH = {
   '/': {
-    title: 'MMMK Wode | Luxury Jewelry, Fragrance & Swimwear',
+    title: 'MMMK WODE | Luxury Jewelry, Fragrance & Swimwear',
     description:
-      'Discover luxury jewelry, fragrance, swimwear, and curated fashion collections from MMMK Wode.',
+      'Discover luxury jewelry, fragrance, swimwear, and curated fashion collections from MMMK WODE.',
   },
   '/product-listings': {
-    title: 'Shop Collections | MMMK Wode',
+    title: 'Shop Collections | MMMK WODE',
     description:
-      'Browse curated product listings across jewelry, fragrance, swimwear, and fashion at MMMK Wode.',
+      'Browse curated product listings across jewelry, fragrance, swimwear, and fashion at MMMK WODE.',
   },
   '/about-us': {
-    title: 'About MMMK Wode',
+    title: 'About MMMK WODE',
     description:
-      'Learn about MMMK Wode, our story, and the luxury lifestyle collections we create.',
+      'Learn about MMMK WODE, our story, and the luxury lifestyle collections we create.',
   },
   '/contact-us': {
-    title: 'Contact MMMK Wode',
+    title: 'Contact MMMK WODE',
     description:
-      'Reach out to MMMK Wode customer support for product, order, and store enquiries.',
+      'Reach out to MMMK WODE customer support for product, order, and store enquiries.',
   },
   '/gift-cards': {
-    title: 'Gift Cards | MMMK Wode',
+    title: 'Gift Cards | MMMK WODE',
     description:
-      'Buy gift cards from MMMK Wode for luxury shopping and curated gifting.',
+      'Buy gift cards from MMMK WODE for luxury shopping and curated gifting.',
   },
   '/shopping-cart': {
-    title: 'Shopping Cart | MMMK Wode',
-    description: 'Review the items in your MMMK Wode shopping cart before checkout.',
+    title: 'Shopping Cart | MMMK WODE',
+    description:
+      'Review the items in your MMMK WODE shopping cart before checkout.',
   },
   '/auth': {
-    title: 'Sign In | MMMK Wode',
-    description: 'Sign in to your MMMK Wode account to manage orders and saved items.',
+    title: 'Sign In | MMMK WODE',
+    description:
+      'Sign in to your MMMK WODE account to manage orders and saved items.',
   },
-};
-
-const setMetaTag = (selector, attribute, value) => {
-  if (!value) return;
-
-  let element = document.head.querySelector(selector);
-  if (!element) {
-    element = document.createElement('meta');
-    document.head.appendChild(element);
-  }
-  element.setAttribute(attribute, value);
-};
-
-const setLinkTag = (selector, attribute, value) => {
-  if (!value) return;
-
-  let element = document.head.querySelector(selector);
-  if (!element) {
-    element = document.createElement('link');
-    document.head.appendChild(element);
-  }
-  element.setAttribute(attribute, value);
+  '/privacy-policy': {
+    title: 'Privacy Policy | MMMK WODE',
+    description:
+      'Read the official Privacy Policy and data protection terms for MMMK WODE.',
+  },
+  '/terms-conditions': {
+    title: 'Terms & Conditions | MMMK WODE',
+    description:
+      'Read the official Terms and Conditions for shopping at MMMK WODE.',
+  },
+  '/return-policy': {
+    title: 'Return & Exchange Policy | MMMK WODE',
+    description:
+      'Read the official Return, Exchange, and Refund Policy for MMMK WODE.',
+  },
 };
 
 const Seo = () => {
   const { pathname } = useLocation();
   const { translateLanguage } = useTranslationContext();
+  const [globalSeo, setGlobalSeo] = useState(null);
 
+  // 1. Fetch Global SEO settings once
   useEffect(() => {
+    let isMounted = true;
+    fetch(`${BACKEND_URL}/api/v1/seo-settings`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (isMounted && data?.success && data?.settings) {
+          setGlobalSeo(data.settings);
+          if (data.settings.seoSchema) {
+            injectJsonLd('mmmk-global-schema', data.settings.seoSchema);
+          }
+        }
+      })
+      .catch((err) => {
+        console.warn('[SEO] Could not load global SEO settings:', err);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  // 2. Update page-level meta on route change
+  useEffect(() => {
+    // If we're on a custom page route, let that page manage its own meta
     const matchedPath = Object.keys(META_BY_PATH).find(
-      (path) => pathname === path || pathname.startsWith(`${path}/`)
+      (path) => pathname === path || (path !== '/' && pathname.startsWith(`${path}/`))
     );
+
+    const siteTitle = globalSeo?.websiteName || 'MMMK WODE';
+    const fallbackTitle = `${siteTitle} | Luxury Ecommerce`;
+    const fallbackDescription =
+      globalSeo?.organizationDescription || DEFAULT_DESCRIPTION;
+
     const nextMeta = META_BY_PATH[matchedPath] || {
-      title: DEFAULT_TITLE,
-      description: DEFAULT_DESCRIPTION,
+      title: fallbackTitle,
+      description: fallbackDescription,
     };
 
     document.title = nextMeta.title;
@@ -83,7 +118,11 @@ const Seo = () => {
 
     setMetaTag('meta[name="description"]', 'content', nextMeta.description);
     setMetaTag('meta[property="og:title"]', 'content', nextMeta.title);
-    setMetaTag('meta[property="og:description"]', 'content', nextMeta.description);
+    setMetaTag(
+      'meta[property="og:description"]',
+      'content',
+      nextMeta.description
+    );
     setMetaTag('meta[name="twitter:title"]', 'content', nextMeta.title);
     setMetaTag(
       'meta[name="twitter:description"]',
@@ -91,11 +130,19 @@ const Seo = () => {
       nextMeta.description
     );
 
+    if (globalSeo?.logo) {
+      setMetaTag('meta[property="og:image"]', 'content', globalSeo.logo);
+    }
+
     if (typeof window !== 'undefined') {
       setLinkTag('link[rel="canonical"]', 'rel', 'canonical');
-      setLinkTag('link[rel="canonical"]', 'href', `${window.location.origin}${pathname}`);
+      setLinkTag(
+        'link[rel="canonical"]',
+        'href',
+        `${window.location.origin}${pathname}`
+      );
     }
-  }, [pathname, translateLanguage]);
+  }, [pathname, translateLanguage, globalSeo]);
 
   return null;
 };

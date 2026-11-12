@@ -103,7 +103,7 @@ app.use(
 
       return callback(new Error(`Origin ${origin} not allowed by CORS`));
     },
-    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "Cookie", "X-Checkout-Verification", "X-Language"],
     credentials: true,
     optionsSuccessStatus: 200,

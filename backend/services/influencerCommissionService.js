@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Influencer = require("../Models/Influencer");
 const InfluencerClick = require("../Models/InfluencerClick");
 const InfluencerWalletTransaction = require("../Models/InfluencerWalletTransaction");
@@ -10,7 +11,11 @@ async function processOrderCommission(orderIdOrDoc) {
   try {
     let order = orderIdOrDoc;
     if (typeof orderIdOrDoc === "string" || !orderIdOrDoc.orderId) {
-      order = await Order.findById(orderIdOrDoc);
+      if (mongoose.isValidObjectId(orderIdOrDoc)) {
+        order = await Order.findById(orderIdOrDoc);
+      } else {
+        order = await Order.findOne({ orderId: orderIdOrDoc });
+      }
     }
 
     if (!order || !order.influencerId) {
@@ -108,7 +113,11 @@ async function reverseOrderCommission(orderIdOrDoc, reason = "Order cancelled") 
   try {
     let order = orderIdOrDoc;
     if (typeof orderIdOrDoc === "string" || !orderIdOrDoc.orderId) {
-      order = await Order.findById(orderIdOrDoc);
+      if (mongoose.isValidObjectId(orderIdOrDoc)) {
+        order = await Order.findById(orderIdOrDoc);
+      } else {
+        order = await Order.findOne({ orderId: orderIdOrDoc });
+      }
     }
 
     if (!order || !order.influencerId) {

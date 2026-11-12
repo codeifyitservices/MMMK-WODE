@@ -122,6 +122,10 @@ const loadAdminOrderController = ({
     ),
     {
       "../../../Models/Order": OrderMock,
+      "../../../services/influencerCommissionService": {
+        processOrderCommission: async () => {},
+        reverseOrderCommission: async () => {},
+      },
       "../../../utils/juraDelivery": {
         sendOrderToJura: async () => ({ success: true }),
         extractJuraOrderId: () => "JURA-1",
@@ -202,6 +206,12 @@ const checks = [
           state: "Dubai",
           country: "United Arab Emirates",
           stateCode: "DU",
+          countryCode: "AE",
+        },
+        billingAddress: {
+          name: "Ahmed Al Mansoori",
+          addressLine1: "Villa 23, Street 45",
+          city: "Dubai",
           countryCode: "AE",
         },
         lineItems: [
@@ -433,7 +443,7 @@ const checks = [
       console.log(`PASS ${check.name}`);
     } catch (error) {
       console.error(`FAIL ${check.name}`);
-      
+      console.error(error);
       process.exitCode = 1;
       return;
     }

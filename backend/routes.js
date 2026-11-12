@@ -24,6 +24,8 @@ const abandonedCartRoutes = require("./Routes/abandonedCart.router");
 const influencerAdminRoutes = require("./Routes/influencerAdmin.router");
 const influencerRoutes = require("./Routes/influencer.router");
 const newsletterAdminRoutes = require("./Routes/newsletterAdmin.router");
+const seoAdminRoutes = require("./Routes/seoAdmin.router");
+const pagesAdminRoutes = require("./Routes/pagesAdmin.router");
 
 // non Auth router
 const nonAuth_ProductsRoutes = require("./Routes/non-auth-routes/product.routes");
@@ -40,6 +42,8 @@ const nonAuth_translateRoutes = require("./Routes/non-auth-routes/translate.rout
 const nonAuth_localeRoutes = require("./Routes/non-auth-routes/locale.routes");
 const nonAuth_checkoutRoutes = require("./Routes/non-auth-routes/checkout.routes");
 const nonAuth_newsletterRoutes = require("./Routes/non-auth-routes/newsletter.routes");
+const nonAuth_seoRoutes = require("./Routes/non-auth-routes/seoPublic.routes");
+const nonAuth_pagesRoutes = require("./Routes/non-auth-routes/pagesPublic.routes");
 
 // user router
 const user_cartRouter = require("./Routes/user-routes/cart.router");
@@ -75,6 +79,8 @@ router.use("/api/v1/admin/emailTemplate", isAdmin, emailTemplateRoutes);
 router.use("/api/v1/admin/abandoned-cart", isAdmin, abandonedCartRoutes);
 router.use("/api/v1/admin/influencers", isAdmin, influencerAdminRoutes);
 router.use("/api/v1/admin/newsletter", isAdmin, newsletterAdminRoutes);
+router.use("/api/v1/admin/seo-settings", isAdmin, seoAdminRoutes);
+router.use("/api/v1/admin/pages", isAdmin, pagesAdminRoutes);
 
 // non auth & influencer
 router.use("/api/v1/influencer", influencerRoutes);
@@ -92,6 +98,8 @@ router.use("/api/v1/translate", nonAuth_translateRoutes);
 router.use("/api/v1", nonAuth_localeRoutes);
 router.use("/api/v1/checkout", nonAuth_checkoutRoutes);
 router.use("/api/v1/newsletter", nonAuth_newsletterRoutes);
+router.use("/api/v1/seo-settings", nonAuth_seoRoutes);
+router.use("/api/v1/pages", nonAuth_pagesRoutes);
 
 // user
 router.use("/api/v1/user/cart", isUser, user_cartRouter);

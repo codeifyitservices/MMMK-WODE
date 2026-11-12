@@ -59,7 +59,12 @@ import {
 } from 'antd';
 import { CKEditor } from '@ckeditor/ckeditor5-react';
 import ClassicEditor from '@ckeditor/ckeditor5-build-classic';
-import { createProduct, updateProduct } from '../../../apis/admin/product';
+import {
+  createProduct,
+  updateProduct,
+  generateProductSchemaAdmin,
+} from '../../../apis/admin/product';
+import SchemaEditor from '../SEO/SchemaEditor';
 import { useQuery } from '@tanstack/react-query';
 import { getAllCategories } from '../../../apis/admin/category';
 import { AddButton, DeleteButton } from '../../UI/Buttons';
@@ -120,6 +125,8 @@ const ProductModalForm = ({
   const primaryImageFiles = Form.useWatch('image', form) || [];
   const galleryImageFiles = Form.useWatch('images', form) || [];
 
+  const [autoSchema, setAutoSchema] = useState('');
+  const [isSchemaLoading, setIsSchemaLoading] = useState(false);
   const [utils, setUtils] = useState({
     activeTab: 0,
     isTabLoading: false,
@@ -155,6 +162,45 @@ const ProductModalForm = ({
       });
     } catch (error) {
       console.error('Translation error:', error);
+    }
+  };
+
+  const handleGenerateSchema = async () => {
+    try {
+      setIsSchemaLoading(true);
+      const formValues = form.getFieldsValue();
+      const res = await generateProductSchemaAdmin({
+        productName: formValues.productName,
+        productDescription: formValues.productDescription,
+        slug: formValues.slug,
+        metaTitle: formValues.metaTitle,
+        metaDescription: formValues.metaDescription,
+        metaKeywords: formValues.metaKeywords,
+        canonicalUrl: formValues.canonicalUrl,
+        price: formValues.price,
+        brand: formValues.brand,
+        skus: formValues.skus,
+        status: formValues.status,
+        image: selected?.image,
+        images: selected?.images,
+      });
+      if (res?.success && res?.schema) {
+        setAutoSchema(res.schema);
+        form.setFieldsValue({ seoSchema: res.schema });
+        message.success('Schema generated successfully');
+      }
+    } catch (err) {
+      console.error('Failed to generate product schema:', err);
+      message.error(err?.response?.data?.message || 'Failed to generate schema');
+    } finally {
+      setIsSchemaLoading(false);
+    }
+  };
+
+  const handleResetSchema = () => {
+    if (autoSchema) {
+      form.setFieldsValue({ seoSchema: autoSchema });
+      message.info('Reset schema to auto-generated');
     }
   };
 
@@ -198,14 +244,28 @@ const ProductModalForm = ({
           filters: selected?.filters || [],
           images,
           image,
+          slug: selected?.slug || '',
+          metaTitle: selected?.metaTitle || '',
+          metaDescription: selected?.metaDescription || '',
+          metaKeywords: selected?.metaKeywords || '',
+          canonicalUrl: selected?.canonicalUrl || '',
+          seoSchema: selected?.seoSchema || '',
         });
+        setAutoSchema(selected?.seoSchema || '');
       } else {
         form.resetFields();
         form.setFieldsValue({
           skus: [{ sku: null, quantity: null, price: null, tempId: Math.random().toString(36).substr(2, 9) }],
           images: [],
           image: [],
+          slug: '',
+          metaTitle: '',
+          metaDescription: '',
+          metaKeywords: '',
+          canonicalUrl: '',
+          seoSchema: '',
         });
+        setAutoSchema('');
       }
       updateUtils({
         activeTab: 0,
@@ -370,8 +430,105 @@ const ProductModalForm = ({
           </div>
         ),
       },
+      {
+        key: 4,
+        label: 'SEO & Meta',
+        children: (
+          <div className="space-y-4 pt-2">
+            <Form.Item
+              label={
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                  URL Slug
+                </span>
+              }
+              name="slug"
+            >
+              <Input placeholder="e.g. white-tahara-silky-musk" allowClear />
+            </Form.Item>
+
+            <Form.Item
+              label={
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                  Meta Title
+                </span>
+              }
+              name="metaTitle"
+            >
+              <Input
+                placeholder="e.g. Sensational White Tahara Silky Musk | MMMK WODE"
+                maxLength={60}
+                showCount
+                allowClear
+              />
+            </Form.Item>
+
+            <Form.Item
+              label={
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                  Meta Description
+                </span>
+              }
+              name="metaDescription"
+            >
+              <Input.TextArea
+                placeholder="e.g. Discover White Tahara Silky Musk, an exotic luxury fragrance crafted with rare aromas at MMMK WODE."
+                maxLength={160}
+                showCount
+                rows={3}
+                allowClear
+              />
+            </Form.Item>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Form.Item
+                label={
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                    Meta Keywords
+                  </span>
+                }
+                name="metaKeywords"
+              >
+                <Input placeholder="e.g. silky musk, luxury perfume, fragrance, mmmk wode" allowClear />
+              </Form.Item>
+
+              <Form.Item
+                label={
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                    Canonical URL
+                  </span>
+                }
+                name="canonicalUrl"
+              >
+                <Input
+                  placeholder="https://mmmk-wode.com/product-details/white-tahara-silky-musk"
+                  allowClear
+                />
+              </Form.Item>
+            </div>
+
+            <Form.Item
+              name="seoSchema"
+              label={
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                  Schema (JSON-LD)
+                </span>
+              }
+            >
+              <SchemaEditor
+                value={form.getFieldValue('seoSchema')}
+                onChange={(val) => form.setFieldsValue({ seoSchema: val })}
+                onGenerate={handleGenerateSchema}
+                onReset={handleResetSchema}
+                isLoading={isSchemaLoading}
+                autoSchemaAvailable={Boolean(autoSchema)}
+                rows={8}
+              />
+            </Form.Item>
+          </div>
+        ),
+      },
     ],
-    [form, selected, isOpen, isImageUploadPending, utils.deletedImages]
+    [form, selected, isOpen, isImageUploadPending, utils.deletedImages, isSchemaLoading, autoSchema]
   );
 
   const handleTranslateTab = async (tabIndex) => {
@@ -383,6 +540,16 @@ const ProductModalForm = ({
           form.setFieldsValue({
             productName: translatedNames,
           });
+          const currentSlug = form.getFieldValue('slug');
+          const enName = values.productName?.en;
+          if (!currentSlug && enName) {
+            const generatedSlug = String(enName)
+              .toLowerCase()
+              .trim()
+              .replace(/[^a-z0-9]+/g, '-')
+              .replace(/(^-|-$)/g, '');
+            form.setFieldsValue({ slug: generatedSlug });
+          }
           break;
         case 1:
           const translatedDescriptions = await getTranslatedFields(
@@ -418,7 +585,7 @@ const ProductModalForm = ({
       await form.validateFields();
       updateUtils({ isTabLoading: true });
       await handleTranslateTab(utils.activeTab);
-      if (utils.activeTab < 3) {
+      if (utils.activeTab < tabs.length - 1) {
         return updateUtils({
           activeTab: utils.activeTab + 1,
           isTabLoading: false,

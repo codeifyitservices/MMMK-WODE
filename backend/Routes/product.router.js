@@ -10,9 +10,11 @@ const {
   updateProduct,
   deleteProduct,
   reorderProducts,
+  generateProductSchema,
 } = require("../Controller/admin-controllers/product/product.controller");
 
 // routes
+router.post("/generate-schema", generateProductSchema);
 router.post(
   "/create",
   upload.fields([

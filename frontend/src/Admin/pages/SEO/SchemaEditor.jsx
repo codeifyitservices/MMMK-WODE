@@ -1,7 +1,17 @@
 import React, { useMemo } from 'react';
-import { AlertCircle, CheckCircle2 } from 'lucide-react';
+import { AlertCircle, CheckCircle2, RefreshCw, RotateCcw } from 'lucide-react';
 
-export default function SchemaEditor({ value, onChange, placeholder, rows = 12 }) {
+export default function SchemaEditor({
+  value,
+  onChange,
+  onGenerate,
+  onReset,
+  isLoading = false,
+  autoSchemaAvailable = false,
+  placeholder,
+  rows = 10,
+  label,
+}) {
   const validation = useMemo(() => {
     if (!value || !value.trim()) {
       return { valid: true, error: null };
@@ -24,6 +34,40 @@ export default function SchemaEditor({ value, onChange, placeholder, rows = 12 }
 
   return (
     <div className="space-y-2">
+      {(label || onGenerate || onReset) && (
+        <div className="flex items-center justify-between gap-2 pb-1">
+          {label && (
+            <span className="text-xs font-bold uppercase tracking-wider text-slate-900">
+              {label}
+            </span>
+          )}
+          <div className="flex items-center gap-2 ml-auto">
+            {onGenerate && (
+              <button
+                type="button"
+                onClick={onGenerate}
+                disabled={isLoading}
+                className="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 hover:bg-black px-3 py-1.5 text-xs font-medium text-white shadow-xs transition disabled:opacity-50 cursor-pointer"
+              >
+                <RefreshCw size={12} className={isLoading ? 'animate-spin' : ''} />
+                Generate Schema
+              </button>
+            )}
+            {onReset && (
+              <button
+                type="button"
+                onClick={onReset}
+                disabled={isLoading || !autoSchemaAvailable}
+                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white hover:bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-700 shadow-xs transition disabled:opacity-40 cursor-pointer"
+              >
+                <RotateCcw size={12} />
+                Reset to Auto
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       <div className="relative">
         <textarea
           rows={rows}
@@ -65,4 +109,3 @@ export default function SchemaEditor({ value, onChange, placeholder, rows = 12 }
     </div>
   );
 }
-

@@ -9,8 +9,10 @@ const {
   getCategory,
   getAllCategory,
   reorderCategories,
+  generateCategorySchema,
 } = require("../Controller/admin-controllers/category/category.controller");
 
+router.post("/generate-schema", generateCategorySchema);
 router.post("/add", upload.single("image"), addCategory);
 router.post("/get/:id", getCategory);
 router.get("/get-all", getAllCategory);

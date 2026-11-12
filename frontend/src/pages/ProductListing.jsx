@@ -16,6 +16,8 @@ import {
 
 import SkeletonCard from '../components/listing/SkeletonCard';
 import { getCategoryLabel } from '../utils/categoryTranslation';
+import { applyPageSeo, removeJsonLd } from '../utils/seoHelper';
+import { resolveAssetUrl } from '../utils/assetUrl';
 
 const SidebarFilter = lazy(() => import('../components/listing/SidebarFilter').catch(() => { window.location.reload(); }));
 const NewsLetter = lazy(() => import('../components/global/NewsLetter').catch(() => { window.location.reload(); }));
@@ -114,8 +116,22 @@ const ProductListing = () => {
   }, [query.data, translateLanguage]);
 
   useEffect(() => {
+    const categoryTerms = [
+      ...(utils.categories || []),
+      ...(utils.category || []),
+    ].map((c) => String(c).trim().toLowerCase());
+
     const matchedCategories =
-      categories?.filter((item) => utils.categories?.includes(item.name.en)) || [];
+      categories?.filter((item) => {
+        const nameEn = String(item?.name?.en || '').toLowerCase();
+        const slug = String(item?.slug || '').toLowerCase();
+        const id = String(item?._id || '').toLowerCase();
+        return (
+          categoryTerms.includes(nameEn) ||
+          (slug && categoryTerms.includes(slug)) ||
+          categoryTerms.includes(id)
+        );
+      }) || [];
 
     if (matchedCategories.length > 0) {
       setSelectedCategory(
@@ -123,12 +139,68 @@ const ProductListing = () => {
           .map((item) => getCategoryLabel(item, translateLanguage))
           .join(', ')
       );
+
+      if (matchedCategories.length === 1) {
+        const cat = matchedCategories[0];
+        const catName = getCategoryLabel(cat, translateLanguage) || cat.name?.en || 'Category';
+        const catImg = resolveAssetUrl(cat.ogImage || cat.image);
+        const schemaToUse =
+          cat.seoSchema ||
+          JSON.stringify(
+            {
+              '@context': 'https://schema.org',
+              '@type': 'CollectionPage',
+              name: cat.metaTitle || catName,
+              description:
+                cat.metaDescription ||
+                `Explore luxury collections in ${catName} at MMMK WODE.`,
+              url:
+                cat.canonicalUrl ||
+                (typeof window !== 'undefined'
+                  ? `${window.location.origin}/product-listings?categories=${encodeURIComponent(cat.name?.en || catName)}`
+                  : ''),
+              image: catImg,
+            },
+            null,
+            2
+          );
+
+        applyPageSeo({
+          title: cat.metaTitle || `${catName} | MMMK WODE`,
+          description:
+            cat.metaDescription ||
+            `Explore our luxury ${catName} collection at MMMK WODE.`,
+          keywords: cat.metaKeywords,
+          canonicalUrl: cat.canonicalUrl,
+          ogImage: catImg,
+          schema: schemaToUse,
+        });
+      } else {
+        applyPageSeo({
+          title: 'Shop Collections | MMMK WODE',
+          description:
+            'Browse curated product listings across luxury fragrance, jewelry, and swimwear at MMMK WODE.',
+        });
+        removeJsonLd('mmmk-page-schema');
+      }
     } else {
       setSelectedCategory(utils.q ? `Search: ${utils.q}` : null);
+      applyPageSeo({
+        title: utils.q
+          ? `Search: ${utils.q} | MMMK WODE`
+          : 'Shop Collections | MMMK WODE',
+        description:
+          'Browse curated product listings across luxury fragrance, jewelry, and swimwear at MMMK WODE.',
+      });
+      removeJsonLd('mmmk-page-schema');
     }
 
     setSelectedCategoryIds(matchedCategories.map((item) => item._id));
-  }, [categories, translateLanguage, utils.categories, utils.q]);
+
+    return () => {
+      removeJsonLd('mmmk-page-schema');
+    };
+  }, [categories, translateLanguage, utils.categories, utils.category, utils.q]);
 
   const handleSelectCategory = (item) => {
     const categoryName = item?.name?.en;

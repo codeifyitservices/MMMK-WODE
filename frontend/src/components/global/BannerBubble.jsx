@@ -146,13 +146,7 @@ const BannerBubble = ({ text, link, enabled }) => {
 
         {/* Inner highlight rim — thin white arc at top for glass depth */}
         <path
-          d="
-            C  80  18 104   8 128  18
-            C 136   4 158   0 178  10
-            C 188   2 208   0 224  10
-            C 236   0 260   2 272  14
-            C 288   4 310  10 320  26
-          "
+          d="M 76 38 C 80 18 104 8 128 18 C 136 4 158 0 178 10 C 188 2 208 0 224 10 C 236 0 260 2 272 14 C 288 4 310 10 320 26"
           fill="none"
           stroke="rgba(255,255,255,0.22)"
           strokeWidth="2"

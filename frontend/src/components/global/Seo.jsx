@@ -97,7 +97,14 @@ const Seo = () => {
 
   // 2. Update page-level meta on route change
   useEffect(() => {
-    // If we're on a custom page route, let that page manage its own meta
+    // Let product details and product listings manage their own dynamic SEO & schema
+    if (
+      pathname.startsWith('/product-details') ||
+      pathname.startsWith('/product-listings')
+    ) {
+      return;
+    }
+
     const matchedPath = Object.keys(META_BY_PATH).find(
       (path) => pathname === path || (path !== '/' && pathname.startsWith(`${path}/`))
     );

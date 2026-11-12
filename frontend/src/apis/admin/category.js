@@ -61,3 +61,13 @@ export const reorderCategories = async (orderedItems) => {
     throw error;
   }
 };
+
+export const generateCategorySchemaAdmin = async (data) => {
+  try {
+    const response = await cat.post('/generate-schema', data);
+    return response.data;
+  } catch (error) {
+    console.error('Error generating category schema:', error);
+    throw error;
+  }
+};

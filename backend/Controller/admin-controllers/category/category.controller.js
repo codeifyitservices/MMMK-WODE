@@ -3,6 +3,7 @@ const Category = require("../../../Models/Category");
 const deleteFile = require("../../../utils/deleteFile");
 const { destringify } = require("../../../utils/stringify");
 const { getUploadedFileName } = require("../../../utils/requestUploads");
+const cache = require("../../../utils/cache");
 
 const ensureCategoryOrder = async () => {
   const unorderedCategories = await Category.find({
@@ -37,7 +38,18 @@ const ensureCategoryOrder = async () => {
 
 const addCategory = async (req, res) => {
   try {
-    const { name, subcategories, filters } = req.body;
+    const {
+      name,
+      subcategories,
+      filters,
+      slug,
+      metaTitle,
+      metaDescription,
+      metaKeywords,
+      canonicalUrl,
+      ogImage,
+      seoSchema,
+    } = req.body;
     const image = getUploadedFileName(req, "image");
 
     if (!image) {
@@ -57,7 +69,16 @@ const addCategory = async (req, res) => {
       subcategories: destringify(subcategories, []),
       image,
       order: nextOrder,
+      slug: slug ? String(slug).trim().toLowerCase() : undefined,
+      metaTitle: metaTitle ? String(metaTitle).trim() : undefined,
+      metaDescription: metaDescription ? String(metaDescription).trim() : undefined,
+      metaKeywords: metaKeywords ? String(metaKeywords).trim() : undefined,
+      canonicalUrl: canonicalUrl ? String(canonicalUrl).trim() : undefined,
+      ogImage: ogImage ? String(ogImage).trim() : undefined,
+      seoSchema: seoSchema !== undefined ? String(seoSchema).trim() : undefined,
     });
+
+    cache.invalidate("categories");
 
     res
       .status(201)
@@ -73,6 +94,9 @@ const editCategory = async (req, res) => {
     const data = req.body;
 
     const category = await Category.findById(id);
+    if (!category) {
+      return res.status(404).json({ message: "Category not found" });
+    }
     const nextImage = getUploadedFileName(req, "image");
 
     if (nextImage && nextImage !== category.image) {
@@ -84,7 +108,17 @@ const editCategory = async (req, res) => {
     category.subcategories = destringify(data.subcategories, []);
     category.filters = destringify(data.filters, []);
 
+    if (data.slug !== undefined) category.slug = data.slug ? String(data.slug).trim().toLowerCase() : "";
+    if (data.metaTitle !== undefined) category.metaTitle = data.metaTitle ? String(data.metaTitle).trim() : "";
+    if (data.metaDescription !== undefined) category.metaDescription = data.metaDescription ? String(data.metaDescription).trim() : "";
+    if (data.metaKeywords !== undefined) category.metaKeywords = data.metaKeywords ? String(data.metaKeywords).trim() : "";
+    if (data.canonicalUrl !== undefined) category.canonicalUrl = data.canonicalUrl ? String(data.canonicalUrl).trim() : "";
+    if (data.ogImage !== undefined) category.ogImage = data.ogImage ? String(data.ogImage).trim() : "";
+    if (data.seoSchema !== undefined) category.seoSchema = String(data.seoSchema || "").trim();
+
     await category.save();
+
+    cache.invalidate("categories");
 
     res.status(200).json({ message: "Category Updated Successfully!" });
   } catch (err) {
@@ -98,6 +132,9 @@ const deleteCategory = async (req, res) => {
     const category = await Category.findById(id);
     deleteFile(category.image);
     await Category.findByIdAndDelete(id);
+
+    cache.invalidate("categories");
+
     res.status(200).json({ message: "Category Deleted Successfully!" });
   } catch (err) {
     res.status(500).json({ message: "Internal server error" });
@@ -182,9 +219,28 @@ const reorderCategories = async (req, res) => {
 
     await Category.bulkWrite(bulkOps);
 
+    cache.invalidate("categories");
+
     res.status(200).json({ message: "Category order updated successfully!" });
   } catch (err) {
     res.status(500).json({ message: "Internal server error" });
+  }
+};
+
+const generateCategorySchemaController = async (req, res) => {
+  try {
+    const { generateCategorySchema } = require("../../../utils/schemaGenerator");
+    const schema = generateCategorySchema(req.body);
+    return res.status(200).json({
+      success: true,
+      message: "Category schema generated successfully",
+      schema,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: err.message || "Failed to generate category schema",
+    });
   }
 };
 
@@ -195,4 +251,5 @@ module.exports = {
   getCategory,
   getAllCategory,
   reorderCategories,
+  generateCategorySchema: generateCategorySchemaController,
 };

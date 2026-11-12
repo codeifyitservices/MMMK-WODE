@@ -12,12 +12,17 @@ import {
   Select,
 } from 'antd';
 import { PlusOutlined, MinusCircleOutlined } from '@ant-design/icons';
-import { addCategory, editCategory } from '../../../apis/admin/category';
+import {
+  addCategory,
+  editCategory,
+  generateCategorySchemaAdmin,
+} from '../../../apis/admin/category';
 import { AddButton, DeleteButton } from '../../UI/Buttons';
 import { LuUpload } from 'react-icons/lu';
 import { LANGUAGECODES, LANGUAGECODETONAME } from '../../../utils/staticData';
 import { getTranslatedFields } from '../../../utils/getTranslatedFields';
 import { FormTabs } from '../../UI/Tabs';
+import SchemaEditor from '../SEO/SchemaEditor';
 import { useQuery } from '@tanstack/react-query';
 import { getAllFilters } from '../../../apis/admin/filter';
 import {
@@ -68,6 +73,8 @@ const CategoryModal = ({
   const [form] = Form.useForm();
   const [fileList, setFileList] = useState([]);
   const [imageFile, setImageFile] = useState(null); // raw File object
+  const [autoSchema, setAutoSchema] = useState('');
+  const [isSchemaLoading, setIsSchemaLoading] = useState(false);
   const [utils, setUtils] = useState({
     isTabLoading: false,
     activeTab: 0,
@@ -95,7 +102,20 @@ const CategoryModal = ({
             ]
           : [],
       });
-      if (currentEditCategory) form.setFieldsValue(currentEditCategory);
+      if (currentEditCategory) {
+        form.setFieldsValue({
+          ...currentEditCategory,
+          slug: currentEditCategory.slug || '',
+          metaTitle: currentEditCategory.metaTitle || '',
+          metaDescription: currentEditCategory.metaDescription || '',
+          metaKeywords: currentEditCategory.metaKeywords || '',
+          canonicalUrl: currentEditCategory.canonicalUrl || '',
+          seoSchema: currentEditCategory.seoSchema || '',
+        });
+        setAutoSchema(currentEditCategory.seoSchema || '');
+      } else {
+        setAutoSchema('');
+      }
 
       if (currentEditCategory?.image) {
         const testImg = new window.Image();
@@ -117,11 +137,44 @@ const CategoryModal = ({
     }
   }, [currentEditCategory, isVisible]);
 
+  const handleGenerateSchema = async () => {
+    try {
+      setIsSchemaLoading(true);
+      const formValues = form.getFieldsValue();
+      const res = await generateCategorySchemaAdmin({
+        name: formValues.name,
+        slug: formValues.slug,
+        metaTitle: formValues.metaTitle,
+        metaDescription: formValues.metaDescription,
+        metaKeywords: formValues.metaKeywords,
+        canonicalUrl: formValues.canonicalUrl,
+        image: currentEditCategory?.image,
+      });
+      if (res?.success && res?.schema) {
+        setAutoSchema(res.schema);
+        form.setFieldsValue({ seoSchema: res.schema });
+        message.success('Schema generated successfully');
+      }
+    } catch (err) {
+      console.error('Failed to generate schema:', err);
+      message.error(err?.response?.data?.message || 'Failed to generate schema');
+    } finally {
+      setIsSchemaLoading(false);
+    }
+  };
+
+  const handleResetSchema = () => {
+    if (autoSchema) {
+      form.setFieldsValue({ seoSchema: autoSchema });
+      message.info('Reset schema to auto-generated');
+    }
+  };
+
   const handleFinish = async () => {
     try {
       await form.validateFields();
       updateUtils({ isTabLoading: true });
-      if (utils.activeTab < 2) {
+      if (utils.activeTab < tabs.length - 1) {
         const values = form.getFieldsValue();
         try {
           if (utils.activeTab === 0) {
@@ -130,7 +183,17 @@ const CategoryModal = ({
               name: translatedNames,
             });
 
-            
+            // Auto-fill slug if empty based on English name
+            const currentSlug = form.getFieldValue('slug');
+            const enName = values.name?.en;
+            if (!currentSlug && enName) {
+              const generatedSlug = String(enName)
+                .toLowerCase()
+                .trim()
+                .replace(/[^a-z0-9]+/g, '-')
+                .replace(/(^-|-$)/g, '');
+              form.setFieldsValue({ slug: generatedSlug });
+            }
           } else if (utils.activeTab === 1) {
             const subCategories = form.getFieldValue('subcategories') || [];
             
@@ -165,6 +228,14 @@ const CategoryModal = ({
       );
       
       formData.append('filters', JSON.stringify(formValues.filters || []));
+
+      // SEO & Meta Fields
+      if (formValues.slug) formData.append('slug', formValues.slug.trim());
+      if (formValues.metaTitle) formData.append('metaTitle', formValues.metaTitle.trim());
+      if (formValues.metaDescription) formData.append('metaDescription', formValues.metaDescription.trim());
+      if (formValues.metaKeywords) formData.append('metaKeywords', formValues.metaKeywords.trim());
+      if (formValues.canonicalUrl) formData.append('canonicalUrl', formValues.canonicalUrl.trim());
+      if (formValues.seoSchema) formData.append('seoSchema', formValues.seoSchema.trim());
 
       await appendCompressedImage(formData, 'image', imageFile);
       try {
@@ -382,8 +453,105 @@ const CategoryModal = ({
           </div>
         ),
       },
+      {
+        key: 3,
+        label: 'SEO',
+        children: (
+          <div className="space-y-4 pt-2">
+            <Form.Item
+              label={
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                  URL Slug
+                </span>
+              }
+              name="slug"
+            >
+              <Input placeholder="e.g. fragrance" allowClear />
+            </Form.Item>
+
+            <Form.Item
+              label={
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                  Meta Title
+                </span>
+              }
+              name="metaTitle"
+            >
+              <Input
+                placeholder="e.g. Luxury Fragrances & Perfumes | MMMK WODE"
+                maxLength={60}
+                showCount
+                allowClear
+              />
+            </Form.Item>
+
+            <Form.Item
+              label={
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                  Meta Description
+                </span>
+              }
+              name="metaDescription"
+            >
+              <Input.TextArea
+                placeholder="e.g. Explore our curated collection of luxury fragrances, exotic musks, and perfumes at MMMK WODE."
+                maxLength={160}
+                showCount
+                rows={3}
+                allowClear
+              />
+            </Form.Item>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Form.Item
+                label={
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                    Meta Keywords
+                  </span>
+                }
+                name="metaKeywords"
+              >
+                <Input placeholder="e.g. fragrance, luxury perfumes, silky musk, mmmk wode" allowClear />
+              </Form.Item>
+
+              <Form.Item
+                label={
+                  <span className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                    Canonical URL
+                  </span>
+                }
+                name="canonicalUrl"
+              >
+                <Input
+                  placeholder="https://mmmk-wode.com/product-listings?categories=Fragrance"
+                  allowClear
+                />
+              </Form.Item>
+            </div>
+
+            <Form.Item
+              name="seoSchema"
+              label={
+                <span className="text-xs font-bold uppercase tracking-wider text-slate-800">
+                  Schema (JSON-LD)
+                </span>
+              }
+            >
+              <SchemaEditor
+                value={form.getFieldValue('seoSchema')}
+                onChange={(val) => form.setFieldsValue({ seoSchema: val })}
+                onGenerate={handleGenerateSchema}
+                onReset={handleResetSchema}
+                isLoading={isSchemaLoading}
+                autoSchemaAvailable={Boolean(autoSchema)}
+                rows={8}
+              />
+            </Form.Item>
+          </div>
+        ),
+      },
     ],
-    [utils.fileList, currentEditCategory]
+    [utils.fileList, currentEditCategory, isSchemaLoading, autoSchema]
   );
 
   return (

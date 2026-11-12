@@ -117,6 +117,13 @@ const create = async (req, res) => {
       skus: parseJsonBodyField(incommingData.skus, [], "skus"),
       showOnHomepage: incommingData.showOnHomepage || false,
       order: Number.isFinite(lastProduct?.order) ? lastProduct.order + 1 : 0,
+      slug: incommingData.slug ? String(incommingData.slug).trim().toLowerCase() : undefined,
+      metaTitle: incommingData.metaTitle ? String(incommingData.metaTitle).trim() : undefined,
+      metaDescription: incommingData.metaDescription ? String(incommingData.metaDescription).trim() : undefined,
+      metaKeywords: incommingData.metaKeywords ? String(incommingData.metaKeywords).trim() : undefined,
+      canonicalUrl: incommingData.canonicalUrl ? String(incommingData.canonicalUrl).trim() : undefined,
+      ogImage: incommingData.ogImage ? String(incommingData.ogImage).trim() : undefined,
+      seoSchema: incommingData.seoSchema !== undefined ? String(incommingData.seoSchema).trim() : undefined,
     };
 
     if (dataToStore.skus.length === 0) {
@@ -459,6 +466,14 @@ const updateProduct = async (req, res) => {
     product.filters = newFilters;
     product.showOnHomepage = showOnHomepage;
 
+    if (req.body.slug !== undefined) product.slug = req.body.slug ? String(req.body.slug).trim().toLowerCase() : "";
+    if (req.body.metaTitle !== undefined) product.metaTitle = req.body.metaTitle ? String(req.body.metaTitle).trim() : "";
+    if (req.body.metaDescription !== undefined) product.metaDescription = req.body.metaDescription ? String(req.body.metaDescription).trim() : "";
+    if (req.body.metaKeywords !== undefined) product.metaKeywords = req.body.metaKeywords ? String(req.body.metaKeywords).trim() : "";
+    if (req.body.canonicalUrl !== undefined) product.canonicalUrl = req.body.canonicalUrl ? String(req.body.canonicalUrl).trim() : "";
+    if (req.body.ogImage !== undefined) product.ogImage = req.body.ogImage ? String(req.body.ogImage).trim() : "";
+    if (req.body.seoSchema !== undefined) product.seoSchema = String(req.body.seoSchema || "").trim();
+
     // Save updated product
     await product.save({ session });
 
@@ -648,6 +663,23 @@ const getHomePageBottomSectionList = async (req, res) => {
   }
 };
 
+const generateProductSchemaController = async (req, res) => {
+  try {
+    const { generateProductSchema } = require("../../../utils/schemaGenerator");
+    const schema = generateProductSchema(req.body);
+    return res.status(200).json({
+      success: true,
+      message: "Product schema generated successfully",
+      schema,
+    });
+  } catch (err) {
+    return res.status(500).json({
+      success: false,
+      message: err.message || "Failed to generate product schema",
+    });
+  }
+};
+
 module.exports = {
   create,
   getAllProducts,
@@ -656,4 +688,5 @@ module.exports = {
   deleteProduct,
   reorderProducts,
   getHomePageBottomSectionList,
+  generateProductSchema: generateProductSchemaController,
 };

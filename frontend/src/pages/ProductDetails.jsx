@@ -21,6 +21,7 @@ import { getOrCreateVisitorSessionId } from '../utils/visitorSession';
 import { useCart } from '../context/CartProvider';
 import CategoryNavBar from '../components/global/CategoryNavBar';
 import { resolveAssetUrl } from '../utils/assetUrl';
+import { applyPageSeo, removeJsonLd } from '../utils/seoHelper';
 import {
   isUserSignedIn,
 } from '../utils/globalMethods';
@@ -82,6 +83,30 @@ const ProductDetails = () => {
   }, [params.id]);
 
   const productData = useMemo(() => query.data?.data || {}, [query.data]);
+
+  useEffect(() => {
+    if (!productData || !productData._id) return;
+    const name = productData.productName?.en || productData.productName || 'Product';
+    const desc = productData.productDescription?.en || productData.productDescription || '';
+    const cleanDesc = typeof desc === 'string' ? desc.replace(/<[^>]*>/g, '').trim() : '';
+    const imgUrl = resolveAssetUrl(productData.ogImage || productData.image);
+
+    applyPageSeo({
+      title: productData.metaTitle || `${name} | MMMK WODE`,
+      description:
+        productData.metaDescription ||
+        cleanDesc.slice(0, 160) ||
+        `Buy ${name} at MMMK WODE.`,
+      keywords: productData.metaKeywords,
+      canonicalUrl: productData.canonicalUrl,
+      ogImage: imgUrl,
+      schema: productData.seoSchema,
+    });
+
+    return () => {
+      removeJsonLd('mmmk-page-schema');
+    };
+  }, [productData]);
 
   const SkuQuery = useQuery({
     queryKey: ['product-skus', params.id],

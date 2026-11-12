@@ -69,3 +69,13 @@ export const reorderProducts = async (orderedItems, options = {}) => {
     throw error;
   }
 };
+
+export const generateProductSchemaAdmin = async (data) => {
+  try {
+    const response = await product.post('/generate-schema', data);
+    return response.data;
+  } catch (error) {
+    console.error('Error generating product schema:', error);
+    throw error;
+  }
+};

@@ -120,6 +120,36 @@ const productSchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    // SEO & Meta Fields
+    slug: {
+      type: String,
+      trim: true,
+      lowercase: true,
+    },
+    metaTitle: {
+      type: String,
+      trim: true,
+    },
+    metaDescription: {
+      type: String,
+      trim: true,
+    },
+    metaKeywords: {
+      type: String,
+      trim: true,
+    },
+    canonicalUrl: {
+      type: String,
+      trim: true,
+    },
+    ogImage: {
+      type: String,
+      trim: true,
+    },
+    seoSchema: {
+      type: String,
+      trim: true,
+    },
   },
   { timestamps: true, strict: false }
 );
@@ -131,6 +161,7 @@ productSchema.index({ category: 1, status: 1 });
 productSchema.index({ status: 1, createdAt: -1 });
 productSchema.index({ brand: 1, status: 1 });
 productSchema.index({ gender: 1, status: 1 });
+productSchema.index({ slug: 1 });
 
 const Product = mongoose.model("Product", productSchema);
 Product.sanitizeImageFilename = sanitizeImageFilename;

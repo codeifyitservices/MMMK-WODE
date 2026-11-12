@@ -47,11 +47,42 @@ const categorySchema = new mongoose.Schema(
       type: Number,
       default: 0,
     },
+    // SEO & Meta Fields
+    slug: {
+      type: String,
+      trim: true,
+      lowercase: true,
+    },
+    metaTitle: {
+      type: String,
+      trim: true,
+    },
+    metaDescription: {
+      type: String,
+      trim: true,
+    },
+    metaKeywords: {
+      type: String,
+      trim: true,
+    },
+    canonicalUrl: {
+      type: String,
+      trim: true,
+    },
+    ogImage: {
+      type: String,
+      trim: true,
+    },
+    seoSchema: {
+      type: String,
+      trim: true,
+    },
   },
   { timestamps: true }
 );
 
 categorySchema.index({ order: 1, createdAt: 1 });
 categorySchema.index({ "name.en": 1 });
+categorySchema.index({ slug: 1 });
 
 module.exports = mongoose.model("Category", categorySchema);

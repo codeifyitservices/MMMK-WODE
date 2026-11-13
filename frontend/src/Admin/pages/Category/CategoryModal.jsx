@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Modal,
   Form,
@@ -31,6 +31,7 @@ import {
   resolveAssetUrl,
 } from '../../../utils/assetUrl';
 import { appendCompressedImage } from '../../../utils/imageCompression';
+import { slugify } from '../../../utils/seoHelper';
 
 const FilterDropdown = ({ value, onChange }) => {
   const filtersQuery = useQuery({
@@ -75,6 +76,11 @@ const CategoryModal = ({
   const [imageFile, setImageFile] = useState(null); // raw File object
   const [autoSchema, setAutoSchema] = useState('');
   const [isSchemaLoading, setIsSchemaLoading] = useState(false);
+  const isSlugManuallyEdited = useRef(false);
+  const isMetaTitleManuallyEdited = useRef(false);
+  const isMetaDescManuallyEdited = useRef(false);
+  const isCanonicalManuallyEdited = useRef(false);
+  const autoRequestedRef = useRef(false);
   const [utils, setUtils] = useState({
     isTabLoading: false,
     activeTab: 0,
@@ -87,6 +93,12 @@ const CategoryModal = ({
     if (isVisible) {
       form.resetFields();
       setImageFile(null);
+      isSlugManuallyEdited.current = Boolean(currentEditCategory?.slug);
+      isMetaTitleManuallyEdited.current = Boolean(currentEditCategory?.metaTitle);
+      isMetaDescManuallyEdited.current = Boolean(currentEditCategory?.metaDescription);
+      isCanonicalManuallyEdited.current = Boolean(currentEditCategory?.canonicalUrl);
+      autoRequestedRef.current = Boolean(currentEditCategory?.seoSchema);
+
       const initialUrl = resolveAssetUrl(currentEditCategory?.image);
       updateUtils({
         isTabLoading: false,
@@ -137,31 +149,102 @@ const CategoryModal = ({
     }
   }, [currentEditCategory, isVisible]);
 
-  const handleGenerateSchema = async () => {
+  const handleValuesChange = (changedValues) => {
+    if (changedValues.slug !== undefined) {
+      isSlugManuallyEdited.current = Boolean(changedValues.slug?.trim());
+    }
+    if (changedValues.metaTitle !== undefined) {
+      isMetaTitleManuallyEdited.current = Boolean(changedValues.metaTitle?.trim());
+    }
+    if (changedValues.metaDescription !== undefined) {
+      isMetaDescManuallyEdited.current = Boolean(changedValues.metaDescription?.trim());
+    }
+    if (changedValues.canonicalUrl !== undefined) {
+      isCanonicalManuallyEdited.current = Boolean(changedValues.canonicalUrl?.trim());
+    }
+
+    if (changedValues.name && changedValues.name.en !== undefined) {
+      const enName = String(changedValues.name.en || '').trim();
+      const generatedSlug = slugify(enName);
+      const updates = {};
+
+      if (!isSlugManuallyEdited.current && generatedSlug) {
+        updates.slug = generatedSlug;
+      }
+      if (!isMetaTitleManuallyEdited.current && enName) {
+        updates.metaTitle = `${enName} | MMMK WODE`;
+      }
+      if (!isMetaDescManuallyEdited.current && enName) {
+        updates.metaDescription = `Explore luxury collections in ${enName} at MMMK WODE.`;
+      }
+      if (!isCanonicalManuallyEdited.current && generatedSlug) {
+        updates.canonicalUrl = `https://mmmk-wode.com/product-listings?category=${encodeURIComponent(generatedSlug)}`;
+      }
+
+      if (Object.keys(updates).length > 0) {
+        form.setFieldsValue(updates);
+      }
+    }
+  };
+
+  const handleGenerateSchema = async (showSuccessMessage = true) => {
     try {
       setIsSchemaLoading(true);
       const formValues = form.getFieldsValue();
+      const enName = formValues.name?.en || currentEditCategory?.name?.en;
+      const targetSlug = formValues.slug || (enName ? slugify(enName) : '');
+      const targetTitle = formValues.metaTitle || (enName ? `${enName} | MMMK WODE` : '');
+      const targetDesc = formValues.metaDescription || (enName ? `Explore luxury collections in ${enName} at MMMK WODE.` : '');
+      const targetCanonical = formValues.canonicalUrl || (targetSlug ? `https://mmmk-wode.com/product-listings?category=${encodeURIComponent(targetSlug)}` : '');
+
       const res = await generateCategorySchemaAdmin({
         name: formValues.name,
-        slug: formValues.slug,
-        metaTitle: formValues.metaTitle,
-        metaDescription: formValues.metaDescription,
+        slug: targetSlug,
+        metaTitle: targetTitle,
+        metaDescription: targetDesc,
         metaKeywords: formValues.metaKeywords,
-        canonicalUrl: formValues.canonicalUrl,
+        canonicalUrl: targetCanonical,
         image: currentEditCategory?.image,
       });
       if (res?.success && res?.schema) {
         setAutoSchema(res.schema);
-        form.setFieldsValue({ seoSchema: res.schema });
-        message.success('Schema generated successfully');
+        form.setFieldsValue({
+          seoSchema: res.schema,
+          ...(formValues.slug ? {} : { slug: targetSlug }),
+          ...(formValues.metaTitle ? {} : { metaTitle: targetTitle }),
+          ...(formValues.metaDescription ? {} : { metaDescription: targetDesc }),
+          ...(formValues.canonicalUrl ? {} : { canonicalUrl: targetCanonical }),
+        });
+        if (showSuccessMessage) {
+          message.success('Schema generated successfully');
+        }
       }
     } catch (err) {
       console.error('Failed to generate schema:', err);
-      message.error(err?.response?.data?.message || 'Failed to generate schema');
+      if (showSuccessMessage) {
+        message.error(err?.response?.data?.message || 'Failed to generate schema');
+      }
     } finally {
       setIsSchemaLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!isVisible || autoRequestedRef.current) return;
+    const currentSchema = form.getFieldValue('seoSchema');
+    if (currentSchema?.trim()) {
+      autoRequestedRef.current = true;
+      return;
+    }
+
+    if (utils.activeTab === 3) {
+      const enName = form.getFieldValue(['name', 'en']) || currentEditCategory?.name?.en;
+      if (enName?.trim()) {
+        autoRequestedRef.current = true;
+        handleGenerateSchema(true);
+      }
+    }
+  }, [utils.activeTab, isVisible]);
 
   const handleResetSchema = () => {
     if (autoSchema) {
@@ -219,6 +302,41 @@ const CategoryModal = ({
         });
       }
       const formValues = form.getFieldsValue();
+      const enName = formValues.name?.en || currentEditCategory?.name?.en;
+
+      if (!formValues.slug && enName) {
+        formValues.slug = slugify(enName);
+        form.setFieldsValue({ slug: formValues.slug });
+      }
+      if (!formValues.metaTitle && enName) {
+        formValues.metaTitle = `${enName} | MMMK WODE`;
+        form.setFieldsValue({ metaTitle: formValues.metaTitle });
+      }
+      if (!formValues.metaDescription && enName) {
+        formValues.metaDescription = `Explore luxury collections in ${enName} at MMMK WODE.`;
+        form.setFieldsValue({ metaDescription: formValues.metaDescription });
+      }
+      if (!formValues.canonicalUrl && formValues.slug) {
+        formValues.canonicalUrl = `https://mmmk-wode.com/product-listings?category=${encodeURIComponent(formValues.slug)}`;
+        form.setFieldsValue({ canonicalUrl: formValues.canonicalUrl });
+      }
+
+      if (!formValues.seoSchema && enName) {
+        try {
+          const genRes = await generateCategorySchemaAdmin({
+            name: formValues.name,
+            slug: formValues.slug,
+            metaTitle: formValues.metaTitle,
+            metaDescription: formValues.metaDescription,
+            canonicalUrl: formValues.canonicalUrl,
+            image: currentEditCategory?.image,
+          });
+          if (genRes?.success && genRes?.schema) {
+            formValues.seoSchema = genRes.schema;
+            form.setFieldsValue({ seoSchema: genRes.schema });
+          }
+        } catch (_) {}
+      }
 
       const formData = new FormData();
       formData.append('name', JSON.stringify(formValues.name));
@@ -571,6 +689,7 @@ const CategoryModal = ({
       <Form
         form={form}
         layout="vertical"
+        onValuesChange={handleValuesChange}
         // onFinish={handleFinish}
         initialValues={{ subcategories: [] }}
       >

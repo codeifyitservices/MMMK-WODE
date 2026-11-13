@@ -4,6 +4,8 @@ const deleteFile = require("../../../utils/deleteFile");
 const { destringify } = require("../../../utils/stringify");
 const { getUploadedFileName } = require("../../../utils/requestUploads");
 const cache = require("../../../utils/cache");
+const { generateUniqueSlug } = require("../../../utils/slugify");
+const { generateCategorySchema } = require("../../../utils/schemaGenerator");
 
 const ensureCategoryOrder = async () => {
   const unorderedCategories = await Category.find({
@@ -59,23 +61,71 @@ const addCategory = async (req, res) => {
       });
     }
 
+    const parsedName = destringify(name);
+    const categoryNameEn =
+      parsedName && typeof parsedName === "object"
+        ? parsedName.en || Object.values(parsedName)[0]
+        : parsedName || "category";
+
+    const resolvedSlug = await generateUniqueSlug(
+      Category,
+      slug || categoryNameEn,
+      null,
+      "category"
+    );
+
+    const resolvedMetaTitle =
+      metaTitle && String(metaTitle).trim()
+        ? String(metaTitle).trim()
+        : `${categoryNameEn} | MMMK WODE`;
+
+    const resolvedMetaDescription =
+      metaDescription && String(metaDescription).trim()
+        ? String(metaDescription).trim()
+        : `Explore luxury collections in ${categoryNameEn} at MMMK WODE.`;
+
+    const resolvedCanonicalUrl =
+      canonicalUrl && String(canonicalUrl).trim()
+        ? String(canonicalUrl).trim()
+        : `https://mmmk-wode.com/product-listings?category=${encodeURIComponent(resolvedSlug)}`;
+
+    let resolvedSchema =
+      seoSchema !== undefined && String(seoSchema).trim()
+        ? String(seoSchema).trim()
+        : "";
+
+    if (!resolvedSchema) {
+      try {
+        resolvedSchema = generateCategorySchema({
+          name: parsedName,
+          slug: resolvedSlug,
+          metaTitle: resolvedMetaTitle,
+          metaDescription: resolvedMetaDescription,
+          canonicalUrl: resolvedCanonicalUrl,
+          image,
+        });
+      } catch (err) {
+        console.error("Auto schema generation failed on addCategory:", err);
+      }
+    }
+
     // Place new category at the end by finding current max order
     const last = await Category.findOne().sort({ order: -1 }).select("order");
     const nextOrder = last ? last.order + 1 : 0;
 
     await Category.create({
-      name: destringify(name),
+      name: parsedName,
       filters: destringify(filters, []),
       subcategories: destringify(subcategories, []),
       image,
       order: nextOrder,
-      slug: slug ? String(slug).trim().toLowerCase() : undefined,
-      metaTitle: metaTitle ? String(metaTitle).trim() : undefined,
-      metaDescription: metaDescription ? String(metaDescription).trim() : undefined,
+      slug: resolvedSlug,
+      metaTitle: resolvedMetaTitle,
+      metaDescription: resolvedMetaDescription,
       metaKeywords: metaKeywords ? String(metaKeywords).trim() : undefined,
-      canonicalUrl: canonicalUrl ? String(canonicalUrl).trim() : undefined,
+      canonicalUrl: resolvedCanonicalUrl,
       ogImage: ogImage ? String(ogImage).trim() : undefined,
-      seoSchema: seoSchema !== undefined ? String(seoSchema).trim() : undefined,
+      seoSchema: resolvedSchema || undefined,
     });
 
     cache.invalidate("categories");
@@ -108,13 +158,72 @@ const editCategory = async (req, res) => {
     category.subcategories = destringify(data.subcategories, []);
     category.filters = destringify(data.filters, []);
 
-    if (data.slug !== undefined) category.slug = data.slug ? String(data.slug).trim().toLowerCase() : "";
-    if (data.metaTitle !== undefined) category.metaTitle = data.metaTitle ? String(data.metaTitle).trim() : "";
-    if (data.metaDescription !== undefined) category.metaDescription = data.metaDescription ? String(data.metaDescription).trim() : "";
+    const categoryNameEn =
+      category.name && typeof category.name === "object"
+        ? category.name.en || Object.values(category.name)[0]
+        : category.name || "category";
+
+    let resolvedSlug = category.slug;
+    if (data.slug !== undefined && String(data.slug).trim()) {
+      resolvedSlug = await generateUniqueSlug(
+        Category,
+        data.slug,
+        category._id,
+        "category"
+      );
+    } else if (!resolvedSlug) {
+      resolvedSlug = await generateUniqueSlug(
+        Category,
+        categoryNameEn,
+        category._id,
+        "category"
+      );
+    }
+
+    const resolvedMetaTitle =
+      data.metaTitle !== undefined && String(data.metaTitle).trim()
+        ? String(data.metaTitle).trim()
+        : category.metaTitle || `${categoryNameEn} | MMMK WODE`;
+
+    const resolvedMetaDescription =
+      data.metaDescription !== undefined && String(data.metaDescription).trim()
+        ? String(data.metaDescription).trim()
+        : category.metaDescription ||
+          `Explore luxury collections in ${categoryNameEn} at MMMK WODE.`;
+
+    const resolvedCanonicalUrl =
+      data.canonicalUrl !== undefined && String(data.canonicalUrl).trim()
+        ? String(data.canonicalUrl).trim()
+        : category.canonicalUrl ||
+          `https://mmmk-wode.com/product-listings?category=${encodeURIComponent(resolvedSlug)}`;
+
+    let resolvedSchema =
+      data.seoSchema !== undefined && String(data.seoSchema).trim()
+        ? String(data.seoSchema).trim()
+        : category.seoSchema || "";
+
+    if (!resolvedSchema) {
+      try {
+        resolvedSchema = generateCategorySchema({
+          name: category.name,
+          slug: resolvedSlug,
+          metaTitle: resolvedMetaTitle,
+          metaDescription: resolvedMetaDescription,
+          canonicalUrl: resolvedCanonicalUrl,
+          image: category.image,
+        });
+      } catch (err) {
+        console.error("Auto schema generation failed on editCategory:", err);
+      }
+    }
+
+    category.slug = resolvedSlug;
+    category.metaTitle = resolvedMetaTitle;
+    category.metaDescription = resolvedMetaDescription;
     if (data.metaKeywords !== undefined) category.metaKeywords = data.metaKeywords ? String(data.metaKeywords).trim() : "";
-    if (data.canonicalUrl !== undefined) category.canonicalUrl = data.canonicalUrl ? String(data.canonicalUrl).trim() : "";
+    category.canonicalUrl = resolvedCanonicalUrl;
     if (data.ogImage !== undefined) category.ogImage = data.ogImage ? String(data.ogImage).trim() : "";
-    if (data.seoSchema !== undefined) category.seoSchema = String(data.seoSchema || "").trim();
+    category.seoSchema = resolvedSchema;
 
     await category.save();
 

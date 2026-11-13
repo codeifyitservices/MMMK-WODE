@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 /* eslint-disable react/prop-types */
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   DndContext,
   closestCenter,
@@ -78,6 +78,7 @@ import {
   resolveAssetUrl,
 } from '../../../utils/assetUrl';
 import { uploadSingleAdminFile } from '../../../apis/admin/upload';
+import { slugify } from '../../../utils/seoHelper';
 
 
 const DragHandle = ({ id }) => {
@@ -127,6 +128,11 @@ const ProductModalForm = ({
 
   const [autoSchema, setAutoSchema] = useState('');
   const [isSchemaLoading, setIsSchemaLoading] = useState(false);
+  const isSlugManuallyEdited = useRef(false);
+  const isMetaTitleManuallyEdited = useRef(false);
+  const isMetaDescManuallyEdited = useRef(false);
+  const isCanonicalManuallyEdited = useRef(false);
+  const autoRequestedRef = useRef(false);
   const [utils, setUtils] = useState({
     activeTab: 0,
     isTabLoading: false,
@@ -165,18 +171,62 @@ const ProductModalForm = ({
     }
   };
 
-  const handleGenerateSchema = async () => {
+  const handleValuesChange = (changedValues) => {
+    if (changedValues.slug !== undefined) {
+      isSlugManuallyEdited.current = Boolean(changedValues.slug?.trim());
+    }
+    if (changedValues.metaTitle !== undefined) {
+      isMetaTitleManuallyEdited.current = Boolean(changedValues.metaTitle?.trim());
+    }
+    if (changedValues.metaDescription !== undefined) {
+      isMetaDescManuallyEdited.current = Boolean(changedValues.metaDescription?.trim());
+    }
+    if (changedValues.canonicalUrl !== undefined) {
+      isCanonicalManuallyEdited.current = Boolean(changedValues.canonicalUrl?.trim());
+    }
+
+    if (changedValues.productName && changedValues.productName.en !== undefined) {
+      const enName = String(changedValues.productName.en || '').trim();
+      const generatedSlug = slugify(enName);
+      const updates = {};
+
+      if (!isSlugManuallyEdited.current && generatedSlug) {
+        updates.slug = generatedSlug;
+      }
+      if (!isMetaTitleManuallyEdited.current && enName) {
+        updates.metaTitle = `${enName} | MMMK WODE`;
+      }
+      if (!isMetaDescManuallyEdited.current && enName) {
+        updates.metaDescription = `Buy luxury ${enName} online at MMMK WODE. Fine fragrances and luxury essentials.`;
+      }
+      if (!isCanonicalManuallyEdited.current && generatedSlug) {
+        updates.canonicalUrl = `https://mmmk-wode.com/product-details/${encodeURIComponent(generatedSlug)}`;
+      }
+
+      if (Object.keys(updates).length > 0) {
+        form.setFieldsValue(updates);
+      }
+    }
+  };
+
+  const handleGenerateSchema = async (showSuccessMessage = true) => {
     try {
       setIsSchemaLoading(true);
       const formValues = form.getFieldsValue();
+      const enName = formValues.productName?.en || selected?.productName?.en;
+      const targetSlug = formValues.slug || (enName ? slugify(enName) : '');
+      const targetTitle = formValues.metaTitle || (enName ? `${enName} | MMMK WODE` : '');
+      const targetDesc = formValues.metaDescription || (enName ? `Buy luxury ${enName} online at MMMK WODE. Fine fragrances and luxury essentials.` : '');
+      const targetCanonical = formValues.canonicalUrl || (targetSlug ? `https://mmmk-wode.com/product-details/${encodeURIComponent(targetSlug)}` : '');
+
       const res = await generateProductSchemaAdmin({
         productName: formValues.productName,
         productDescription: formValues.productDescription,
-        slug: formValues.slug,
-        metaTitle: formValues.metaTitle,
-        metaDescription: formValues.metaDescription,
+        slug: targetSlug,
+        metaTitle: targetTitle,
+        metaDescription: targetDesc,
         metaKeywords: formValues.metaKeywords,
-        canonicalUrl: formValues.canonicalUrl,
+        canonicalUrl: targetCanonical,
         price: formValues.price,
         brand: formValues.brand,
         skus: formValues.skus,
@@ -186,12 +236,22 @@ const ProductModalForm = ({
       });
       if (res?.success && res?.schema) {
         setAutoSchema(res.schema);
-        form.setFieldsValue({ seoSchema: res.schema });
-        message.success('Schema generated successfully');
+        form.setFieldsValue({
+          seoSchema: res.schema,
+          ...(formValues.slug ? {} : { slug: targetSlug }),
+          ...(formValues.metaTitle ? {} : { metaTitle: targetTitle }),
+          ...(formValues.metaDescription ? {} : { metaDescription: targetDesc }),
+          ...(formValues.canonicalUrl ? {} : { canonicalUrl: targetCanonical }),
+        });
+        if (showSuccessMessage) {
+          message.success('Schema generated successfully');
+        }
       }
     } catch (err) {
       console.error('Failed to generate product schema:', err);
-      message.error(err?.response?.data?.message || 'Failed to generate schema');
+      if (showSuccessMessage) {
+        message.error(err?.response?.data?.message || 'Failed to generate schema');
+      }
     } finally {
       setIsSchemaLoading(false);
     }
@@ -206,6 +266,12 @@ const ProductModalForm = ({
 
   useEffect(() => {
     if (isOpen) {
+      isSlugManuallyEdited.current = Boolean(selected?.slug);
+      isMetaTitleManuallyEdited.current = Boolean(selected?.metaTitle);
+      isMetaDescManuallyEdited.current = Boolean(selected?.metaDescription);
+      isCanonicalManuallyEdited.current = Boolean(selected?.canonicalUrl);
+      autoRequestedRef.current = Boolean(selected?.seoSchema);
+
       if (selected) {
         const images =
           getUniqueImageNames(selected?.images).map((list) => {
@@ -275,6 +341,23 @@ const ProductModalForm = ({
       });
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen || autoRequestedRef.current) return;
+    const currentSchema = form.getFieldValue('seoSchema');
+    if (currentSchema?.trim()) {
+      autoRequestedRef.current = true;
+      return;
+    }
+
+    if (utils.activeTab === 4) {
+      const enName = form.getFieldValue(['productName', 'en']) || selected?.productName?.en;
+      if (enName?.trim()) {
+        autoRequestedRef.current = true;
+        handleGenerateSchema(true);
+      }
+    }
+  }, [utils.activeTab, isOpen]);
 
   const tabs = useMemo(
     () => [
@@ -593,6 +676,24 @@ const ProductModalForm = ({
       }
 
       const product = form.getFieldsValue();
+      const enName = product.productName?.en || selected?.productName?.en;
+
+      if (!product.slug && enName) {
+        product.slug = slugify(enName);
+        form.setFieldsValue({ slug: product.slug });
+      }
+      if (!product.metaTitle && enName) {
+        product.metaTitle = `${enName} | MMMK WODE`;
+        form.setFieldsValue({ metaTitle: product.metaTitle });
+      }
+      if (!product.metaDescription && enName) {
+        product.metaDescription = `Buy luxury ${enName} online at MMMK WODE. Fine fragrances and luxury essentials.`;
+        form.setFieldsValue({ metaDescription: product.metaDescription });
+      }
+      if (!product.canonicalUrl && product.slug) {
+        product.canonicalUrl = `https://mmmk-wode.com/product-details/${encodeURIComponent(product.slug)}`;
+        form.setFieldsValue({ canonicalUrl: product.canonicalUrl });
+      }
 
       const images = form.getFieldValue('images') || [];
       const image = form.getFieldValue('image') || [];
@@ -624,6 +725,29 @@ const ProductModalForm = ({
         .map((fileName) => getFileNameFromAsset(fileName) || fileName)
         .filter(Boolean)
         .filter((fileName) => fileName !== uploadedPrimaryImage);
+
+      if (!product.seoSchema && enName) {
+        try {
+          const genRes = await generateProductSchemaAdmin({
+            productName: product.productName,
+            productDescription: product.productDescription,
+            slug: product.slug,
+            metaTitle: product.metaTitle,
+            metaDescription: product.metaDescription,
+            canonicalUrl: product.canonicalUrl,
+            price: product.price,
+            brand: product.brand,
+            skus: product.skus,
+            status: product.status,
+            image: uploadedPrimaryImage,
+            images: uploadedGalleryImages,
+          });
+          if (genRes?.success && genRes?.schema) {
+            product.seoSchema = genRes.schema;
+            form.setFieldsValue({ seoSchema: genRes.schema });
+          }
+        } catch (_) {}
+      }
 
       if (uploadedPrimaryImage) {
         formData.append('image', uploadedPrimaryImage);
@@ -717,6 +841,7 @@ const ProductModalForm = ({
         name="productForm"
         form={form}
         layout="vertical"
+        onValuesChange={handleValuesChange}
         onFinish={handleFormSubmit}
       >
         <FormTabs

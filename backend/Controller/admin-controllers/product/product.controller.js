@@ -19,6 +19,8 @@ const {
   safeEndSession,
 } = require("../../../utils/dbUtils");
 const { generateProductThumbnail } = require("../../../utils/productThumbnail");
+const { generateUniqueSlug } = require("../../../utils/slugify");
+const { generateProductSchema } = require("../../../utils/schemaGenerator");
 
 const fieldsWithTranslations = [
   "productName",
@@ -86,21 +88,85 @@ const create = async (req, res) => {
       .lean();
 
 
+    const parsedProductName = parseJsonBodyField(
+      incommingData.productName,
+      {},
+      "productName"
+    );
+    const productNameEn =
+      parsedProductName && typeof parsedProductName === "object"
+        ? parsedProductName.en || Object.values(parsedProductName)[0]
+        : parsedProductName || "product";
+
+    const resolvedSlug = await generateUniqueSlug(
+      Product,
+      incommingData.slug || productNameEn,
+      null,
+      "product"
+    );
+
+    const resolvedMetaTitle =
+      incommingData.metaTitle && String(incommingData.metaTitle).trim()
+        ? String(incommingData.metaTitle).trim()
+        : `${productNameEn} | MMMK WODE`;
+
+    const parsedDesc = parseJsonBodyField(
+      incommingData.productDescription,
+      {},
+      "productDescription"
+    );
+    const descText =
+      parsedDesc && typeof parsedDesc === "object"
+        ? parsedDesc.en || Object.values(parsedDesc)[0]
+        : parsedDesc || "";
+
+    const resolvedMetaDescription =
+      incommingData.metaDescription && String(incommingData.metaDescription).trim()
+        ? String(incommingData.metaDescription).trim()
+        : descText
+        ? String(descText).replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim().slice(0, 160)
+        : `Buy luxury ${productNameEn} online at MMMK WODE. Fine fragrances and luxury essentials.`;
+
+    const resolvedCanonicalUrl =
+      incommingData.canonicalUrl && String(incommingData.canonicalUrl).trim()
+        ? String(incommingData.canonicalUrl).trim()
+        : `https://mmmk-wode.com/product-details/${encodeURIComponent(resolvedSlug)}`;
+
+    const normalizedImages = normalizeImageList(imagesUploaded, primaryImage);
+
+    let resolvedSchema =
+      incommingData.seoSchema !== undefined && String(incommingData.seoSchema).trim()
+        ? String(incommingData.seoSchema).trim()
+        : "";
+
+    if (!resolvedSchema) {
+      try {
+        resolvedSchema = generateProductSchema({
+          productName: parsedProductName,
+          productDescription: parsedDesc,
+          slug: resolvedSlug,
+          metaTitle: resolvedMetaTitle,
+          metaDescription: resolvedMetaDescription,
+          canonicalUrl: resolvedCanonicalUrl,
+          price: incommingData.price,
+          brand: incommingData.brand,
+          skus: parseJsonBodyField(incommingData.skus, [], "skus"),
+          status: incommingData.status,
+          image: primaryImage,
+          images: normalizedImages,
+        });
+      } catch (err) {
+        console.error("Auto schema generation failed on product create:", err);
+      }
+    }
+
     const dataToStore = {
       category: incommingData.category,
       subCategory: incommingData.subCategory,
       // quantity will be calculated from SKUs
       status: incommingData.status,
-      productName: parseJsonBodyField(
-        incommingData.productName,
-        {},
-        "productName"
-      ),
-      productDescription: parseJsonBodyField(
-        incommingData.productDescription,
-        {},
-        "productDescription"
-      ),
+      productName: parsedProductName,
+      productDescription: parsedDesc,
       uses: parseJsonBodyField(incommingData.uses, {}, "uses"),
       benefits: parseJsonBodyField(incommingData.benefits, {}, "benefits"),
       price: incommingData.price,
@@ -110,20 +176,20 @@ const create = async (req, res) => {
       brand: incommingData.brand,
       websitePrice: incommingData.websitePrice,
       homePageBottomSection: incommingData.homePageBottomSection,
-      images: normalizeImageList(imagesUploaded, primaryImage),
+      images: normalizedImages,
       image: primaryImage || null,
       thumbnail: null,
       filters: parseJsonBodyField(incommingData.filters, [], "filters"),
       skus: parseJsonBodyField(incommingData.skus, [], "skus"),
       showOnHomepage: incommingData.showOnHomepage || false,
       order: Number.isFinite(lastProduct?.order) ? lastProduct.order + 1 : 0,
-      slug: incommingData.slug ? String(incommingData.slug).trim().toLowerCase() : undefined,
-      metaTitle: incommingData.metaTitle ? String(incommingData.metaTitle).trim() : undefined,
-      metaDescription: incommingData.metaDescription ? String(incommingData.metaDescription).trim() : undefined,
+      slug: resolvedSlug,
+      metaTitle: resolvedMetaTitle,
+      metaDescription: resolvedMetaDescription,
       metaKeywords: incommingData.metaKeywords ? String(incommingData.metaKeywords).trim() : undefined,
-      canonicalUrl: incommingData.canonicalUrl ? String(incommingData.canonicalUrl).trim() : undefined,
+      canonicalUrl: resolvedCanonicalUrl,
       ogImage: incommingData.ogImage ? String(incommingData.ogImage).trim() : undefined,
-      seoSchema: incommingData.seoSchema !== undefined ? String(incommingData.seoSchema).trim() : undefined,
+      seoSchema: resolvedSchema || undefined,
     };
 
     if (dataToStore.skus.length === 0) {
@@ -466,13 +532,100 @@ const updateProduct = async (req, res) => {
     product.filters = newFilters;
     product.showOnHomepage = showOnHomepage;
 
-    if (req.body.slug !== undefined) product.slug = req.body.slug ? String(req.body.slug).trim().toLowerCase() : "";
-    if (req.body.metaTitle !== undefined) product.metaTitle = req.body.metaTitle ? String(req.body.metaTitle).trim() : "";
-    if (req.body.metaDescription !== undefined) product.metaDescription = req.body.metaDescription ? String(req.body.metaDescription).trim() : "";
+    const parsedProductName = parseJsonBodyField(
+      productName,
+      {},
+      "productName"
+    );
+    const productNameEn =
+      parsedProductName && typeof parsedProductName === "object"
+        ? parsedProductName.en || Object.values(parsedProductName)[0]
+        : parsedProductName || product.productName?.en || "product";
+
+    let resolvedSlug = product.slug;
+    if (req.body.slug !== undefined && String(req.body.slug).trim()) {
+      resolvedSlug = await generateUniqueSlug(
+        Product,
+        req.body.slug,
+        product._id,
+        "product"
+      );
+    } else if (!resolvedSlug) {
+      resolvedSlug = await generateUniqueSlug(
+        Product,
+        productNameEn,
+        product._id,
+        "product"
+      );
+    }
+
+    const resolvedMetaTitle =
+      req.body.metaTitle !== undefined && String(req.body.metaTitle).trim()
+        ? String(req.body.metaTitle).trim()
+        : product.metaTitle || `${productNameEn} | MMMK WODE`;
+
+    const parsedDesc = parseJsonBodyField(
+      productDescription,
+      {},
+      "productDescription"
+    );
+    const descText =
+      parsedDesc && typeof parsedDesc === "object"
+        ? parsedDesc.en || Object.values(parsedDesc)[0]
+        : parsedDesc || product.productDescription?.en || "";
+
+    const resolvedMetaDescription =
+      req.body.metaDescription !== undefined && String(req.body.metaDescription).trim()
+        ? String(req.body.metaDescription).trim()
+        : product.metaDescription ||
+          (descText
+            ? String(descText)
+                .replace(/<[^>]*>/g, " ")
+                .replace(/\s+/g, " ")
+                .trim()
+                .slice(0, 160)
+            : `Buy luxury ${productNameEn} online at MMMK WODE. Fine fragrances and luxury essentials.`);
+
+    const resolvedCanonicalUrl =
+      req.body.canonicalUrl !== undefined && String(req.body.canonicalUrl).trim()
+        ? String(req.body.canonicalUrl).trim()
+        : product.canonicalUrl ||
+          `https://mmmk-wode.com/product-details/${encodeURIComponent(resolvedSlug)}`;
+
+    let resolvedSchema =
+      req.body.seoSchema !== undefined && String(req.body.seoSchema).trim()
+        ? String(req.body.seoSchema).trim()
+        : product.seoSchema || "";
+
+    if (!resolvedSchema) {
+      try {
+        resolvedSchema = generateProductSchema({
+          _id: product._id,
+          productName: parsedProductName || product.productName,
+          productDescription: parsedDesc || product.productDescription,
+          slug: resolvedSlug,
+          metaTitle: resolvedMetaTitle,
+          metaDescription: resolvedMetaDescription,
+          canonicalUrl: resolvedCanonicalUrl,
+          price: price !== undefined ? price : product.price,
+          brand: brand !== undefined ? brand : product.brand,
+          skus: newSkus,
+          status: status || product.status,
+          image: product.image,
+          images: product.images,
+        });
+      } catch (err) {
+        console.error("Auto schema generation failed on product update:", err);
+      }
+    }
+
+    product.slug = resolvedSlug;
+    product.metaTitle = resolvedMetaTitle;
+    product.metaDescription = resolvedMetaDescription;
     if (req.body.metaKeywords !== undefined) product.metaKeywords = req.body.metaKeywords ? String(req.body.metaKeywords).trim() : "";
-    if (req.body.canonicalUrl !== undefined) product.canonicalUrl = req.body.canonicalUrl ? String(req.body.canonicalUrl).trim() : "";
+    product.canonicalUrl = resolvedCanonicalUrl;
     if (req.body.ogImage !== undefined) product.ogImage = req.body.ogImage ? String(req.body.ogImage).trim() : "";
-    if (req.body.seoSchema !== undefined) product.seoSchema = String(req.body.seoSchema || "").trim();
+    product.seoSchema = resolvedSchema;
 
     // Save updated product
     await product.save({ session });
